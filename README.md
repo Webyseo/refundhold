@@ -39,6 +39,28 @@ pnpm typecheck
 Prisma is configured for Postgres. Set `DATABASE_URL` in a local `.env` before
 running Prisma commands that need a database connection.
 
+Run the demo seed after applying migrations to a local Postgres database:
+
+```bash
+pnpm db:seed
+```
+
+The seed creates or updates:
+
+- one demo organization: `authrail-demo`
+- one demo admin/reviewer user: `reviewer@authrail.local`
+- one demo AI support agent
+- one hashed demo agent API key
+- one Stripe test connector placeholder
+- three refund policies:
+  - refunds under 50 EUR -> `ALLOW`
+  - refunds from 50 EUR to 500 EUR -> `APPROVAL_REQUIRED`
+  - refunds over 500 EUR -> `DENY`
+
+When the demo API key is created for the first time, the raw key is printed once
+for local development. Later seed runs keep the stored hash and do not show the
+raw key again.
+
 ## Why Prisma For The MVP
 
 AuthRail needs a clear relational model for proposed actions, policy decisions,
