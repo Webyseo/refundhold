@@ -91,6 +91,15 @@ it, then creates a second reviewable 100 EUR refund and rejects it. It uses
 `AUTHRAIL_DEMO_REVIEWER_EMAIL` from `.env`, defaulting to
 `reviewer@authrail.local`.
 
+Run the execution flow smoke test to verify the complete MVP path:
+
+```bash
+pnpm smoke:execution-flow
+```
+
+The execution flow smoke test creates a reviewable 100 EUR refund, approves it,
+executes it in `dry_run` mode, then verifies a duplicate execution is rejected.
+
 ## Demo Seed
 
 Run the demo seed after applying migrations to a local Postgres database:
@@ -127,8 +136,9 @@ good MVP fit because it provides typed schema-driven access, migration tooling,
 and a direct path to Postgres without forcing the product into a specific
 application architecture too early.
 
-Approval workflows, connector runtime behavior, execution runtime behavior, and
-dashboard screens are not implemented yet.
+The approval API and dry-run execution API are implemented for the MVP.
+Dashboard screens, connector runtime behavior, and real external execution are
+not implemented yet.
 
 ## Initial Data Model
 
