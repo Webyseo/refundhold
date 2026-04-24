@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  filterActionRequestsByDashboardStatus,
   getActionRequestControls,
   getAmountCurrency,
+  getImpactSummary,
+  getRequestFilterCounts,
+  sortDashboardActionRequestsForReview,
   type DashboardActionRequestState,
+  type DashboardActionRequestSummary,
 } from "./view-model";
 
 describe("dashboard view model", () => {
@@ -81,4 +86,93 @@ describe("dashboard view model", () => {
       });
     }
   });
+
+  it("builds a concise impact summary from amount and currency", () => {
+    expect(
+      getImpactSummary({
+        operation: "refund.create",
+        parameters: {
+          amount: 100,
+          currency: "eur",
+        },
+      }),
+    ).toBe("100 EUR refund.create");
+  });
+
+  it("falls back to the operation when no amount is available", () => {
+    expect(
+      getImpactSummary({
+        operation: "refund.create",
+        parameters: {},
+      }),
+    ).toBe("refund.create");
+  });
+
+  it("counts dashboard filters from request status", () => {
+    const requests = [
+      makeRequest("pending", "APPROVAL_REQUIRED"),
+      makeRequest("approved", "APPROVED"),
+      makeRequest("rejected", "REJECTED"),
+      makeRequest("executed", "EXECUTED"),
+    ];
+
+    expect(getRequestFilterCounts(requests)).toEqual({
+      all: 4,
+      pending: 1,
+      approved: 1,
+      rejected: 1,
+      executed: 1,
+    });
+  });
+
+  it("filters action requests by dashboard status", () => {
+    const requests = [
+      makeRequest("pending", "APPROVAL_REQUIRED"),
+      makeRequest("approved", "APPROVED"),
+      makeRequest("denied", "DENIED"),
+    ];
+
+    expect(
+      filterActionRequestsByDashboardStatus(requests, "pending").map(
+        (request) => request.id,
+      ),
+    ).toEqual(["pending"]);
+
+    expect(
+      filterActionRequestsByDashboardStatus(requests, "all").map(
+        (request) => request.id,
+      ),
+    ).toEqual(["pending", "approved", "denied"]);
+  });
+
+  it("sorts pending review requests before terminal requests and keeps newest first", () => {
+    const requests = [
+      makeRequest("old-pending", "APPROVAL_REQUIRED", new Date("2026-01-01")),
+      makeRequest("new-executed", "EXECUTED", new Date("2026-01-04")),
+      makeRequest("new-pending", "APPROVAL_REQUIRED", new Date("2026-01-03")),
+      makeRequest("old-executed", "EXECUTED", new Date("2026-01-02")),
+    ];
+
+    expect(
+      sortDashboardActionRequestsForReview(requests).map((request) => request.id),
+    ).toEqual(["new-pending", "old-pending", "new-executed", "old-executed"]);
+  });
 });
+
+function makeRequest(
+  id: string,
+  status: DashboardActionRequestSummary["status"],
+  createdAt = new Date("2026-01-01"),
+): DashboardActionRequestSummary {
+  return {
+    id,
+    status,
+    decision: status === "DENIED" ? "DENY" : "APPROVAL_REQUIRED",
+    createdAt,
+    operation: "refund.create",
+    parameters: {
+      amount: 100,
+      currency: "EUR",
+    },
+  };
+}

@@ -11,6 +11,7 @@ import {
   formatDateTime,
   formatJson,
   getActionRequestControls,
+  getImpactSummary,
   getDecisionLabel,
   getStatusLabel,
 } from "@/lib/dashboard/view-model";
@@ -36,6 +37,10 @@ export default async function ActionRequestDetailPage({
     decision: request.decision,
     status: request.status,
   });
+  const impactSummary = getImpactSummary({
+    operation: request.operation,
+    parameters: request.parameters,
+  });
   const success = getSearchMessage(notices["success"]);
   const error = getSearchMessage(notices["error"]);
 
@@ -58,9 +63,9 @@ export default async function ActionRequestDetailPage({
           </h1>
           <p className="mt-2 font-mono text-sm text-zinc-500">{request.id}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Pill>{getStatusLabel(request.status)}</Pill>
-          <Pill>{getDecisionLabel(request.decision)}</Pill>
+        <div className="grid gap-2 sm:grid-cols-2 lg:min-w-80">
+          <StatePanel label="Current status" value={getStatusLabel(request.status)} />
+          <StatePanel label="Policy decision" value={getDecisionLabel(request.decision)} />
         </div>
       </div>
 
@@ -69,6 +74,19 @@ export default async function ActionRequestDetailPage({
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-6">
+          <section className="rounded-lg border border-amber-200 bg-amber-50 p-5">
+            <p className="text-sm font-semibold text-amber-950">
+              Review focus
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-amber-950">
+              {impactSummary}
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-amber-900">
+              {request.decisionReason ??
+                "No policy reason was recorded for this request."}
+            </p>
+          </section>
+
           <section className="rounded-lg border border-zinc-200 bg-white p-5">
             <h2 className="text-base font-semibold text-zinc-950">Summary</h2>
             <dl className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -81,6 +99,7 @@ export default async function ActionRequestDetailPage({
                     : "none"
                 }
               />
+              <Detail label="Impact" value={impactSummary} />
               <Detail
                 label="Created"
                 value={formatDateTime(request.createdAt)}
@@ -144,6 +163,10 @@ export default async function ActionRequestDetailPage({
             <h2 className="text-base font-semibold text-zinc-950">
               Executions
             </h2>
+            <p className="mt-2 text-sm leading-6 text-zinc-600">
+              Dry-run executions are simulations only. AuthRail does not call
+              Stripe or any external connector from this dashboard.
+            </p>
             {request.executions.length === 0 ? (
               <EmptyLine>No executions recorded.</EmptyLine>
             ) : (
@@ -183,7 +206,7 @@ export default async function ActionRequestDetailPage({
         <aside className="space-y-6">
           <section className="rounded-lg border border-zinc-200 bg-white p-5">
             <h2 className="text-base font-semibold text-zinc-950">
-              Review actions
+              Available action
             </h2>
             <p className="mt-2 text-sm leading-6 text-zinc-600">
               These actions use the existing AuthRail API logic and the
@@ -191,58 +214,95 @@ export default async function ActionRequestDetailPage({
             </p>
 
             {controls.canApprove || controls.canReject ? (
-              <div className="mt-4 space-y-3">
-                <form action={approveActionRequestFromDashboard}>
+              <div className="mt-4 space-y-4">
+                <form
+                  action={approveActionRequestFromDashboard}
+                  className="rounded-lg border border-emerald-200 bg-emerald-50 p-4"
+                >
                   <input
                     type="hidden"
                     name="actionRequestId"
                     value={request.id}
                   />
+                  <label
+                    htmlFor="approval-comment"
+                    className="text-sm font-semibold text-emerald-950"
+                  >
+                    Approve and allow this action to proceed
+                  </label>
+                  <p className="mt-1 text-sm leading-6 text-emerald-900">
+                    Use this only when the policy reason and payload look safe
+                    for the demo scenario.
+                  </p>
                   <textarea
+                    id="approval-comment"
                     name="comment"
-                    className="min-h-24 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                    className="mt-3 min-h-24 w-full rounded-md border border-emerald-300 bg-white px-3 py-2 text-sm text-zinc-950 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
                     placeholder="Optional approval comment"
                   />
                   <button
                     type="submit"
-                    className="mt-2 w-full rounded-md bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800"
+                    className="mt-2 w-full rounded-md bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800"
                   >
-                    Approve
+                    Approve this action
                   </button>
                 </form>
-                <form action={rejectActionRequestFromDashboard}>
+                <form
+                  action={rejectActionRequestFromDashboard}
+                  className="rounded-lg border border-red-200 bg-red-50 p-4"
+                >
                   <input
                     type="hidden"
                     name="actionRequestId"
                     value={request.id}
                   />
+                  <label
+                    htmlFor="rejection-comment"
+                    className="text-sm font-semibold text-red-950"
+                  >
+                    Reject and block this action
+                  </label>
+                  <p className="mt-1 text-sm leading-6 text-red-900">
+                    Use this when the request should not receive an execution
+                    grant.
+                  </p>
                   <textarea
+                    id="rejection-comment"
                     name="comment"
-                    className="min-h-24 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-950 outline-none focus:border-red-600 focus:ring-2 focus:ring-red-100"
+                    className="mt-3 min-h-24 w-full rounded-md border border-red-300 bg-white px-3 py-2 text-sm text-zinc-950 outline-none focus:border-red-600 focus:ring-2 focus:ring-red-100"
                     placeholder="Optional rejection comment"
                   />
                   <button
                     type="submit"
-                    className="mt-2 w-full rounded-md bg-red-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-800"
+                    className="mt-2 w-full rounded-md border border-red-300 bg-white px-4 py-3 text-sm font-semibold text-red-800 hover:bg-red-50"
                   >
-                    Reject
+                    Reject this action
                   </button>
                 </form>
               </div>
             ) : null}
 
             {controls.canExecute ? (
-              <form action={executeActionRequestFromDashboard} className="mt-4">
+              <form
+                action={executeActionRequestFromDashboard}
+                className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4"
+              >
                 <input
                   type="hidden"
                   name="actionRequestId"
                   value={request.id}
                 />
+                <p className="text-sm font-semibold text-emerald-950">
+                  Approved and ready for simulation
+                </p>
+                <p className="mt-1 text-sm leading-6 text-emerald-900">
+                  This creates a dry-run execution record only.
+                </p>
                 <button
                   type="submit"
-                  className="w-full rounded-md bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800"
+                  className="mt-3 w-full rounded-md bg-zinc-950 px-4 py-3 text-sm font-semibold text-white hover:bg-zinc-800"
                 >
-                  Execute dry-run
+                  Execute dry-run simulation
                 </button>
               </form>
             ) : null}
@@ -263,14 +323,22 @@ export default async function ActionRequestDetailPage({
             {request.auditEvents.length === 0 ? (
               <EmptyLine>No audit events recorded.</EmptyLine>
             ) : (
-              <ol className="mt-4 space-y-4">
+              <ol className="mt-4 space-y-0">
                 {request.auditEvents.map((event) => (
-                  <li key={event.id} className="border-l-2 border-zinc-200 pl-4">
-                    <p className="text-sm font-semibold text-zinc-950">
-                      {event.type}
-                    </p>
+                  <li
+                    key={event.id}
+                    className="border-l-2 border-zinc-200 pb-5 pl-4 last:pb-0"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-zinc-950">
+                        {event.type}
+                      </p>
+                      <p className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-semibold text-zinc-600">
+                        {event.actorType}
+                      </p>
+                    </div>
                     <p className="mt-1 text-xs text-zinc-500">
-                      {formatDateTime(event.createdAt)} / {event.actorType}
+                      {formatDateTime(event.createdAt)}
                     </p>
                     <pre className="mt-2 max-h-48 overflow-auto rounded-md bg-zinc-950 p-3 text-xs leading-5 text-zinc-100">
                       {formatJson(event.metadata)}
@@ -283,6 +351,19 @@ export default async function ActionRequestDetailPage({
         </aside>
       </div>
     </section>
+  );
+}
+
+function StatePanel({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-zinc-200 bg-white p-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+        {label}
+      </p>
+      <p className="mt-2 text-lg font-semibold capitalize text-zinc-950">
+        {value}
+      </p>
+    </div>
   );
 }
 
@@ -305,14 +386,6 @@ function JsonSection({ title, value }: { title: string; value: unknown }) {
         {formatJson(value)}
       </pre>
     </section>
-  );
-}
-
-function Pill({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-sm font-semibold capitalize text-zinc-700">
-      {children}
-    </span>
   );
 }
 
