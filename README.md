@@ -63,6 +63,17 @@ pnpm typecheck
 Prisma is configured for Postgres. Set `DATABASE_URL` in a local `.env` before
 running Prisma commands that need a database connection.
 
+Open the demo dashboard after the app is running:
+
+```text
+http://localhost:3000/app
+```
+
+The dashboard lists action requests from Postgres, shows request detail and
+audit history, and lets the demo reviewer approve, reject, or execute approved
+requests in `dry_run` mode. It uses `AUTHRAIL_DEMO_REVIEWER_EMAIL` from `.env`,
+defaulting to `reviewer@authrail.local`.
+
 Run the action request smoke test from a second terminal while the Next.js app
 is running:
 
@@ -136,9 +147,9 @@ good MVP fit because it provides typed schema-driven access, migration tooling,
 and a direct path to Postgres without forcing the product into a specific
 application architecture too early.
 
-The approval API and dry-run execution API are implemented for the MVP.
-Dashboard screens, connector runtime behavior, and real external execution are
-not implemented yet.
+The approval API, dry-run execution API, and minimal dashboard screens are
+implemented for the MVP. Connector runtime behavior and real external execution
+are not implemented yet.
 
 ## Initial Data Model
 

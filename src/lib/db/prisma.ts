@@ -66,6 +66,92 @@ export type PrismaExecutableActionRequestRecord = {
     | "CANCELED";
 };
 
+export type PrismaDashboardAgentRecord = {
+  id: string;
+  name: string;
+};
+
+export type PrismaDashboardConnectorRecord = {
+  id: string;
+  name: string;
+  type: string;
+};
+
+export type PrismaDashboardUserRecord = {
+  id: string;
+  email: string;
+  displayName: string | null;
+};
+
+export type PrismaDashboardActionRequestListRecord =
+  PrismaExecutableActionRequestRecord & {
+    operation: string;
+    parameters: unknown;
+    createdAt: Date;
+    agent: PrismaDashboardAgentRecord;
+    connector: PrismaDashboardConnectorRecord | null;
+  };
+
+export type PrismaDashboardApprovalRecord = {
+  id: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELED" | "EXPIRED";
+  reason: string | null;
+  reviewedAt: Date | null;
+  createdAt: Date;
+  reviewer: PrismaDashboardUserRecord | null;
+};
+
+export type PrismaDashboardExecutionRecord = {
+  id: string;
+  mode: "DRY_RUN" | "DIRECT" | "GRANT";
+  status:
+    | "PENDING"
+    | "GRANT_ISSUED"
+    | "RUNNING"
+    | "SUCCEEDED"
+    | "FAILED"
+    | "CANCELED";
+  responsePayload: unknown;
+  errorMetadata: unknown;
+  startedAt: Date | null;
+  completedAt: Date | null;
+  createdAt: Date;
+};
+
+export type PrismaDashboardAuditEventRecord = {
+  id: string;
+  actorType: "USER" | "AGENT" | "SYSTEM";
+  type:
+    | "ACTION_PROPOSED"
+    | "REQUEST_RECEIVED"
+    | "POLICY_EVALUATED"
+    | "DECISION_CREATED"
+    | "APPROVAL_REQUESTED"
+    | "APPROVAL_APPROVED"
+    | "APPROVAL_REJECTED"
+    | "EXECUTION_GRANT_ISSUED"
+    | "EXECUTION_STARTED"
+    | "EXECUTION_SUCCEEDED"
+    | "EXECUTION_FAILED";
+  metadata: unknown;
+  createdAt: Date;
+  agent: PrismaDashboardAgentRecord | null;
+  user: PrismaDashboardUserRecord | null;
+};
+
+export type PrismaDashboardActionRequestDetailRecord =
+  PrismaDashboardActionRequestListRecord & {
+    resource: unknown;
+    context: unknown;
+    requestPayload: unknown;
+    decisionReason: string | null;
+    decidedAt: Date | null;
+    updatedAt: Date;
+    approvals: PrismaDashboardApprovalRecord[];
+    executions: PrismaDashboardExecutionRecord[];
+    auditEvents: PrismaDashboardAuditEventRecord[];
+  };
+
 export type AuthRailPrismaTransactionClient = {
   actionRequest: {
     create: (args: unknown) => Promise<{ id: string }>;
@@ -91,10 +177,16 @@ export type AuthRailPrismaClient = AuthRailPrismaTransactionClient & {
     findMany: (args: unknown) => Promise<PrismaPolicyRecord[]>;
   };
   actionRequest: AuthRailPrismaTransactionClient["actionRequest"] & {
+    findMany: (
+      args: unknown,
+    ) => Promise<PrismaDashboardActionRequestListRecord[]>;
     findUnique: (
       args: unknown,
     ) => Promise<
-      PrismaReviewActionRequestRecord | PrismaExecutableActionRequestRecord | null
+      | PrismaReviewActionRequestRecord
+      | PrismaExecutableActionRequestRecord
+      | PrismaDashboardActionRequestDetailRecord
+      | null
     >;
   };
   user: {

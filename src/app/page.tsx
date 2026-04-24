@@ -13,11 +13,14 @@ export default function Home() {
           when needed, and records every decision in an immutable audit trail.
         </p>
         <div className="mt-10 rounded-lg border border-zinc-800 bg-zinc-900/70 p-5">
-          <p className="text-sm font-medium text-zinc-100">Bootstrap scope</p>
+          <p className="text-sm font-medium text-zinc-100">MVP scope</p>
           <p className="mt-2 text-sm leading-6 text-zinc-400">
-            This placeholder intentionally does not include action requests,
-            authentication, policies, dashboards, shadcn/ui, or external
-            connectors yet.
+            The backend can evaluate action requests, record approvals, and
+            perform dry-run execution. The demo dashboard is available at{" "}
+            <a className="text-emerald-300 hover:text-emerald-200" href="/app">
+              /app
+            </a>
+            .
           </p>
         </div>
       </section>
