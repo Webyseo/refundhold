@@ -11,3 +11,334 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum AgentStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum AgentApiKeyStatus {
+  ACTIVE
+  REVOKED
+}
+
+enum ConnectorStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum PolicyStatus {
+  DRAFT
+  ACTIVE
+  DISABLED
+  ARCHIVED
+}
+
+enum AuthRailDecision {
+  ALLOW
+  DENY
+  APPROVAL_REQUIRED
+}
+
+enum ActionRequestStatus {
+  PROPOSED
+  ALLOWED
+  DENIED
+  APPROVAL_REQUIRED
+  APPROVED
+  REJECTED
+  EXECUTING
+  EXECUTED
+  FAILED
+  CANCELED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELED
+  EXPIRED
+}
+
+enum ExecutionMode {
+  DIRECT
+  GRANT
+}
+
+enum ExecutionStatus {
+  PENDING
+  GRANT_ISSUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELED
+}
+
+enum AuditActorType {
+  USER
+  AGENT
+  SYSTEM
+}
+
+enum AuditEventType {
+  ACTION_PROPOSED
+  POLICY_EVALUATED
+  APPROVAL_REQUESTED
+  APPROVAL_APPROVED
+  APPROVAL_REJECTED
+  EXECUTION_GRANT_ISSUED
+  EXECUTION_STARTED
+  EXECUTION_SUCCEEDED
+  EXECUTION_FAILED
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users          User[]
+  agents         Agent[]
+  connectors     Connector[]
+  policies       Policy[]
+  actionRequests ActionRequest[]
+  approvals      Approval[]
+  executions     Execution[]
+  auditEvents    AuditEvent[]
+  agentApiKeys   AgentApiKey[]
+
+  @@map("organizations")
+}
+
+model User {
+  id             String     @id @default(cuid())
+  organizationId String
+  email          String
+  displayName    String?
+  status         UserStatus @default(ACTIVE)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  reviewedApprovals Approval[]
+  auditEvents       AuditEvent[]
+
+  @@unique([organizationId, email])
+  @@index([organizationId, status])
+  @@map("users")
+}
+
+model Agent {
+  id             String      @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  status         AgentStatus @default(ACTIVE)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  apiKeys        AgentApiKey[]
+  actionRequests ActionRequest[]
+  auditEvents    AuditEvent[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId, status])
+  @@map("agents")
+}
+
+model AgentApiKey {
+  id             String            @id @default(cuid())
+  organizationId String
+  agentId        String
+  name           String
+  keyPrefix      String
+  keyHash        String            @unique
+  status         AgentApiKeyStatus @default(ACTIVE)
+  lastUsedAt     DateTime?
+  expiresAt      DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  agent        Agent        @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, agentId])
+  @@index([organizationId, status])
+  @@map("agent_api_keys")
+}
+
+model Connector {
+  id                              String          @id @default(cuid())
+  organizationId                  String
+  name                            String
+  type                            String
+  status                          ConnectorStatus @default(ACTIVE)
+  configuration                   Json?
+  // Placeholder only. Credential encryption is not implemented in this schema pass.
+  encryptedCredentialsPlaceholder Json?
+  createdAt                       DateTime        @default(now())
+  updatedAt                       DateTime        @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  policies       Policy[]
+  actionRequests ActionRequest[]
+  executions     Execution[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId, type])
+  @@index([organizationId, status])
+  @@map("connectors")
+}
+
+model Policy {
+  id             String           @id @default(cuid())
+  organizationId String
+  connectorId    String?
+  name           String
+  description    String?
+  status         PolicyStatus     @default(DRAFT)
+  decision       AuthRailDecision
+  rules          Json
+  priority       Int              @default(100)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  connector    Connector?   @relation(fields: [connectorId], references: [id], onDelete: SetNull)
+
+  actionRequests ActionRequest[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId, status])
+  @@index([organizationId, connectorId])
+  @@map("policies")
+}
+
+model ActionRequest {
+  id             String              @id @default(cuid())
+  organizationId String
+  agentId        String
+  connectorId    String?
+  policyId       String?
+  operation      String
+  resource       Json
+  parameters     Json
+  context        Json
+  requestPayload Json?
+  decision       AuthRailDecision?
+  status         ActionRequestStatus @default(PROPOSED)
+  decisionReason String?
+  decidedAt      DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  agent        Agent        @relation(fields: [agentId], references: [id], onDelete: Restrict)
+  connector    Connector?   @relation(fields: [connectorId], references: [id], onDelete: SetNull)
+  policy       Policy?      @relation(fields: [policyId], references: [id], onDelete: SetNull)
+
+  approvals   Approval[]
+  executions  Execution[]
+  auditEvents AuditEvent[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, decision])
+  @@index([organizationId, agentId])
+  @@index([organizationId, connectorId])
+  @@index([organizationId, policyId])
+  @@map("action_requests")
+}
+
+model Approval {
+  id              String         @id @default(cuid())
+  organizationId  String
+  actionRequestId String
+  reviewerId      String?
+  status          ApprovalStatus @default(PENDING)
+  reason          String?
+  reviewedAt      DateTime?
+  expiresAt       DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  organization  Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actionRequest ActionRequest @relation(fields: [actionRequestId], references: [id], onDelete: Cascade)
+  reviewer      User?         @relation(fields: [reviewerId], references: [id], onDelete: SetNull)
+
+  auditEvents AuditEvent[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, actionRequestId])
+  @@index([organizationId, reviewerId])
+  @@map("approvals")
+}
+
+model Execution {
+  id              String          @id @default(cuid())
+  organizationId  String
+  actionRequestId String
+  connectorId     String?
+  mode            ExecutionMode
+  status          ExecutionStatus @default(PENDING)
+  grantTokenHash  String?
+  grantExpiresAt  DateTime?
+  responsePayload Json?
+  errorMetadata   Json?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  organization  Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actionRequest ActionRequest @relation(fields: [actionRequestId], references: [id], onDelete: Cascade)
+  connector     Connector?    @relation(fields: [connectorId], references: [id], onDelete: SetNull)
+
+  auditEvents AuditEvent[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, actionRequestId])
+  @@index([organizationId, connectorId])
+  @@map("executions")
+}
+
+model AuditEvent {
+  id              String         @id @default(cuid())
+  organizationId  String
+  actionRequestId String?
+  approvalId      String?
+  executionId     String?
+  agentId         String?
+  userId          String?
+  actorType       AuditActorType
+  type            AuditEventType
+  metadata        Json
+  createdAt       DateTime       @default(now())
+
+  organization  Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actionRequest ActionRequest? @relation(fields: [actionRequestId], references: [id], onDelete: SetNull)
+  approval      Approval?      @relation(fields: [approvalId], references: [id], onDelete: SetNull)
+  execution     Execution?     @relation(fields: [executionId], references: [id], onDelete: SetNull)
+  agent         Agent?         @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, type])
+  @@index([organizationId, actionRequestId])
+  @@index([organizationId, approvalId])
+  @@index([organizationId, executionId])
+  @@index([organizationId, agentId])
+  @@index([organizationId, userId])
+  @@map("audit_events")
+}

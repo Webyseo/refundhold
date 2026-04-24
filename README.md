@@ -47,8 +47,29 @@ good MVP fit because it provides typed schema-driven access, migration tooling,
 and a direct path to Postgres without forcing the product into a specific
 application architecture too early.
 
-No action-request, policy, authentication, approval, or audit models are
-implemented yet.
+API routes, authentication logic, policy evaluation, approval workflows, and
+audit-writing behavior are not implemented yet.
+
+## Initial Data Model
+
+The first Prisma schema defines the core AuthRail entities:
+
+- `Organization`: tenant boundary for all AuthRail records.
+- `User`: human reviewer or audit actor inside an organization, not an IAM user
+  directory replacement.
+- `Agent` and `AgentApiKey`: AI-agent identity records and API key metadata used
+  to attribute proposed actions.
+- `Connector`: external execution surface configuration, including a clearly
+  named placeholder for encrypted credentials.
+- `Policy`: organization rules that return `ALLOW`, `DENY`, or
+  `APPROVAL_REQUIRED`.
+- `ActionRequest`: proposed sensitive action with JSON resource, parameters,
+  context, request payload, decision, and status.
+- `Approval`: human review record for action requests that require approval.
+- `Execution`: direct execution or execution-grant record with response payload
+  and error metadata.
+- `AuditEvent`: append-only audit trail event for proposal, policy, approval,
+  grant, and execution lifecycle steps.
 
 ## How AGENTS.md Guides Future Codex Tasks
 
@@ -59,4 +80,3 @@ approval and execution-control layer for AI agents, not an identity provider.
 Before adding features, future tasks should check proposed changes against the
 priorities, things to avoid, technical principles, and definition of done in
 `AGENTS.md`.
-
