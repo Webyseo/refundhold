@@ -80,6 +80,17 @@ local demo API key from `.env` and verifies the seeded refund policies:
 The `.env.example` API key is for local development only. The seed hashes it
 before storage and the smoke test sends it as `Authorization: Bearer <key>`.
 
+Run the approval flow smoke test to verify the human review endpoints:
+
+```bash
+pnpm smoke:approval-flow
+```
+
+The approval flow smoke test creates one reviewable 100 EUR refund and approves
+it, then creates a second reviewable 100 EUR refund and rejects it. It uses
+`AUTHRAIL_DEMO_REVIEWER_EMAIL` from `.env`, defaulting to
+`reviewer@authrail.local`.
+
 ## Demo Seed
 
 Run the demo seed after applying migrations to a local Postgres database:
