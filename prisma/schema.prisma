@@ -67,6 +67,7 @@ enum ApprovalStatus {
 }
 
 enum ExecutionMode {
+  DRY_RUN
   DIRECT
   GRANT
 }

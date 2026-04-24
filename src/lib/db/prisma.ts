@@ -47,12 +47,34 @@ export type PrismaReviewerRecord = {
   status: "ACTIVE" | "DISABLED";
 };
 
+export type PrismaExecutableActionRequestRecord = {
+  id: string;
+  organizationId: string;
+  agentId: string;
+  connectorId?: string | null;
+  decision: "ALLOW" | "DENY" | "APPROVAL_REQUIRED" | null;
+  status:
+    | "PROPOSED"
+    | "ALLOWED"
+    | "DENIED"
+    | "APPROVAL_REQUIRED"
+    | "APPROVED"
+    | "REJECTED"
+    | "EXECUTING"
+    | "EXECUTED"
+    | "FAILED"
+    | "CANCELED";
+};
+
 export type AuthRailPrismaTransactionClient = {
   actionRequest: {
     create: (args: unknown) => Promise<{ id: string }>;
     updateMany: (args: unknown) => Promise<{ count: number }>;
   };
   approval: {
+    create: (args: unknown) => Promise<{ id: string }>;
+  };
+  execution: {
     create: (args: unknown) => Promise<{ id: string }>;
   };
   auditEvent: {
@@ -71,7 +93,9 @@ export type AuthRailPrismaClient = AuthRailPrismaTransactionClient & {
   actionRequest: AuthRailPrismaTransactionClient["actionRequest"] & {
     findUnique: (
       args: unknown,
-    ) => Promise<PrismaReviewActionRequestRecord | null>;
+    ) => Promise<
+      PrismaReviewActionRequestRecord | PrismaExecutableActionRequestRecord | null
+    >;
   };
   user: {
     findFirst: (args: unknown) => Promise<PrismaReviewerRecord | null>;
