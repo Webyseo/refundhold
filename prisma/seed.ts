@@ -41,8 +41,11 @@ type DemoPrismaClient = {
     upsert: (args: unknown) => Promise<{ id: string }>;
   };
   agentApiKey: {
-    findFirst: (args: unknown) => Promise<{ id: string } | null>;
+    findFirst: (
+      args: unknown,
+    ) => Promise<{ id: string; keyPrefix: string } | null>;
     create: (args: unknown) => Promise<{ id: string }>;
+    update: (args: unknown) => Promise<{ id: string }>;
   };
   connector: {
     upsert: (args: unknown) => Promise<{ id: string }>;
@@ -115,7 +118,7 @@ async function main() {
       },
     });
 
-    const generatedApiKey = await ensureDemoAgentApiKey(prisma, {
+    const demoApiKey = await ensureDemoAgentApiKey(prisma, {
       organizationId: organization.id,
       agentId: agent.id,
     });
@@ -163,10 +166,14 @@ async function main() {
     console.log(`Reviewer: ${reviewer.id} (${demoUser.email})`);
     console.log(`Agent: ${agent.id} (${demoAgent.name})`);
 
-    if (generatedApiKey) {
+    if (demoApiKey.source === "generated") {
       console.log("Generated demo agent API key for local development:");
-      console.log(generatedApiKey.key);
+      console.log(demoApiKey.key);
       console.log("Store this key locally now; only its hash was saved.");
+    } else if (demoApiKey.source === "configured") {
+      console.log(
+        "Demo agent API key configured from AUTHRAIL_DEMO_AGENT_API_KEY.",
+      );
     } else {
       console.log("Demo agent API key already exists; raw key was not shown.");
     }
@@ -197,6 +204,7 @@ async function ensureDemoAgentApiKey(
     agentId: string;
   },
 ) {
+  const configuredApiKey = readConfiguredDemoApiKey();
   const existingApiKey = await prisma.agentApiKey.findFirst({
     where: {
       organizationId,
@@ -205,8 +213,45 @@ async function ensureDemoAgentApiKey(
     },
   });
 
+  if (configuredApiKey) {
+    const keyPrefix = extractApiKeyPrefix(configuredApiKey);
+    const data = {
+      keyPrefix,
+      keyHash: hashApiKey(configuredApiKey),
+      status: "ACTIVE",
+      expiresAt: null,
+      revokedAt: null,
+    };
+
+    if (existingApiKey) {
+      await prisma.agentApiKey.update({
+        where: {
+          id: existingApiKey.id,
+        },
+        data,
+      });
+    } else {
+      await prisma.agentApiKey.create({
+        data: {
+          organizationId,
+          agentId,
+          name: demoApiKeyName,
+          ...data,
+        },
+      });
+    }
+
+    return {
+      source: "configured" as const,
+      keyPrefix,
+    };
+  }
+
   if (existingApiKey) {
-    return null;
+    return {
+      source: "existing" as const,
+      keyPrefix: existingApiKey.keyPrefix,
+    };
   }
 
   const generatedApiKey = generateDemoApiKey();
@@ -222,7 +267,28 @@ async function ensureDemoAgentApiKey(
     },
   });
 
-  return generatedApiKey;
+  return {
+    source: "generated" as const,
+    ...generatedApiKey,
+  };
+}
+
+function readConfiguredDemoApiKey(): string | null {
+  const apiKey = process.env["AUTHRAIL_DEMO_AGENT_API_KEY"]?.trim();
+
+  return apiKey && apiKey.length > 0 ? apiKey : null;
+}
+
+function extractApiKeyPrefix(apiKey: string): string {
+  const separatorIndex = apiKey.lastIndexOf("_");
+
+  if (separatorIndex <= 0 || separatorIndex === apiKey.length - 1) {
+    throw new Error(
+      "AUTHRAIL_DEMO_AGENT_API_KEY must use the local demo format <prefix>_<secret>.",
+    );
+  }
+
+  return apiKey.slice(0, separatorIndex);
 }
 
 async function upsertDemoRefundPolicies(

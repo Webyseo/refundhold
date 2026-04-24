@@ -16,6 +16,30 @@ Install dependencies with pnpm:
 pnpm install
 ```
 
+Create a local environment file:
+
+```bash
+cp .env.example .env
+```
+
+Start local Postgres with Docker Compose:
+
+```bash
+pnpm db:up
+```
+
+Apply Prisma migrations:
+
+```bash
+pnpm db:migrate
+```
+
+Seed the demo organization, agent, connector, API key, and policies:
+
+```bash
+pnpm db:seed
+```
+
 Run the development server:
 
 ```bash
@@ -39,6 +63,25 @@ pnpm typecheck
 Prisma is configured for Postgres. Set `DATABASE_URL` in a local `.env` before
 running Prisma commands that need a database connection.
 
+Run the action request smoke test from a second terminal while the Next.js app
+is running:
+
+```bash
+pnpm smoke:action-request
+```
+
+The smoke test calls the real `POST /api/v1/action-requests` endpoint using the
+local demo API key from `.env` and verifies the seeded refund policies:
+
+- 25 EUR refund -> `allow`
+- 100 EUR refund -> `approval_required`
+- 750 EUR refund -> `deny`
+
+The `.env.example` API key is for local development only. The seed hashes it
+before storage and the smoke test sends it as `Authorization: Bearer <key>`.
+
+## Demo Seed
+
 Run the demo seed after applying migrations to a local Postgres database:
 
 ```bash
@@ -61,6 +104,10 @@ When the demo API key is created for the first time, the raw key is printed once
 for local development. Later seed runs keep the stored hash and do not show the
 raw key again.
 
+For reproducible local E2E runs, set `AUTHRAIL_DEMO_AGENT_API_KEY` in `.env`.
+When present, the seed updates the stored demo API key hash from that local key
+instead of generating a new unknown raw key.
+
 ## Why Prisma For The MVP
 
 AuthRail needs a clear relational model for proposed actions, policy decisions,
@@ -69,8 +116,8 @@ good MVP fit because it provides typed schema-driven access, migration tooling,
 and a direct path to Postgres without forcing the product into a specific
 application architecture too early.
 
-API routes, authentication logic, policy evaluation, approval workflows, and
-audit-writing behavior are not implemented yet.
+Approval workflows, connector runtime behavior, execution runtime behavior, and
+dashboard screens are not implemented yet.
 
 ## Initial Data Model
 
