@@ -74,6 +74,28 @@ audit history, and lets the demo reviewer approve, reject, or execute approved
 requests in `dry_run` mode. It uses `AUTHRAIL_DEMO_REVIEWER_EMAIL` from `.env`,
 defaulting to `reviewer@authrail.local`.
 
+### Demo Dashboard Access Gate
+
+Local development keeps the dashboard open by default:
+
+```env
+AUTHRAIL_DEMO_ACCESS_ENABLED="false"
+AUTHRAIL_DEMO_ACCESS_PASSWORD=""
+```
+
+For a hosted demo, enable the lightweight dashboard gate:
+
+```env
+AUTHRAIL_DEMO_ACCESS_ENABLED="true"
+AUTHRAIL_DEMO_ACCESS_PASSWORD="use-a-long-random-demo-password"
+```
+
+When enabled, `/app` routes redirect to `/demo-access` until the reviewer enters
+the demo password. The gate only protects dashboard pages. It does not protect
+`/api/health`, does not change the `Authorization: Bearer <agent_api_key>` flow
+for `POST /api/v1/action-requests`, and does not replace production
+authentication. It is not SSO, IAM, Auth0, Okta, or a user directory.
+
 Run the action request smoke test from a second terminal while the Next.js app
 is running:
 
@@ -138,6 +160,33 @@ raw key again.
 For reproducible local E2E runs, set `AUTHRAIL_DEMO_AGENT_API_KEY` in `.env`.
 When present, the seed updates the stored demo API key hash from that local key
 instead of generating a new unknown raw key.
+
+## Hosted Demo Deployment Checklist
+
+For a controlled hosted demo on Vercel with hosted Postgres:
+
+1. Create a hosted Postgres database and set `DATABASE_URL` for the Vercel
+   project.
+2. Set `AUTHRAIL_DEMO_ACCESS_ENABLED=true`.
+3. Set `AUTHRAIL_DEMO_ACCESS_PASSWORD` to a long random demo password.
+4. Set `AUTHRAIL_DEMO_AGENT_API_KEY` to a demo-only key value and keep it out of
+   source control.
+5. Set `AUTHRAIL_DEMO_REVIEWER_EMAIL`, usually `reviewer@authrail.local` for
+   the seeded demo reviewer.
+6. Set `AUTHRAIL_ACTION_REQUEST_BASE_URL` to the hosted app URL.
+7. Apply migrations against the hosted database with
+   `pnpm prisma migrate deploy`.
+8. Run `pnpm db:seed` once against the hosted database to create demo
+   organization, agent, connector, API key hash, and policies.
+9. Open `/app` and verify that the demo access page appears before the
+   dashboard.
+10. Run smoke scripts only from a trusted local machine configured with the
+    hosted demo URL and demo API key.
+
+This checklist is for a controlled demo environment only. It does not provide
+production authentication, authorization, user management, SSO, or credential
+governance. Add real authentication before exposing AuthRail to untrusted users
+or production data.
 
 ## Why Prisma For The MVP
 
