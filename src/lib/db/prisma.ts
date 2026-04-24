@@ -22,11 +22,41 @@ export type PrismaPolicyRecord = {
   rules: unknown;
 };
 
+export type PrismaReviewActionRequestRecord = {
+  id: string;
+  organizationId: string;
+  agentId: string;
+  decision: "ALLOW" | "DENY" | "APPROVAL_REQUIRED" | null;
+  status:
+    | "PROPOSED"
+    | "ALLOWED"
+    | "DENIED"
+    | "APPROVAL_REQUIRED"
+    | "APPROVED"
+    | "REJECTED"
+    | "EXECUTING"
+    | "EXECUTED"
+    | "FAILED"
+    | "CANCELED";
+};
+
+export type PrismaReviewerRecord = {
+  id: string;
+  organizationId: string;
+  email: string;
+  status: "ACTIVE" | "DISABLED";
+};
+
 export type AuthRailPrismaTransactionClient = {
   actionRequest: {
     create: (args: unknown) => Promise<{ id: string }>;
+    updateMany: (args: unknown) => Promise<{ count: number }>;
+  };
+  approval: {
+    create: (args: unknown) => Promise<{ id: string }>;
   };
   auditEvent: {
+    create: (args: unknown) => Promise<unknown>;
     createMany: (args: unknown) => Promise<unknown>;
   };
 };
@@ -37,6 +67,14 @@ export type AuthRailPrismaClient = AuthRailPrismaTransactionClient & {
   };
   policy: {
     findMany: (args: unknown) => Promise<PrismaPolicyRecord[]>;
+  };
+  actionRequest: AuthRailPrismaTransactionClient["actionRequest"] & {
+    findUnique: (
+      args: unknown,
+    ) => Promise<PrismaReviewActionRequestRecord | null>;
+  };
+  user: {
+    findFirst: (args: unknown) => Promise<PrismaReviewerRecord | null>;
   };
   $transaction: <Result>(
     callback: (tx: AuthRailPrismaTransactionClient) => Promise<Result>,
