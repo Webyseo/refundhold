@@ -23,15 +23,15 @@ export default async function DemoAccessPage({
     <main className="min-h-screen bg-stone-50 px-5 py-16 text-zinc-950 sm:px-8">
       <section className="mx-auto max-w-xl rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
         <p className="text-sm font-medium uppercase tracking-[0.16em] text-emerald-700">
-          AuthRail hosted demo
+          RefundHold hosted demo
         </p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight">
           Demo access required
         </h1>
         <p className="mt-3 text-sm leading-6 text-zinc-600">
           This lightweight gate protects the demo dashboard from casual public
-          access. It is not production authentication, SSO, IAM, or a user
-          directory.
+          access. RefundHold is not IAM, SSO, Auth0, or Okta. It is an approval
+          and audit layer for AI-initiated refunds.
         </p>
 
         {!demoAccess.enabled ? (

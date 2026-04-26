@@ -50,13 +50,13 @@ export default async function ActionRequestDetailPage({
         href="/app/action-requests"
         className="text-sm font-medium text-emerald-700 hover:text-emerald-900"
       >
-        Back to action requests
+        Back to refund requests
       </Link>
 
       <div className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="text-sm font-medium uppercase tracking-[0.16em] text-emerald-700">
-            Action request
+            Refund request
           </p>
           <h1 className="mt-2 font-mono text-2xl font-semibold tracking-tight text-zinc-950">
             {request.operation}
@@ -90,9 +90,9 @@ export default async function ActionRequestDetailPage({
           <section className="rounded-lg border border-zinc-200 bg-white p-5">
             <h2 className="text-base font-semibold text-zinc-950">Summary</h2>
             <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-              <Detail label="Agent" value={request.agent.name} />
+              <Detail label="AI support agent" value={request.agent.name} />
               <Detail
-                label="Connector"
+                label="Payment system"
                 value={
                   request.connector
                     ? `${request.connector.name} (${request.connector.type})`
@@ -116,7 +116,7 @@ export default async function ActionRequestDetailPage({
             </dl>
           </section>
 
-          <JsonSection title="Resource JSON" value={request.resource} />
+          <JsonSection title="Refund resource JSON" value={request.resource} />
           <JsonSection title="Parameters JSON" value={request.parameters} />
           <JsonSection title="Context JSON" value={request.context} />
 
@@ -164,8 +164,8 @@ export default async function ActionRequestDetailPage({
               Executions
             </h2>
             <p className="mt-2 text-sm leading-6 text-zinc-600">
-              Dry-run executions are simulations only. AuthRail does not call
-              Stripe or any external connector from this dashboard.
+              Dry-run executions are simulations only. RefundHold does not call
+              Stripe from this dashboard. This demo does not move real money.
             </p>
             {request.executions.length === 0 ? (
               <EmptyLine>No executions recorded.</EmptyLine>
@@ -206,10 +206,10 @@ export default async function ActionRequestDetailPage({
         <aside className="space-y-6">
           <section className="rounded-lg border border-zinc-200 bg-white p-5">
             <h2 className="text-base font-semibold text-zinc-950">
-              Available action
+              Available refund action
             </h2>
             <p className="mt-2 text-sm leading-6 text-zinc-600">
-              These actions use the existing AuthRail API logic and the
+              These controls use the existing review API logic and the
               demo-only reviewer identity from the local environment.
             </p>
 
@@ -228,11 +228,11 @@ export default async function ActionRequestDetailPage({
                     htmlFor="approval-comment"
                     className="text-sm font-semibold text-emerald-950"
                   >
-                    Approve and allow this action to proceed
+                    Approve this Stripe refund
                   </label>
                   <p className="mt-1 text-sm leading-6 text-emerald-900">
-                    Use this only when the policy reason and payload look safe
-                    for the demo scenario.
+                    Use this only when the policy reason and refund payload look
+                    safe for the demo scenario.
                   </p>
                   <textarea
                     id="approval-comment"
@@ -244,7 +244,7 @@ export default async function ActionRequestDetailPage({
                     type="submit"
                     className="mt-2 w-full rounded-md bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800"
                   >
-                    Approve this action
+                    Approve this refund
                   </button>
                 </form>
                 <form
@@ -260,11 +260,10 @@ export default async function ActionRequestDetailPage({
                     htmlFor="rejection-comment"
                     className="text-sm font-semibold text-red-950"
                   >
-                    Reject and block this action
+                    Reject and block this refund
                   </label>
                   <p className="mt-1 text-sm leading-6 text-red-900">
-                    Use this when the request should not receive an execution
-                    grant.
+                    Use this when the refund should not receive approval.
                   </p>
                   <textarea
                     id="rejection-comment"
@@ -276,7 +275,7 @@ export default async function ActionRequestDetailPage({
                     type="submit"
                     className="mt-2 w-full rounded-md border border-red-300 bg-white px-4 py-3 text-sm font-semibold text-red-800 hover:bg-red-50"
                   >
-                    Reject this action
+                    Reject this refund
                   </button>
                 </form>
               </div>
@@ -296,13 +295,14 @@ export default async function ActionRequestDetailPage({
                   Approved and ready for simulation
                 </p>
                 <p className="mt-1 text-sm leading-6 text-emerald-900">
-                  This creates a dry-run execution record only.
+                  This creates a dry_run refund execution record only. This demo
+                  does not move real money.
                 </p>
                 <button
                   type="submit"
                   className="mt-3 w-full rounded-md bg-zinc-950 px-4 py-3 text-sm font-semibold text-white hover:bg-zinc-800"
                 >
-                  Execute dry-run simulation
+                  Execute dry_run refund simulation
                 </button>
               </form>
             ) : null}
@@ -311,7 +311,7 @@ export default async function ActionRequestDetailPage({
             !controls.canReject &&
             !controls.canExecute ? (
               <p className="mt-4 rounded-md bg-zinc-50 p-3 text-sm text-zinc-600">
-                No dashboard action is available for this request state.
+                No refund action is available for this request state.
               </p>
             ) : null}
           </section>

@@ -17,7 +17,7 @@ import {
 export const dynamic = "force-dynamic";
 
 const filters = [
-  { value: "all", label: "All" },
+  { value: "all", label: "All refunds" },
   { value: "pending", label: "Pending review" },
   { value: "approved", label: "Approved" },
   { value: "rejected", label: "Rejected" },
@@ -48,20 +48,20 @@ export default async function ActionRequestsPage({
             Queue
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-            Action requests
+            Refund requests
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600">
             Pending review items are sorted first so the demo reviewer can see
-            the next sensitive AI-agent action immediately.
+            the next AI-initiated Stripe refund immediately.
           </p>
         </div>
         <p className="text-sm text-zinc-500">
           Showing {filteredActionRequests.length} of {actionRequests.length}{" "}
-          requests.
+          refund requests.
         </p>
       </div>
 
-      <nav className="mt-6 flex flex-wrap gap-2" aria-label="Action request filters">
+      <nav className="mt-6 flex flex-wrap gap-2" aria-label="Refund request filters">
         {filters.map((filter) => {
           const active = selectedFilter === filter.value;
 
@@ -96,13 +96,13 @@ export default async function ActionRequestsPage({
         {filteredActionRequests.length === 0 ? (
           <div className="p-8 text-sm text-zinc-600">
             <p className="font-semibold text-zinc-950">
-              No action requests match this view.
+              No refund requests match this view.
             </p>
             <p className="mt-2 leading-6">
               Run <code className="font-mono">pnpm smoke:action-request</code>,{" "}
               <code className="font-mono">pnpm smoke:approval-flow</code>, or{" "}
               <code className="font-mono">pnpm smoke:execution-flow</code> to
-              generate demo records.
+              generate demo refund records.
             </p>
           </div>
         ) : (
@@ -114,9 +114,9 @@ export default async function ActionRequestsPage({
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Decision</th>
                   <th className="px-4 py-3">Impact</th>
-                  <th className="px-4 py-3">Agent</th>
-                  <th className="px-4 py-3">Connector</th>
-                  <th className="px-4 py-3">Action</th>
+                  <th className="px-4 py-3">AI support agent</th>
+                  <th className="px-4 py-3">Payment system</th>
+                  <th className="px-4 py-3">Refund action</th>
                   <th className="px-4 py-3">Created</th>
                 </tr>
               </thead>
@@ -142,7 +142,7 @@ export default async function ActionRequestsPage({
                           </span>
                         ) : (
                           <span className="text-xs font-medium text-zinc-400">
-                            No action
+                            No review
                           </span>
                         )}
                       </td>

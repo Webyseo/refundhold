@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AuthRail",
+  title: "RefundHold",
   description:
-    "Approval firewall and execution-control layer for AI agents.",
+    "Hold AI-initiated Stripe refunds until they are approved.",
 };
 
 export default function RootLayout({

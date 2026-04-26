@@ -62,8 +62,8 @@ async function reviewActionRequestFromDashboard(
     actionRequestId,
     successMessage:
       action === "approve"
-        ? "Action request approved."
-        : "Action request rejected.",
+        ? "Refund request approved."
+        : "Refund request rejected.",
     response,
   });
 }

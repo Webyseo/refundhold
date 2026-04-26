@@ -18,7 +18,7 @@ export default function DashboardLayout({
               href="/app"
               className="text-lg font-semibold tracking-tight text-zinc-950"
             >
-              AuthRail
+              RefundHold
             </Link>
             <p className="mt-1 text-sm text-zinc-500">
               Demo reviewer:{" "}
@@ -36,7 +36,7 @@ export default function DashboardLayout({
               href="/app/action-requests"
               className="rounded-md bg-zinc-950 px-3 py-2 text-white hover:bg-zinc-800"
             >
-              Action requests
+              Refund requests
             </Link>
           </nav>
         </div>
