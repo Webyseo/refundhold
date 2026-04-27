@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { clearDemoAccessFromDashboard } from "@/app/app/actions";
+
 export default function DashboardLayout({
   children,
 }: Readonly<{
@@ -38,6 +40,14 @@ export default function DashboardLayout({
             >
               Refund requests
             </Link>
+            <form action={clearDemoAccessFromDashboard}>
+              <button
+                type="submit"
+                className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950"
+              >
+                Sign out
+              </button>
+            </form>
           </nav>
         </div>
       </header>

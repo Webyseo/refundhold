@@ -1,11 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { handleApprovalDecision } from "@/lib/approvals/handler";
 import { createPrismaApprovalDecisionPersistence } from "@/lib/approvals/prisma-persistence";
 import { getPrismaClient } from "@/lib/db/prisma";
+import { DEMO_ACCESS_COOKIE_NAME } from "@/lib/demo-access";
 import { handleDryRunExecution } from "@/lib/executions/handler";
 import { createPrismaDryRunExecutionPersistence } from "@/lib/executions/prisma-persistence";
 
@@ -38,6 +40,21 @@ export async function executeActionRequestFromDashboard(formData: FormData) {
     successMessage: "Dry-run execution completed.",
     response,
   });
+}
+
+export async function clearDemoAccessFromDashboard() {
+  const cookieStore = await cookies();
+  cookieStore.set({
+    name: DEMO_ACCESS_COOKIE_NAME,
+    value: "",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/app",
+    maxAge: 0,
+  });
+
+  redirect("/demo-access?next=%2Fapp");
 }
 
 async function reviewActionRequestFromDashboard(

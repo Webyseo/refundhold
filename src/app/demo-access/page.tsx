@@ -6,7 +6,9 @@ import {
   DEMO_ACCESS_COOKIE_NAME,
   createDemoAccessCookieValue,
   getDemoAccessConfig,
+  getDemoAccessStatus,
   getSafeDemoAccessNextPath,
+  isDemoAccessPasswordValid,
 } from "@/lib/demo-access";
 
 export default async function DemoAccessPage({
@@ -17,7 +19,7 @@ export default async function DemoAccessPage({
   const params = await searchParams;
   const nextPath = getSafeDemoAccessNextPath(getSearchValue(params["next"]));
   const error = getSearchValue(params["error"]);
-  const demoAccess = getDemoAccessConfig(process.env);
+  const demoAccess = getDemoAccessStatus(process.env);
 
   return (
     <main className="min-h-screen bg-stone-50 px-5 py-16 text-zinc-950 sm:px-8">
@@ -47,7 +49,7 @@ export default async function DemoAccessPage({
           </div>
         ) : null}
 
-        {demoAccess.enabled && !demoAccess.password ? (
+        {demoAccess.enabled && !demoAccess.hasPassword ? (
           <div className="mt-6 rounded-md border border-red-200 bg-red-50 p-4">
             <p className="text-sm font-semibold text-red-950">
               Demo access is enabled but no password is configured.
@@ -59,7 +61,7 @@ export default async function DemoAccessPage({
           </div>
         ) : null}
 
-        {demoAccess.enabled && demoAccess.password ? (
+        {demoAccess.enabled && demoAccess.hasPassword ? (
           <form action={submitDemoAccess} className="mt-6 space-y-4">
             <input type="hidden" name="next" value={nextPath} />
             <div>
@@ -116,7 +118,9 @@ async function submitDemoAccess(formData: FormData) {
 
   const providedPassword = getFormValue(formData.get("password"));
 
-  if (providedPassword !== demoAccess.password) {
+  if (
+    !(await isDemoAccessPasswordValid(providedPassword, demoAccess.password))
+  ) {
     redirect(
       `/demo-access?next=${encodeURIComponent(nextPath)}&error=invalid`,
     );
@@ -129,7 +133,7 @@ async function submitDemoAccess(formData: FormData) {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    path: "/",
+    path: "/app",
     maxAge: DEMO_ACCESS_COOKIE_MAX_AGE_SECONDS,
   });
 

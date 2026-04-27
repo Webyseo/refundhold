@@ -14,6 +14,7 @@
     "db:up": "docker compose up -d postgres",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma generate && tsx prisma/seed.ts",
+    "db:seed:demo": "prisma generate && tsx prisma/seed-demo.ts",
     "smoke:action-request": "tsx scripts/smoke-action-request.ts",
     "smoke:approval-flow": "tsx scripts/smoke-approval-flow.ts",
     "smoke:execution-flow": "tsx scripts/smoke-execution-flow.ts"

@@ -41,6 +41,10 @@ export default async function ActionRequestDetailPage({
     operation: request.operation,
     parameters: request.parameters,
   });
+  const demoDetails = getDemoRefundDetails({
+    parameters: request.parameters,
+    context: request.context,
+  });
   const success = getSearchMessage(notices["success"]);
   const error = getSearchMessage(notices["error"]);
 
@@ -99,7 +103,11 @@ export default async function ActionRequestDetailPage({
                     : "none"
                 }
               />
-              <Detail label="Impact" value={impactSummary} />
+              <Detail label="Refund amount" value={demoDetails.refundAmount} />
+              <Detail label="Customer context" value={demoDetails.customer} />
+              <Detail label="Order context" value={demoDetails.order} />
+              <Detail label="AI initiated action" value={request.operation} />
+              <Detail label="Dry-run guarantee" value={demoDetails.dryRun} />
               <Detail
                 label="Created"
                 value={formatDateTime(request.createdAt)}
@@ -209,8 +217,8 @@ export default async function ActionRequestDetailPage({
               Available refund action
             </h2>
             <p className="mt-2 text-sm leading-6 text-zinc-600">
-              These controls use the existing review API logic and the
-              demo-only reviewer identity from the local environment.
+              These controls use demo review logic and the demo-only reviewer
+              identity from the hosted environment.
             </p>
 
             {controls.canApprove || controls.canReject ? (
@@ -228,11 +236,11 @@ export default async function ActionRequestDetailPage({
                     htmlFor="approval-comment"
                     className="text-sm font-semibold text-emerald-950"
                   >
-                    Approve this Stripe refund
+                    Approve this dry_run refund review
                   </label>
                   <p className="mt-1 text-sm leading-6 text-emerald-900">
-                    Use this only when the policy reason and refund payload look
-                    safe for the demo scenario.
+                    This records approval for the demo scenario only. It does
+                    not create a real Stripe refund.
                   </p>
                   <textarea
                     id="approval-comment"
@@ -244,7 +252,7 @@ export default async function ActionRequestDetailPage({
                     type="submit"
                     className="mt-2 w-full rounded-md bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800"
                   >
-                    Approve this refund
+                    Approve demo refund review
                   </button>
                 </form>
                 <form
@@ -260,10 +268,11 @@ export default async function ActionRequestDetailPage({
                     htmlFor="rejection-comment"
                     className="text-sm font-semibold text-red-950"
                   >
-                    Reject and block this refund
+                    Reject and block this dry_run refund
                   </label>
                   <p className="mt-1 text-sm leading-6 text-red-900">
-                    Use this when the refund should not receive approval.
+                    This records a demo rejection and keeps the simulated refund
+                    blocked.
                   </p>
                   <textarea
                     id="rejection-comment"
@@ -275,7 +284,7 @@ export default async function ActionRequestDetailPage({
                     type="submit"
                     className="mt-2 w-full rounded-md border border-red-300 bg-white px-4 py-3 text-sm font-semibold text-red-800 hover:bg-red-50"
                   >
-                    Reject this refund
+                    Reject demo refund
                   </button>
                 </form>
               </div>
@@ -418,4 +427,65 @@ function getSearchMessage(value: string | string[] | undefined): string | null {
   }
 
   return value ?? null;
+}
+
+function getDemoRefundDetails({
+  parameters,
+  context,
+}: {
+  parameters: unknown;
+  context: unknown;
+}): {
+  refundAmount: string | null;
+  customer: string | null;
+  order: string | null;
+  dryRun: string | null;
+} {
+  const parameterRecord = isRecord(parameters) ? parameters : {};
+  const contextRecord = isRecord(context) ? context : {};
+  const amount = parameterRecord["amount"];
+  const currency = parameterRecord["currency"];
+  const customer = isRecord(contextRecord["customer"])
+    ? contextRecord["customer"]
+    : {};
+  const order = isRecord(contextRecord["order"]) ? contextRecord["order"] : {};
+
+  return {
+    refundAmount:
+      typeof amount === "number" && typeof currency === "string"
+        ? `${amount} ${currency.toUpperCase()}`
+        : null,
+    customer: formatNamedValue({
+      name: customer["name"],
+      detail: customer["email"],
+    }),
+    order: formatNamedValue({
+      name: order["id"],
+      detail: order["summary"],
+    }),
+    dryRun:
+      contextRecord["dry_run"] === true
+        ? "dry_run=true; Stripe is not called and no money moves."
+        : null,
+  };
+}
+
+function formatNamedValue({
+  name,
+  detail,
+}: {
+  name: unknown;
+  detail: unknown;
+}): string | null {
+  if (typeof name !== "string" || name.trim().length === 0) {
+    return null;
+  }
+
+  return typeof detail === "string" && detail.trim().length > 0
+    ? `${name} (${detail})`
+    : name;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
