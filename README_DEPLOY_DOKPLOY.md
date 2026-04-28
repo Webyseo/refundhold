@@ -42,6 +42,22 @@ host ports.
 
 Keep the existing `AUTHRAIL_*` names for now. They are still used by the code.
 
+## Stripe Safety Baseline
+
+Stripe integration is disabled by default. PR 1 only adds configuration
+guardrails; it does not install Stripe, call Stripe, create webhooks, or execute
+refunds.
+
+RefundHold v1 is test-mode only for future Stripe work. Live refunds are
+intentionally blocked: if `AUTHRAIL_STRIPE_LIVE_REFUNDS_ENABLED=true`, the
+Stripe safety configuration fails closed. Do not use live Stripe keys in this
+app. `AUTHRAIL_STRIPE_TEST_SECRET_KEY` must be empty while Stripe is disabled,
+or use a server-side test/sandbox key prefix only: `sk_test_` or `rk_test_`.
+
+Keep Stripe secret and restricted keys out of Git, client-side code, logs, and
+HTML. Configure them only as server-side environment variables. Webhook signing
+secrets are separate from API keys and must also remain server-side only.
+
 ## Database
 
 The Compose file creates a private Postgres service named `postgres` and a
