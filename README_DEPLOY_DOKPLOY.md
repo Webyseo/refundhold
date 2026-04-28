@@ -49,16 +49,34 @@ organization-level RBAC. The schema separates human organization memberships
 from agent API keys: AI agents continue to authenticate with agent API keys, and
 those keys are not user sessions.
 
+The Better Auth dependency and server-side configuration scaffold are present,
+but auth is disabled by default with `AUTHRAIL_AUTH_ENABLED=false` and
+`AUTHRAIL_AUTH_REQUIRED=false`. When auth is disabled, `BETTER_AUTH_SECRET` is
+not required. If auth is enabled later, the app fails closed unless
+`BETTER_AUTH_SECRET` is configured as a server-side environment variable.
+
 The demo gate remains active for `/app` when configured. Login routes,
-Better Auth route handlers, passwords, sessions, pricing, and self-service are
-not enabled yet. Existing users are backfilled into memberships as active
-reviewers so the current demo reviewer can keep approving and executing
-controlled refund flows once session auth is introduced in a later PR.
+Better Auth route handlers, public signup, passwords, sessions, pricing, and
+self-service are not enabled yet. Existing users are backfilled into
+memberships as active reviewers so the current demo reviewer can keep approving
+and executing controlled refund flows once session auth is introduced in a
+later PR.
 
 Current planned roles are `OWNER`, `ADMIN`, `REVIEWER`, and `VIEWER`. The
 initial helper map treats owners as full organization admins, admins as refund
 control managers, reviewers as approval/execution reviewers, and viewers as
 read-only dashboard users.
+
+The current `User` model is organization-scoped: `organizationId` is required
+and email uniqueness is scoped to `@@unique([organizationId, email])`. Better
+Auth email/password expects a global human identity, so required login must not
+be enabled until one of these migration paths is completed:
+
+1. Make `User` the global auth identity after a production preflight confirms
+   there are no cross-organization email duplicates, then make `Membership` the
+   primary organization relation.
+2. Add separate auth identity tables and explicitly link auth users to the
+   existing organization-scoped domain users.
 
 ## Stripe Safety Baseline
 
