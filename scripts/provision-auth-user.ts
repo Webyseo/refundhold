@@ -1,5 +1,5 @@
-import "dotenv/config";
-
+import { config as loadDotEnv } from "dotenv";
+import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { getProvisioningBetterAuthOrThrow } from "../src/lib/auth/auth";
@@ -207,6 +207,29 @@ export function createSafeProvisioningSummary(
   ].join(" ");
 }
 
+export function loadAuthProvisioningEnvFiles(cwd = process.cwd()) {
+  loadDotEnv({
+    path: join(cwd, ".env.local"),
+    override: false,
+    quiet: true,
+  });
+  loadDotEnv({
+    path: join(cwd, ".env"),
+    override: false,
+    quiet: true,
+  });
+}
+
+export async function runProvisionAuthUserCli() {
+  loadAuthProvisioningEnvFiles();
+
+  const input = readAuthProvisioningConfig(process.env);
+  const deps = await createPrismaProvisioningDependencies();
+  const result = await provisionAuthUser(input, deps);
+
+  console.log(createSafeProvisioningSummary(result));
+}
+
 async function createPrismaProvisioningDependencies(): Promise<ProvisionAuthUserDependencies> {
   const prisma = (await getPrismaClient()) as unknown as {
     organization: {
@@ -401,9 +424,16 @@ function isMainModule() {
 }
 
 if (isMainModule()) {
-  const input = readAuthProvisioningConfig(process.env);
-  const deps = await createPrismaProvisioningDependencies();
-  const result = await provisionAuthUser(input, deps);
+  runProvisionAuthUserCli().catch((error: unknown) => {
+    console.error(getSafeProvisioningErrorMessage(error));
+    process.exitCode = 1;
+  });
+}
 
-  console.log(createSafeProvisioningSummary(result));
+function getSafeProvisioningErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Auth provisioning failed.";
 }

@@ -1,3 +1,6 @@
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -8,6 +11,7 @@ import {
 } from "./provision-auth-user";
 
 const strongPassword = "local-password-123";
+const execFileAsync = promisify(execFile);
 
 describe("auth user provisioning", () => {
   it("fails closed when provisioning is disabled", () => {
@@ -198,7 +202,42 @@ describe("auth user provisioning", () => {
     expect(summary).not.toContain("auth_user");
     expect(summary).not.toContain("domain_user");
   });
+
+  it("starts the CLI under tsx before fail-closed config validation", async () => {
+    try {
+      await execFileAsync("pnpm", ["exec", "tsx", "scripts/provision-auth-user.ts"], {
+        cwd: process.cwd(),
+        env: {
+          ...process.env,
+          AUTHRAIL_AUTH_PROVISIONING_ENABLED: "false",
+          AUTHRAIL_PROVISION_PASSWORD: "",
+        },
+        timeout: 10_000,
+      });
+      throw new Error("Expected provisioning CLI to fail closed.");
+    } catch (error) {
+      const output = getExecOutput(error);
+
+      expect(output).toContain(
+        "AUTHRAIL_AUTH_PROVISIONING_ENABLED must be true.",
+      );
+      expect(output).not.toContain("Top-level await");
+      expect(output).not.toContain(strongPassword);
+    }
+  });
 });
+
+function getExecOutput(error: unknown): string {
+  if (typeof error !== "object" || error === null) {
+    return String(error);
+  }
+
+  const maybeOutput = error as { stderr?: unknown; stdout?: unknown };
+
+  return `${String(maybeOutput.stdout ?? "")}${String(
+    maybeOutput.stderr ?? "",
+  )}`;
+}
 
 function createDependencies({
   organization = {
