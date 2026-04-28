@@ -45,8 +45,9 @@ Keep the existing `AUTHRAIL_*` names for now. They are still used by the code.
 ## Stripe Safety Baseline
 
 Stripe integration is disabled by default. The app includes a server-only Stripe
-test client scaffold and guarded test-mode refund execution, but it does not
-create webhooks or execute refunds from the current demo flow.
+test client scaffold, guarded test-mode refund execution, and disabled
+test-mode webhook handling. It does not execute refunds from the current demo
+flow.
 
 RefundHold v1 is test-mode only for future Stripe work. Live refunds are
 intentionally blocked: if `AUTHRAIL_STRIPE_LIVE_REFUNDS_ENABLED=true`, the
@@ -63,8 +64,7 @@ explicit server-side execution route handles an approved Stripe test refund.
 Live Stripe keys remain blocked by configuration.
 
 Stripe persistence models store safe Stripe payment snapshots, test-mode refund
-execution records, and future deduplicated webhook event records. Webhook routes
-are still not implemented.
+execution records, and deduplicated webhook event records.
 
 Stripe test object reflection is available for future agent requests. When test
 mode flags and server-side test keys are configured, RefundHold can reflect a
@@ -75,7 +75,16 @@ Stripe test-mode refund execution is available but disabled by default. It
 requires both `AUTHRAIL_STRIPE_TEST_MODE_ENABLED=true` and
 `AUTHRAIL_STRIPE_TEST_REFUNDS_ENABLED=true`, and it only executes approved
 Stripe test action requests with `livemode=false`. Live refunds remain
-intentionally blocked, and webhook handling is still not implemented.
+intentionally blocked.
+
+Stripe test-mode webhooks are also disabled by default. They require
+`AUTHRAIL_STRIPE_WEBHOOKS_ENABLED=true` and
+`AUTHRAIL_STRIPE_WEBHOOK_TEST_SECRET` configured as a server-side environment
+variable. RefundHold verifies `Stripe-Signature` against the raw request body
+before processing, stores only safe webhook payload snapshots, and only mutates
+records for events with `livemode=false`. The initial supported events are
+`refund.created`, `refund.updated`, and `refund.failed`. Live mode remains
+blocked.
 
 ## Database
 

@@ -117,6 +117,24 @@ export type PrismaStripeRefundActionRequestRecord =
     } | null;
   };
 
+export type PrismaStripeWebhookEventRecord = {
+  id: string;
+  stripeEventId: string;
+  status: "RECEIVED" | "PROCESSED" | "IGNORED" | "FAILED";
+};
+
+export type PrismaStripeRefundWebhookRecord = {
+  id: string;
+  organizationId: string;
+  connectorId: string;
+  actionRequestId: string;
+  executionId: string;
+  stripeRefundId: string | null;
+  actionRequest: {
+    agentId: string;
+  };
+};
+
 export type PrismaDashboardAgentRecord = {
   id: string;
   name: string;
@@ -183,9 +201,13 @@ export type PrismaDashboardAuditEventRecord = {
     | "APPROVAL_REJECTED"
     | "EXECUTION_GRANT_ISSUED"
     | "EXECUTION_STARTED"
+    | "STRIPE_WEBHOOK_RECEIVED"
+    | "STRIPE_WEBHOOK_PROCESSED"
+    | "STRIPE_WEBHOOK_IGNORED"
     | "STRIPE_REFUND_REQUESTED"
     | "STRIPE_REFUND_SUCCEEDED"
     | "STRIPE_REFUND_FAILED"
+    | "STRIPE_REFUND_STATUS_UPDATED"
     | "EXECUTION_SUCCEEDED"
     | "EXECUTION_FAILED";
   metadata: unknown;
@@ -236,6 +258,16 @@ export type AuthRailPrismaTransactionClient = {
       stripeStatus: string | null;
     } | null>;
     create: (args: unknown) => Promise<{ id: string }>;
+    findFirst: (
+      args: unknown,
+    ) => Promise<PrismaStripeRefundWebhookRecord | null>;
+    update: (args: unknown) => Promise<unknown>;
+  };
+  stripeWebhookEvent: {
+    findUnique: (
+      args: unknown,
+    ) => Promise<PrismaStripeWebhookEventRecord | null>;
+    create: (args: unknown) => Promise<PrismaStripeWebhookEventRecord>;
     update: (args: unknown) => Promise<unknown>;
   };
   auditEvent: {

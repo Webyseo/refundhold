@@ -41,6 +41,11 @@ type StripeRefundCreateParams = {
   charge?: string;
   amount: number;
   reason?: "duplicate" | "fraudulent" | "requested_by_customer";
+  metadata?: {
+    refundhold_action_request_id: string;
+    refundhold_execution_id: string;
+    refundhold_mode: "test";
+  };
 };
 
 type StripeRefundCreateOptions = {
@@ -253,7 +258,7 @@ export async function executeStripeTestRefundForActionRequest({
 
   try {
     const stripeRefund = await client.refunds.create(
-      buildStripeRefundCreateParams(preparedResult),
+      buildStripeRefundCreateParams(preparedResult, executionId),
       {
         idempotencyKey,
       },
@@ -633,12 +638,18 @@ function buildStripeRefundCreateParams({
   chargeId,
   amountMinor,
   reason,
-}: PreparedStripeRefundExecution): StripeRefundCreateParams {
+  actionRequest,
+}: PreparedStripeRefundExecution, executionId: string): StripeRefundCreateParams {
   return withDefinedValues({
     payment_intent: paymentIntentId,
     charge: paymentIntentId ? undefined : chargeId,
     amount: amountMinor,
     reason: isStripeRefundReason(reason) ? reason : undefined,
+    metadata: {
+      refundhold_action_request_id: actionRequest.id,
+      refundhold_execution_id: executionId,
+      refundhold_mode: "test",
+    },
   }) as StripeRefundCreateParams;
 }
 

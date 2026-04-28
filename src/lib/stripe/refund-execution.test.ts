@@ -288,6 +288,11 @@ describe("executeStripeTestRefundForActionRequest", () => {
         payment_intent: "pi_test",
         amount: 10000,
         reason: "requested_by_customer",
+        metadata: {
+          refundhold_action_request_id: "ar_stripe",
+          refundhold_execution_id: "execution_123",
+          refundhold_mode: "test",
+        },
       },
       {
         idempotencyKey: "refundhold:test:refund:execution_123",
@@ -342,6 +347,11 @@ describe("executeStripeTestRefundForActionRequest", () => {
       {
         charge: "ch_test",
         amount: 2500,
+        metadata: {
+          refundhold_action_request_id: "ar_stripe",
+          refundhold_execution_id: "execution_charge",
+          refundhold_mode: "test",
+        },
       },
       {
         idempotencyKey: "refundhold:test:refund:execution_charge",
