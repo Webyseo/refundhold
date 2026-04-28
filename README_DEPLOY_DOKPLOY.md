@@ -61,12 +61,20 @@ the future global human auth identity and stores globally unique email
 addresses in `auth_users`. The existing `User` model remains the
 organization-scoped domain user used by approvals and audit records.
 
-The demo gate remains active for `/app` when configured. Login routes,
-Better Auth route handlers, public signup, passwords, sessions, pricing, and
-self-service are not enabled yet. Existing users are backfilled into
-memberships as active reviewers so the current demo reviewer can keep approving
-and executing controlled refund flows once session auth is introduced in a
-later PR.
+The demo gate remains active for `/app` when configured. A disabled-safe
+Better Auth route handler exists at `/api/auth/[...all]`, and `/login` exists
+as a scaffold. With `AUTHRAIL_AUTH_ENABLED=false`, `/api/auth/*` returns a
+generic unavailable response and `/login` links back to `/demo-access` without
+rendering a password form. `BETTER_AUTH_SECRET` is not required in this mode.
+
+When auth is enabled in a controlled environment, Better Auth is configured
+against the separate `Auth*` identity tables. Email/password sign-in is
+prepared for provisioned users, public signup is disabled, OAuth providers are
+not configured, and `/app` is still not protected by session auth. Do not set
+`AUTHRAIL_AUTH_REQUIRED=true` in production yet. Existing users are backfilled
+into memberships as active reviewers so the current demo reviewer can keep
+approving and executing controlled refund flows once session auth is introduced
+in a later PR.
 
 Current planned roles are `OWNER`, `ADMIN`, `REVIEWER`, and `VIEWER`. The
 initial helper map treats owners as full organization admins, admins as refund

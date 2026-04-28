@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
-
 import {
   authIdentityModelNames,
   emailPasswordAuthEnabled,
   getBetterAuthOrNull,
+  oauthProvidersConfigured,
+  publicSignupEnabled,
 } from "./auth";
 
 describe("Better Auth scaffold", () => {
@@ -32,14 +31,12 @@ describe("Better Auth scaffold", () => {
     });
   });
 
-  it("keeps email/password auth disabled until a login route is intentionally added", () => {
-    expect(emailPasswordAuthEnabled).toBe(false);
+  it("prepares email/password auth while keeping public signup disabled", () => {
+    expect(emailPasswordAuthEnabled).toBe(true);
+    expect(publicSignupEnabled).toBe(false);
   });
 
-  it("does not expose Better Auth or login routes yet", () => {
-    expect(existsSync(join(process.cwd(), "src", "app", "api", "auth"))).toBe(
-      false,
-    );
-    expect(existsSync(join(process.cwd(), "src", "app", "login"))).toBe(false);
+  it("does not configure OAuth providers", () => {
+    expect(oauthProvidersConfigured).toBe(false);
   });
 });

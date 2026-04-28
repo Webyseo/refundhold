@@ -13,7 +13,9 @@ export const authIdentityModelNames = {
   account: "authAccount",
   verification: "authVerification",
 } as const;
-export const emailPasswordAuthEnabled = false;
+export const emailPasswordAuthEnabled = true;
+export const publicSignupEnabled = false;
+export const oauthProvidersConfigured = false;
 
 let cachedAuth: BetterAuthInstance | null = null;
 
@@ -70,7 +72,7 @@ function createBetterAuthInstance(
     },
     emailAndPassword: {
       enabled: emailPasswordAuthEnabled,
-      disableSignUp: true,
+      disableSignUp: !publicSignupEnabled,
     },
   });
 }
