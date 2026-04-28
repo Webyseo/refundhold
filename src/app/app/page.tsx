@@ -28,8 +28,8 @@ export default function DashboardHomePage() {
             Stripe refund review console
           </p>
           <h1 className="mt-3 max-w-3xl text-4xl font-semibold tracking-tight text-zinc-950">
-            See which AI-initiated Stripe refund needs attention, why, and what
-            can happen next.
+            See which AI-initiated Stripe refunds need attention, why, and what
+            happens next.
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-600">
             RefundHold sits between an AI support agent and Stripe. This
@@ -79,45 +79,6 @@ export default function DashboardHomePage() {
             <p className="mt-2 text-sm leading-6 text-zinc-600">{step.body}</p>
           </div>
         ))}
-      </div>
-
-      <div className="mt-10 grid gap-4 lg:grid-cols-4">
-        <section className="rounded-lg border border-zinc-200 bg-white p-5">
-          <p className="text-sm font-semibold text-zinc-950">
-            High-risk refund held
-          </p>
-          <p className="mt-2 text-sm leading-6 text-zinc-600">
-            See a proposed refund pause before it can reach any payment
-            execution path.
-          </p>
-        </section>
-        <section className="rounded-lg border border-zinc-200 bg-white p-5">
-          <p className="text-sm font-semibold text-zinc-950">
-            Human approval required
-          </p>
-          <p className="mt-2 text-sm leading-6 text-zinc-600">
-            Reviewers get a focused decision with policy reason, risk context,
-            and the next safe action.
-          </p>
-        </section>
-        <section className="rounded-lg border border-zinc-200 bg-white p-5">
-          <p className="text-sm font-semibold text-zinc-950">
-            Dry-run refund execution
-          </p>
-          <p className="mt-2 text-sm leading-6 text-zinc-600">
-            Executions stay in dry_run for the demo. RefundHold records the
-            control path without moving real money.
-          </p>
-        </section>
-        <section className="rounded-lg border border-zinc-200 bg-white p-5">
-          <p className="text-sm font-semibold text-zinc-950">
-            Audit evidence recorded
-          </p>
-          <p className="mt-2 text-sm leading-6 text-zinc-600">
-            The timeline shows proposal, policy, approval, rejection, and
-            dry_run execution evidence for the walkthrough.
-          </p>
-        </section>
       </div>
     </section>
   );
