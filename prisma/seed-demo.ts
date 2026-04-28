@@ -28,6 +28,7 @@ type UpsertDelegate = {
 
 type DemoPrismaClient = {
   organization: UpsertDelegate;
+  authUser: UpsertDelegate;
   user: UpsertDelegate;
   membership: UpsertDelegate;
   agent: UpsertDelegate;
@@ -411,6 +412,11 @@ async function upsertBaseDemoRecords(
     create: demoOrganization,
   });
 
+  const authUser = await upsertDemoAuthUser(prisma, {
+    email: reviewerEmail,
+    name: "RefundHold Demo Reviewer",
+  });
+
   const reviewer = await prisma.user.upsert({
     where: {
       organizationId_email: {
@@ -419,11 +425,13 @@ async function upsertBaseDemoRecords(
       },
     },
     update: {
+      authUserId: authUser.id,
       displayName: "RefundHold Demo Reviewer",
       status: "ACTIVE",
     },
     create: {
       organizationId: organization.id,
+      authUserId: authUser.id,
       email: reviewerEmail,
       displayName: "RefundHold Demo Reviewer",
       status: "ACTIVE",
@@ -432,6 +440,7 @@ async function upsertBaseDemoRecords(
   await ensureDemoReviewerMembership(prisma, {
     organizationId: organization.id,
     userId: reviewer.id,
+    authUserId: authUser.id,
   });
 
   const agent = await prisma.agent.upsert({
@@ -496,14 +505,44 @@ async function upsertBaseDemoRecords(
   };
 }
 
+async function upsertDemoAuthUser(
+  prisma: DemoPrismaClient,
+  {
+    email,
+    name,
+  }: {
+    email: string;
+    name: string;
+  },
+) {
+  return prisma.authUser.upsert({
+    where: {
+      email,
+    },
+    update: {
+      name,
+      emailVerified: false,
+      image: null,
+    },
+    create: {
+      name,
+      email,
+      emailVerified: false,
+      image: null,
+    },
+  });
+}
+
 async function ensureDemoReviewerMembership(
   prisma: DemoPrismaClient,
   {
     organizationId,
     userId,
+    authUserId,
   }: {
     organizationId: string;
     userId: string;
+    authUserId: string;
   },
 ) {
   await prisma.membership.upsert({
@@ -514,12 +553,14 @@ async function ensureDemoReviewerMembership(
       },
     },
     update: {
+      authUserId,
       role: "REVIEWER",
       status: "ACTIVE",
     },
     create: {
       organizationId,
       userId,
+      authUserId,
       role: "REVIEWER",
       status: "ACTIVE",
     },

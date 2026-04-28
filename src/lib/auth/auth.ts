@@ -7,6 +7,14 @@ import { getPrismaClient } from "../db/prisma";
 type PrismaAdapterClient = Parameters<typeof prismaAdapter>[0];
 type BetterAuthInstance = ReturnType<typeof createBetterAuthInstance>;
 
+export const authIdentityModelNames = {
+  user: "authUser",
+  session: "authSession",
+  account: "authAccount",
+  verification: "authVerification",
+} as const;
+export const emailPasswordAuthEnabled = false;
+
 let cachedAuth: BetterAuthInstance | null = null;
 
 export async function getBetterAuthOrNull(
@@ -45,17 +53,23 @@ function createBetterAuthInstance(
     baseURL: config.baseURL ?? undefined,
     database: prismaAdapter(prisma as PrismaAdapterClient, {
       provider: "postgresql",
-      usePlural: true,
+      usePlural: false,
       transaction: true,
     }),
     user: {
-      modelName: "users",
-      fields: {
-        name: "displayName",
-      },
+      modelName: authIdentityModelNames.user,
+    },
+    session: {
+      modelName: authIdentityModelNames.session,
+    },
+    account: {
+      modelName: authIdentityModelNames.account,
+    },
+    verification: {
+      modelName: authIdentityModelNames.verification,
     },
     emailAndPassword: {
-      enabled: true,
+      enabled: emailPasswordAuthEnabled,
       disableSignUp: true,
     },
   });

@@ -55,6 +55,12 @@ but auth is disabled by default with `AUTHRAIL_AUTH_ENABLED=false` and
 not required. If auth is enabled later, the app fails closed unless
 `BETTER_AUTH_SECRET` is configured as a server-side environment variable.
 
+Better Auth core tables now exist under separate `Auth*` Prisma models:
+`AuthUser`, `AuthSession`, `AuthAccount`, and `AuthVerification`. `AuthUser` is
+the future global human auth identity and stores globally unique email
+addresses in `auth_users`. The existing `User` model remains the
+organization-scoped domain user used by approvals and audit records.
+
 The demo gate remains active for `/app` when configured. Login routes,
 Better Auth route handlers, public signup, passwords, sessions, pricing, and
 self-service are not enabled yet. Existing users are backfilled into
@@ -68,15 +74,10 @@ control managers, reviewers as approval/execution reviewers, and viewers as
 read-only dashboard users.
 
 The current `User` model is organization-scoped: `organizationId` is required
-and email uniqueness is scoped to `@@unique([organizationId, email])`. Better
-Auth email/password expects a global human identity, so required login must not
-be enabled until one of these migration paths is completed:
-
-1. Make `User` the global auth identity after a production preflight confirms
-   there are no cross-organization email duplicates, then make `Membership` the
-   primary organization relation.
-2. Add separate auth identity tables and explicitly link auth users to the
-   existing organization-scoped domain users.
+and email uniqueness is scoped to `@@unique([organizationId, email])`. Do not
+add global uniqueness to `User.email`; global uniqueness belongs to `AuthUser`.
+`User.authUserId` and `Membership.authUserId` are nullable compatibility links
+for future RBAC session checks.
 
 ## Stripe Safety Baseline
 

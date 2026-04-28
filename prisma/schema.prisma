@@ -161,6 +161,7 @@ model Organization {
 model User {
   id             String     @id @default(cuid())
   organizationId String
+  authUserId     String?
   email          String
   displayName    String?
   emailVerified  Boolean    @default(false)
@@ -170,6 +171,7 @@ model User {
   updatedAt      DateTime   @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  authUser     AuthUser?    @relation(fields: [authUserId], references: [id], onDelete: SetNull)
 
   reviewedApprovals Approval[]
   auditEvents       AuditEvent[]
@@ -177,6 +179,7 @@ model User {
 
   @@unique([organizationId, email])
   @@index([organizationId, status])
+  @@index([authUserId])
   @@map("users")
 }
 
@@ -184,6 +187,7 @@ model Membership {
   id              String           @id @default(cuid())
   organizationId  String
   userId          String
+  authUserId      String?
   role            MembershipRole
   status          MembershipStatus @default(ACTIVE)
   invitedByUserId String?
@@ -192,11 +196,82 @@ model Membership {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  authUser     AuthUser?    @relation(fields: [authUserId], references: [id], onDelete: SetNull)
 
   @@unique([organizationId, userId])
+  @@unique([organizationId, authUserId])
   @@index([userId, status])
+  @@index([authUserId, status])
   @@index([organizationId, role])
   @@map("memberships")
+}
+
+model AuthUser {
+  id            String   @id @default(cuid())
+  name          String
+  email         String
+  emailVerified Boolean  @default(false)
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  authsessions AuthSession[]
+  authaccounts AuthAccount[]
+  domainUsers  User[]
+  memberships  Membership[]
+
+  @@unique([email])
+  @@map("auth_users")
+}
+
+model AuthSession {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+
+  authuser AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("auth_sessions")
+}
+
+model AuthAccount {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  authuser AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("auth_accounts")
+}
+
+model AuthVerification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("auth_verifications")
 }
 
 model Agent {

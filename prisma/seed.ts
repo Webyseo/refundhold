@@ -34,6 +34,9 @@ type DemoPrismaClient = {
   organization: {
     upsert: (args: unknown) => Promise<{ id: string }>;
   };
+  authUser: {
+    upsert: (args: unknown) => Promise<{ id: string }>;
+  };
   user: {
     upsert: (args: unknown) => Promise<{ id: string }>;
   };
@@ -83,6 +86,11 @@ async function main() {
       create: demoOrganization,
     });
 
+    const authUser = await upsertDemoAuthUser(prisma, {
+      email: demoUser.email,
+      name: demoUser.displayName,
+    });
+
     const reviewer = await prisma.user.upsert({
       where: {
         organizationId_email: {
@@ -91,11 +99,13 @@ async function main() {
         },
       },
       update: {
+        authUserId: authUser.id,
         displayName: demoUser.displayName,
         status: "ACTIVE",
       },
       create: {
         organizationId: organization.id,
+        authUserId: authUser.id,
         email: demoUser.email,
         displayName: demoUser.displayName,
         status: "ACTIVE",
@@ -104,6 +114,7 @@ async function main() {
     await ensureDemoReviewerMembership(prisma, {
       organizationId: organization.id,
       userId: reviewer.id,
+      authUserId: authUser.id,
       role: "REVIEWER",
     });
 
@@ -202,15 +213,45 @@ async function createPrismaClient(
   return new PrismaClient({ adapter });
 }
 
+async function upsertDemoAuthUser(
+  prisma: DemoPrismaClient,
+  {
+    email,
+    name,
+  }: {
+    email: string;
+    name: string;
+  },
+) {
+  return prisma.authUser.upsert({
+    where: {
+      email,
+    },
+    update: {
+      name,
+      emailVerified: false,
+      image: null,
+    },
+    create: {
+      name,
+      email,
+      emailVerified: false,
+      image: null,
+    },
+  });
+}
+
 async function ensureDemoReviewerMembership(
   prisma: DemoPrismaClient,
   {
     organizationId,
     userId,
+    authUserId,
     role,
   }: {
     organizationId: string;
     userId: string;
+    authUserId: string;
     role: "OWNER" | "REVIEWER";
   },
 ) {
@@ -222,12 +263,14 @@ async function ensureDemoReviewerMembership(
       },
     },
     update: {
+      authUserId,
       role,
       status: "ACTIVE",
     },
     create: {
       organizationId,
       userId,
+      authUserId,
       role,
       status: "ACTIVE",
     },
