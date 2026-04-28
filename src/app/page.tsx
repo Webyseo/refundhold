@@ -6,8 +6,8 @@ export default function Home() {
           RefundHold
         </p>
         <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-6xl">
-          Hold AI-initiated Stripe refunds until a rule or a human approves
-          them.
+          RefundHold holds AI-initiated Stripe refunds until a rule or a human
+          approves them.
         </h1>
         <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-300">
           RefundHold is a control layer for Stripe refunds initiated, prepared,
