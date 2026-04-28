@@ -44,9 +44,9 @@ Keep the existing `AUTHRAIL_*` names for now. They are still used by the code.
 
 ## Stripe Safety Baseline
 
-Stripe integration is disabled by default. PR 1 only adds configuration
-guardrails; it does not install Stripe, call Stripe, create webhooks, or execute
-refunds.
+Stripe integration is disabled by default. The app includes a server-only Stripe
+test client scaffold, but it does not call Stripe, create webhooks, or execute
+refunds from the current demo flow.
 
 RefundHold v1 is test-mode only for future Stripe work. Live refunds are
 intentionally blocked: if `AUTHRAIL_STRIPE_LIVE_REFUNDS_ENABLED=true`, the
@@ -57,6 +57,9 @@ or use a server-side test/sandbox key prefix only: `sk_test_` or `rk_test_`.
 Keep Stripe secret and restricted keys out of Git, client-side code, logs, and
 HTML. Configure them only as server-side environment variables. Webhook signing
 secrets are separate from API keys and must also remain server-side only.
+
+No Stripe API calls happen unless future feature flags and explicit server-side
+routes use the test client. Live Stripe keys remain blocked by configuration.
 
 ## Database
 
