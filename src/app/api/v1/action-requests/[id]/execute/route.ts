@@ -6,6 +6,7 @@ import {
   createPrismaDryRunExecutionPersistence,
   createPrismaStripeTestRefundExecutionPersistence,
 } from "@/lib/executions/prisma-persistence";
+import { resolveHumanActionActor } from "@/lib/auth/action-actor";
 import { getPrismaClient } from "@/lib/db/prisma";
 import {
   executeStripeTestRefundForActionRequest,
@@ -30,13 +31,26 @@ export async function POST(
     });
   }
 
+  const actorResult = await resolveHumanActionActor({
+    request,
+    requiredPermission: "executeRefunds",
+  });
+
+  if (!actorResult.ok) {
+    return Response.json(actorResult.response.body, {
+      status: actorResult.response.status,
+    });
+  }
+
   const response = await handleDryRunExecution({
     actionRequestId: id,
     body,
+    actor: actorResult.actor,
     persistence: createLazyPrismaPersistence(),
-    stripeRefundExecutor: async ({ actionRequestId }) => {
+    stripeRefundExecutor: async ({ actionRequestId, actor }) => {
       return executeStripeTestRefundForActionRequest({
         actionRequestId,
+        actor,
         persistence: createLazyStripeRefundPersistence(),
       });
     },

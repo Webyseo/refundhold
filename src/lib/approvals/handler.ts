@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+import {
+  createHumanActorAuditMetadata,
+  type HumanActionActor,
+} from "../auth/action-actor";
+
 type JsonValue =
   | string
   | number
@@ -85,6 +90,7 @@ export type HandleApprovalDecisionInput = {
   action: ApprovalReviewAction;
   actionRequestId: string;
   body: unknown;
+  actor?: HumanActionActor;
   reviewerEmailHeader: string | null;
   persistence: ApprovalDecisionPersistence;
 };
@@ -129,6 +135,7 @@ export async function handleApprovalDecision({
   action,
   actionRequestId,
   body,
+  actor,
   reviewerEmailHeader,
   persistence,
 }: HandleApprovalDecisionInput): Promise<HandleApprovalDecisionResponse> {
@@ -144,18 +151,24 @@ export async function handleApprovalDecision({
     };
   }
 
-  const parsedReviewerEmail = reviewerEmailSchema.safeParse(
-    reviewerEmailHeader ?? "",
-  );
+  if (actor && !actor.permissions.reviewActionRequests) {
+    return forbiddenResponse("You do not have permission to perform this action.");
+  }
 
-  if (!parsedReviewerEmail.success) {
-    return {
-      status: 401,
-      body: {
-        error: "unauthorized",
-        message: `${reviewerEmailHeaderName} header is required.`,
-      },
-    };
+  let reviewerEmail: string | null = null;
+
+  if (!actor) {
+    const parsedReviewerEmail = reviewerEmailSchema.safeParse(
+      reviewerEmailHeader ?? "",
+    );
+
+    if (!parsedReviewerEmail.success) {
+      return unauthorizedResponse(
+        `${reviewerEmailHeaderName} header is required.`,
+      );
+    }
+
+    reviewerEmail = parsedReviewerEmail.data;
   }
 
   let actionRequest: StoredReviewActionRequest | null;
@@ -179,13 +192,32 @@ export async function handleApprovalDecision({
 
   let reviewer: StoredReviewer | null;
 
-  try {
-    reviewer = await persistence.findReviewerByOrganizationAndEmail({
-      organizationId: actionRequest.organizationId,
-      email: parsedReviewerEmail.data,
-    });
-  } catch {
-    return failedClosedResponse("Reviewer lookup failed.");
+  if (actor) {
+    if (actor.organizationId !== actionRequest.organizationId) {
+      return notFoundResponse();
+    }
+
+    reviewer = {
+      id: actor.domainUserId,
+      organizationId: actor.organizationId,
+      email: actor.email,
+      status: "ACTIVE",
+    };
+  } else {
+    if (!reviewerEmail) {
+      return unauthorizedResponse(
+        `${reviewerEmailHeaderName} header is required.`,
+      );
+    }
+
+    try {
+      reviewer = await persistence.findReviewerByOrganizationAndEmail({
+        organizationId: actionRequest.organizationId,
+        email: reviewerEmail,
+      });
+    } catch {
+      return failedClosedResponse("Reviewer lookup failed.");
+    }
   }
 
   if (
@@ -228,6 +260,7 @@ export async function handleApprovalDecision({
           event: config.auditEventName,
           reviewer_email: reviewer.email,
           comment: comment ?? null,
+          ...createHumanActorAuditMetadata(actor),
         },
       },
     });
@@ -253,6 +286,36 @@ export async function handleApprovalDecision({
       status: config.actionRequestStatus,
       decision: config.responseDecision,
       reason: config.reason,
+    },
+  };
+}
+
+function unauthorizedResponse(message: string): HandleApprovalDecisionResponse {
+  return {
+    status: 401,
+    body: {
+      error: "unauthorized",
+      message,
+    },
+  };
+}
+
+function forbiddenResponse(message: string): HandleApprovalDecisionResponse {
+  return {
+    status: 403,
+    body: {
+      error: "forbidden",
+      message,
+    },
+  };
+}
+
+function notFoundResponse(): HandleApprovalDecisionResponse {
+  return {
+    status: 404,
+    body: {
+      error: "not_found",
+      message: "Action request was not found.",
     },
   };
 }

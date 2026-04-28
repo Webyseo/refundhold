@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { handleApprovalDecision } from "@/lib/approvals/handler";
 import { createPrismaApprovalDecisionPersistence } from "@/lib/approvals/prisma-persistence";
+import { resolveHumanActionActor } from "@/lib/auth/action-actor";
 import { getPrismaClient } from "@/lib/db/prisma";
 import { DEMO_ACCESS_COOKIE_NAME } from "@/lib/demo-access";
 import { handleDryRunExecution } from "@/lib/executions/handler";
@@ -23,6 +24,19 @@ export async function rejectActionRequestFromDashboard(formData: FormData) {
 
 export async function executeActionRequestFromDashboard(formData: FormData) {
   const actionRequestId = getActionRequestId(formData);
+  const actorResult = await resolveHumanActionActor({
+    requiredPermission: "executeRefunds",
+    demoReviewerEmail: getDemoReviewerEmail(),
+  });
+
+  if (!actorResult.ok) {
+    redirectWithResult({
+      actionRequestId,
+      successMessage: "Dry-run execution completed.",
+      response: actorResult.response,
+    });
+  }
+
   const prisma = await getPrismaClient();
   const response = await handleDryRunExecution({
     actionRequestId,
@@ -31,6 +45,7 @@ export async function executeActionRequestFromDashboard(formData: FormData) {
         source: "dashboard",
       },
     },
+    actor: actorResult.actor,
     persistence: createPrismaDryRunExecutionPersistence(prisma),
   });
 
@@ -63,6 +78,22 @@ async function reviewActionRequestFromDashboard(
 ) {
   const actionRequestId = getActionRequestId(formData);
   const comment = getOptionalString(formData, "comment");
+  const actorResult = await resolveHumanActionActor({
+    requiredPermission: "reviewActionRequests",
+    demoReviewerEmail: getDemoReviewerEmail(),
+  });
+
+  if (!actorResult.ok) {
+    redirectWithResult({
+      actionRequestId,
+      successMessage:
+        action === "approve"
+          ? "Refund request approved."
+          : "Refund request rejected.",
+      response: actorResult.response,
+    });
+  }
+
   const prisma = await getPrismaClient();
   const response = await handleApprovalDecision({
     action,
@@ -70,6 +101,7 @@ async function reviewActionRequestFromDashboard(
     body: {
       ...(comment ? { comment } : {}),
     },
+    actor: actorResult.actor,
     reviewerEmailHeader: getDemoReviewerEmail(),
     persistence: createPrismaApprovalDecisionPersistence(prisma),
   });

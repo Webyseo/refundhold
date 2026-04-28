@@ -3,6 +3,7 @@ import {
   type ApprovalDecisionPersistence,
 } from "@/lib/approvals/handler";
 import { createPrismaApprovalDecisionPersistence } from "@/lib/approvals/prisma-persistence";
+import { resolveHumanActionActor } from "@/lib/auth/action-actor";
 import { getPrismaClient } from "@/lib/db/prisma";
 
 const invalidJsonResponse = {
@@ -23,10 +24,22 @@ export async function POST(
     });
   }
 
+  const actorResult = await resolveHumanActionActor({
+    request,
+    requiredPermission: "reviewActionRequests",
+  });
+
+  if (!actorResult.ok) {
+    return Response.json(actorResult.response.body, {
+      status: actorResult.response.status,
+    });
+  }
+
   const response = await handleApprovalDecision({
     action: "reject",
     actionRequestId: id,
     body,
+    actor: actorResult.actor,
     reviewerEmailHeader: request.headers.get("x-refundhold-reviewer-email"),
     persistence: createLazyPrismaPersistence(),
   });

@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+import {
+  createHumanActorAuditMetadata,
+  type HumanActionActor,
+} from "../auth/action-actor";
+
 type JsonValue =
   | string
   | number
@@ -78,6 +83,7 @@ export type DryRunExecutionPersistence = {
 export type HandleDryRunExecutionInput = {
   actionRequestId: string;
   body: unknown;
+  actor?: HumanActionActor;
   persistence: DryRunExecutionPersistence;
   stripeRefundExecutor?: StripeRefundExecutor;
 };
@@ -89,6 +95,7 @@ export type HandleDryRunExecutionResponse = {
 
 export type StripeRefundExecutor = (input: {
   actionRequestId: string;
+  actor?: HumanActionActor;
 }) => Promise<HandleDryRunExecutionResponse>;
 
 const invalidPayloadResponse = {
@@ -109,6 +116,7 @@ const bodySchema = z
 export async function handleDryRunExecution({
   actionRequestId,
   body,
+  actor,
   persistence,
   stripeRefundExecutor,
 }: HandleDryRunExecutionInput): Promise<HandleDryRunExecutionResponse> {
@@ -121,6 +129,10 @@ export async function handleDryRunExecution({
     };
   }
 
+  if (actor && !actor.permissions.executeRefunds) {
+    return forbiddenResponse("You do not have permission to perform this action.");
+  }
+
   let actionRequest: StoredExecutableActionRequest | null;
 
   try {
@@ -131,13 +143,11 @@ export async function handleDryRunExecution({
   }
 
   if (!actionRequest) {
-    return {
-      status: 404,
-      body: {
-        error: "not_found",
-        message: "Action request was not found.",
-      },
-    };
+    return notFoundResponse();
+  }
+
+  if (actor && actor.organizationId !== actionRequest.organizationId) {
+    return notFoundResponse();
   }
 
   if (isStripeReflectedExecutionCandidate(actionRequest)) {
@@ -147,6 +157,7 @@ export async function handleDryRunExecution({
 
     return stripeRefundExecutor({
       actionRequestId: actionRequest.id,
+      actor,
     });
   }
 
@@ -157,6 +168,7 @@ export async function handleDryRunExecution({
   }
 
   const metadata = parsedBody.data.metadata ?? {};
+  const actorMetadata = createHumanActorAuditMetadata(actor);
 
   let execution: { executionId: string } | null;
 
@@ -176,6 +188,7 @@ export async function handleDryRunExecution({
             event: "execution_started",
             execution_mode: "dry_run",
             request_metadata: metadata,
+            ...actorMetadata,
           },
         },
         {
@@ -184,6 +197,7 @@ export async function handleDryRunExecution({
             event: "execution_succeeded",
             execution_mode: "dry_run",
             request_metadata: metadata,
+            ...actorMetadata,
           },
         },
       ],
@@ -291,6 +305,26 @@ function getExecutabilityError(
   }
 
   return null;
+}
+
+function forbiddenResponse(message: string): HandleDryRunExecutionResponse {
+  return {
+    status: 403,
+    body: {
+      error: "forbidden",
+      message,
+    },
+  };
+}
+
+function notFoundResponse(): HandleDryRunExecutionResponse {
+  return {
+    status: 404,
+    body: {
+      error: "not_found",
+      message: "Action request was not found.",
+    },
+  };
 }
 
 function failedClosedResponse(message: string): HandleDryRunExecutionResponse {

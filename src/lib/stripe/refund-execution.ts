@@ -11,6 +11,10 @@ import {
   createSafeRefundSnapshot,
   normalizeStripeAmountMinor,
 } from "./snapshots";
+import {
+  createHumanActorAuditMetadata,
+  type HumanActionActor,
+} from "../auth/action-actor";
 
 type JsonValue =
   | string
@@ -170,6 +174,7 @@ export type StripeTestRefundExecutionPersistence = {
 export type ExecuteStripeTestRefundForActionRequestInput = {
   actionRequestId: string;
   persistence: StripeTestRefundExecutionPersistence;
+  actor?: HumanActionActor;
   stripeClient?: StripeRefundExecutionClient;
   env?: StripeSafetyEnv;
   createExecutionId?: () => string;
@@ -192,6 +197,7 @@ type PreparedStripeRefundExecution = {
 export async function executeStripeTestRefundForActionRequest({
   actionRequestId,
   persistence,
+  actor,
   stripeClient,
   env = processEnv,
   createExecutionId = createDefaultExecutionId,
@@ -248,6 +254,7 @@ export async function executeStripeTestRefundForActionRequest({
     executionId,
     idempotencyKeyHash,
     prepared: preparedResult,
+    actor,
   });
 
   if (!beginResult.ok) {
@@ -287,6 +294,7 @@ export async function executeStripeTestRefundForActionRequest({
             amount_minor: safeResponse.amountMinor,
             currency: safeResponse.currency,
             livemode: false,
+            ...createHumanActorAuditMetadata(actor),
           }),
         },
         {
@@ -294,6 +302,7 @@ export async function executeStripeTestRefundForActionRequest({
           metadata: {
             event: "execution_succeeded",
             execution_mode: "stripe_test_refund",
+            ...createHumanActorAuditMetadata(actor),
           },
         },
       ],
@@ -324,6 +333,7 @@ export async function executeStripeTestRefundForActionRequest({
           metadata: {
             event: "stripe_refund_failed",
             execution_mode: "stripe_test_refund",
+            ...createHumanActorAuditMetadata(actor),
           },
         },
         {
@@ -331,6 +341,7 @@ export async function executeStripeTestRefundForActionRequest({
           metadata: {
             event: "execution_failed",
             execution_mode: "stripe_test_refund",
+            ...createHumanActorAuditMetadata(actor),
           },
         },
       ],
@@ -553,11 +564,13 @@ async function beginStripeRefundExecution({
   executionId,
   idempotencyKeyHash,
   prepared,
+  actor,
 }: {
   persistence: StripeTestRefundExecutionPersistence;
   executionId: string;
   idempotencyKeyHash: string;
   prepared: PreparedStripeRefundExecution;
+  actor?: HumanActionActor;
 }): Promise<
   | {
       ok: true;
@@ -592,6 +605,7 @@ async function beginStripeRefundExecution({
           metadata: {
             event: "execution_started",
             execution_mode: "stripe_test_refund",
+            ...createHumanActorAuditMetadata(actor),
           },
         },
         {
@@ -604,6 +618,7 @@ async function beginStripeRefundExecution({
             amount_minor: prepared.amountMinor,
             currency: prepared.currency,
             livemode: false,
+            ...createHumanActorAuditMetadata(actor),
           }),
         },
       ],

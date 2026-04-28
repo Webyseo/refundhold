@@ -95,6 +95,27 @@ the first active `Membership` ordered by creation time, then returns the
 organization, organization-scoped domain `User`, role, and RBAC permissions.
 This is an MVP limitation until organization switching is introduced.
 
+Sensitive action endpoints now support server-side session RBAC for:
+
+- `POST /api/v1/action-requests/[id]/approve`
+- `POST /api/v1/action-requests/[id]/reject`
+- `POST /api/v1/action-requests/[id]/execute`
+- the matching dashboard server actions
+
+When `AUTHRAIL_AUTH_ENABLED=true` and a valid Better Auth session exists, the
+session resolves to an active membership and the action must belong to the same
+organization. `OWNER`, `ADMIN`, and `REVIEWER` can approve, reject, and execute
+approved refund requests. `VIEWER` is read-only and cannot perform those
+sensitive actions.
+
+Demo compatibility remains while `AUTHRAIL_AUTH_REQUIRED=false`: if no valid
+session exists, the demo reviewer path can still resolve the configured demo
+reviewer or `X-RefundHold-Reviewer-Email` header to an active membership.
+Setting `AUTHRAIL_AUTH_REQUIRED=true` disables that fallback and requires a
+real human session. Agent API keys are never accepted for approve, reject, or
+execute; they remain limited to action-request intake. `/app` is not fully
+session-protected yet, and the demo gate remains active.
+
 Current planned roles are `OWNER`, `ADMIN`, `REVIEWER`, and `VIEWER`. The
 initial helper map treats owners as full organization admins, admins as refund
 control managers, reviewers as approval/execution reviewers, and viewers as

@@ -7,6 +7,7 @@ import {
   type StripeRefundExecutor,
   type StoredExecutableActionRequest,
 } from "./handler";
+import type { HumanActionActor } from "../auth/action-actor";
 
 describe("handleDryRunExecution", () => {
   it("executes an approved request in dry-run mode", async () => {
@@ -228,8 +229,129 @@ describe("handleDryRunExecution", () => {
     expect(response.body.execution_mode).toBe("stripe_test_refund");
     expect(stripeRefundExecutor).toHaveBeenCalledWith({
       actionRequestId: "ar_approved",
+      actor: undefined,
     });
     expect(persistence.createDryRunExecution).not.toHaveBeenCalled();
+  });
+
+  it("executes dry-run requests with an explicit session actor", async () => {
+    const persistence = createPersistence();
+
+    const response = await handleDryRunExecution({
+      actionRequestId: "ar_approved",
+      body: {},
+      actor: createActor({
+        source: "session",
+        role: "REVIEWER",
+      }),
+      persistence,
+    });
+
+    expect(response.status).toBe(200);
+    expect(getPersistedInput(persistence).auditEvents).toEqual([
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          actor_source: "session",
+          actor_email: "reviewer@example.com",
+          actor_role: "REVIEWER",
+          domain_user_id: "user_123",
+        }),
+      }),
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          actor_source: "session",
+          actor_email: "reviewer@example.com",
+          actor_role: "REVIEWER",
+          domain_user_id: "user_123",
+        }),
+      }),
+    ]);
+  });
+
+  it("blocks viewer actors from execution", async () => {
+    const persistence = createPersistence();
+
+    const response = await handleDryRunExecution({
+      actionRequestId: "ar_approved",
+      body: {},
+      actor: createActor({
+        role: "VIEWER",
+      }),
+      persistence,
+    });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      error: "forbidden",
+      message: "You do not have permission to perform this action.",
+    });
+    expect(persistence.findActionRequestForExecution).not.toHaveBeenCalled();
+    expect(persistence.createDryRunExecution).not.toHaveBeenCalled();
+  });
+
+  it("does not reveal cross-organization action requests to executing actors", async () => {
+    const persistence = createPersistence();
+
+    const response = await handleDryRunExecution({
+      actionRequestId: "ar_approved",
+      body: {},
+      actor: createActor({
+        organizationId: "org_other",
+      }),
+      persistence,
+    });
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      error: "not_found",
+      message: "Action request was not found.",
+    });
+    expect(persistence.createDryRunExecution).not.toHaveBeenCalled();
+  });
+
+  it("passes the human actor to Stripe test refund execution", async () => {
+    const persistence = createPersistence({
+      actionRequest: {
+        ...defaultActionRequest,
+        connectorType: "stripe_test",
+        operation: "refund.create",
+        resource: {
+          type: "stripe.charge",
+          charge_id: "ch_test",
+          livemode: false,
+        },
+        parameters: {
+          charge_id: "ch_test",
+          amount_minor: 1000,
+        },
+      },
+    });
+    const actor = createActor();
+    const stripeRefundExecutor = vi.fn<StripeRefundExecutor>(async () => {
+      return {
+        status: 200,
+        body: {
+          action_request_id: "ar_approved",
+          execution_id: "execution_stripe",
+          status: "SUCCEEDED",
+          execution_mode: "stripe_test_refund",
+          message: "Stripe test-mode refund completed.",
+        },
+      };
+    });
+
+    await handleDryRunExecution({
+      actionRequestId: "ar_approved",
+      body: {},
+      actor,
+      persistence,
+      stripeRefundExecutor,
+    });
+
+    expect(stripeRefundExecutor).toHaveBeenCalledWith({
+      actionRequestId: "ar_approved",
+      actor,
+    });
   });
 });
 
@@ -267,4 +389,30 @@ function getPersistedInput(
   }
 
   return call[0];
+}
+
+function createActor({
+  source = "session",
+  organizationId = "org_123",
+  role = "REVIEWER",
+}: {
+  source?: HumanActionActor["source"];
+  organizationId?: string;
+  role?: HumanActionActor["role"];
+} = {}): HumanActionActor {
+  return {
+    source,
+    organizationId,
+    domainUserId: "user_123",
+    email: "reviewer@example.com",
+    role,
+    permissions: {
+      viewDashboard: true,
+      reviewActionRequests: role !== "VIEWER",
+      executeRefunds: role !== "VIEWER",
+      managePolicies: role === "OWNER" || role === "ADMIN",
+      manageConnectors: role === "OWNER" || role === "ADMIN",
+      manageMembers: role === "OWNER",
+    },
+  };
 }

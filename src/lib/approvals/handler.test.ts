@@ -7,6 +7,7 @@ import {
   type StoredReviewActionRequest,
   type StoredReviewer,
 } from "./handler";
+import type { HumanActionActor } from "../auth/action-actor";
 
 describe("handleApprovalDecision", () => {
   it("rejects a missing reviewer header", async () => {
@@ -210,6 +211,114 @@ describe("handleApprovalDecision", () => {
       "APPROVAL_APPROVED",
     );
   });
+
+  it("approves with an explicit session actor and records safe actor metadata", async () => {
+    const persistence = createPersistence();
+
+    const response = await handleApprovalDecision({
+      action: "approve",
+      actionRequestId: "ar_review",
+      body: {},
+      actor: createActor({
+        source: "session",
+        role: "REVIEWER",
+      }),
+      reviewerEmailHeader: null,
+      persistence,
+    });
+
+    expect(response.status).toBe(200);
+    expect(persistence.findReviewerByOrganizationAndEmail).not.toHaveBeenCalled();
+    expect(getPersistedInput(persistence)).toEqual(
+      expect.objectContaining({
+        reviewerId: "user_123",
+        auditEvent: expect.objectContaining({
+          metadata: expect.objectContaining({
+            actor_source: "session",
+            actor_email: "reviewer@example.com",
+            actor_role: "REVIEWER",
+            domain_user_id: "user_123",
+          }),
+        }),
+      }),
+    );
+  });
+
+  it("rejects with an explicit reviewer actor", async () => {
+    const persistence = createPersistence();
+
+    const response = await handleApprovalDecision({
+      action: "reject",
+      actionRequestId: "ar_review",
+      body: {},
+      actor: createActor({
+        source: "session",
+        role: "ADMIN",
+      }),
+      reviewerEmailHeader: null,
+      persistence,
+    });
+
+    expect(response.status).toBe(200);
+    expect(getPersistedInput(persistence)).toEqual(
+      expect.objectContaining({
+        reviewerId: "user_123",
+        approvalStatus: "REJECTED",
+      }),
+    );
+  });
+
+  it("blocks viewer actors from approving or rejecting", async () => {
+    const persistence = createPersistence();
+
+    const approve = await handleApprovalDecision({
+      action: "approve",
+      actionRequestId: "ar_review",
+      body: {},
+      actor: createActor({
+        role: "VIEWER",
+      }),
+      reviewerEmailHeader: null,
+      persistence,
+    });
+    const reject = await handleApprovalDecision({
+      action: "reject",
+      actionRequestId: "ar_review",
+      body: {},
+      actor: createActor({
+        role: "VIEWER",
+      }),
+      reviewerEmailHeader: null,
+      persistence,
+    });
+
+    expect(approve.status).toBe(403);
+    expect(reject.status).toBe(403);
+    expect(persistence.findActionRequestForReview).not.toHaveBeenCalled();
+    expect(persistence.createApprovalDecision).not.toHaveBeenCalled();
+  });
+
+  it("does not reveal cross-organization action requests to session actors", async () => {
+    const persistence = createPersistence();
+
+    const response = await handleApprovalDecision({
+      action: "approve",
+      actionRequestId: "ar_review",
+      body: {},
+      actor: createActor({
+        organizationId: "org_other",
+      }),
+      reviewerEmailHeader: null,
+      persistence,
+    });
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      error: "not_found",
+      message: "Action request was not found.",
+    });
+    expect(persistence.createApprovalDecision).not.toHaveBeenCalled();
+  });
 });
 
 const defaultActionRequest: StoredReviewActionRequest = {
@@ -255,4 +364,30 @@ function getPersistedInput(
   }
 
   return call[0];
+}
+
+function createActor({
+  source = "session",
+  organizationId = "org_123",
+  role = "REVIEWER",
+}: {
+  source?: HumanActionActor["source"];
+  organizationId?: string;
+  role?: HumanActionActor["role"];
+} = {}): HumanActionActor {
+  return {
+    source,
+    organizationId,
+    domainUserId: "user_123",
+    email: "reviewer@example.com",
+    role,
+    permissions: {
+      viewDashboard: true,
+      reviewActionRequests: role !== "VIEWER",
+      executeRefunds: role !== "VIEWER",
+      managePolicies: role === "OWNER" || role === "ADMIN",
+      manageConnectors: role === "OWNER" || role === "ADMIN",
+      manageMembers: role === "OWNER",
+    },
+  };
 }
