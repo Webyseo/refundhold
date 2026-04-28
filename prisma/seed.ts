@@ -303,7 +303,7 @@ async function upsertDemoRefundPolicies(
 ) {
   const policies = [
     {
-      name: "Allow refunds under 50 EUR",
+      name: "Allow refunds under 50 USD",
       description: "Demo policy: low-value Stripe test refunds are allowed.",
       decision: "ALLOW",
       priority: 10,
@@ -314,7 +314,7 @@ async function upsertDemoRefundPolicies(
       },
     },
     {
-      name: "Review refunds from 50 EUR to 500 EUR",
+      name: "Review refunds from 50 USD to 500 USD",
       description:
         "Demo policy: medium-value Stripe test refunds require human approval.",
       decision: "APPROVAL_REQUIRED",
@@ -327,7 +327,7 @@ async function upsertDemoRefundPolicies(
       },
     },
     {
-      name: "Deny refunds over 500 EUR",
+      name: "Deny refunds over 500 USD",
       description: "Demo policy: high-value Stripe test refunds are denied.",
       decision: "DENY",
       priority: 30,

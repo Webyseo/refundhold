@@ -32,7 +32,7 @@ describe("action request smoke test payloads", () => {
       },
       parameters: {
         amount: 25,
-        currency: "EUR",
+        currency: "USD",
       },
       context: {
         source: "local_e2e_smoke",

@@ -96,7 +96,7 @@ export type HandleApprovalDecisionResponse = {
 
 // Demo-only reviewer identity for the MVP. This is not authentication.
 // A production path must replace this header with real user auth.
-export const reviewerEmailHeaderName = "X-AuthRail-Reviewer-Email";
+export const reviewerEmailHeaderName = "X-RefundHold-Reviewer-Email";
 
 const bodySchema = z
   .object({

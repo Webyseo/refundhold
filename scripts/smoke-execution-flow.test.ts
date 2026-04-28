@@ -15,7 +15,7 @@ describe("execution flow smoke test helpers", () => {
       },
       parameters: {
         amount: 100,
-        currency: "EUR",
+        currency: "USD",
       },
       context: {
         source: "local_e2e_execution_flow",

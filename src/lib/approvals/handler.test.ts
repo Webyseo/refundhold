@@ -23,12 +23,12 @@ describe("handleApprovalDecision", () => {
     expect(response.status).toBe(401);
     expect(response.body).toEqual({
       error: "unauthorized",
-      message: "X-AuthRail-Reviewer-Email header is required.",
+      message: "X-RefundHold-Reviewer-Email header is required.",
     });
     expect(persistence.findActionRequestForReview).not.toHaveBeenCalled();
   });
 
-  it("rejects an unknown reviewer", async () => {
+  it("rejects an unrecognized reviewer", async () => {
     const persistence = createPersistence({
       reviewer: null,
     });
@@ -37,7 +37,7 @@ describe("handleApprovalDecision", () => {
       action: "approve",
       actionRequestId: "ar_review",
       body: {},
-      reviewerEmailHeader: "missing@authrail.local",
+      reviewerEmailHeader: "missing@refundhold.com",
       persistence,
     });
 
@@ -49,7 +49,7 @@ describe("handleApprovalDecision", () => {
     expect(persistence.findReviewerByOrganizationAndEmail).toHaveBeenCalledWith(
       {
         organizationId: "org_123",
-        email: "missing@authrail.local",
+        email: "missing@refundhold.com",
       },
     );
     expect(persistence.createApprovalDecision).not.toHaveBeenCalled();
@@ -64,7 +64,7 @@ describe("handleApprovalDecision", () => {
       body: {
         comment: "Looks safe.",
       },
-      reviewerEmailHeader: "reviewer@authrail.local",
+      reviewerEmailHeader: "demo.reviewer@refundhold.com",
       persistence,
     });
 
@@ -98,7 +98,7 @@ describe("handleApprovalDecision", () => {
       body: {
         comment: "Too risky.",
       },
-      reviewerEmailHeader: "reviewer@authrail.local",
+      reviewerEmailHeader: "demo.reviewer@refundhold.com",
       persistence,
     });
 
@@ -135,7 +135,7 @@ describe("handleApprovalDecision", () => {
       action: "approve",
       actionRequestId: "ar_review",
       body: {},
-      reviewerEmailHeader: "reviewer@authrail.local",
+      reviewerEmailHeader: "demo.reviewer@refundhold.com",
       persistence,
     });
 
@@ -159,7 +159,7 @@ describe("handleApprovalDecision", () => {
       action: "approve",
       actionRequestId: "ar_review",
       body: {},
-      reviewerEmailHeader: "reviewer@authrail.local",
+      reviewerEmailHeader: "demo.reviewer@refundhold.com",
       persistence,
     });
 
@@ -183,7 +183,7 @@ describe("handleApprovalDecision", () => {
       action: "reject",
       actionRequestId: "ar_review",
       body: {},
-      reviewerEmailHeader: "reviewer@authrail.local",
+      reviewerEmailHeader: "demo.reviewer@refundhold.com",
       persistence,
     });
 
@@ -202,7 +202,7 @@ describe("handleApprovalDecision", () => {
       action: "approve",
       actionRequestId: "ar_review",
       body: {},
-      reviewerEmailHeader: "reviewer@authrail.local",
+      reviewerEmailHeader: "demo.reviewer@refundhold.com",
       persistence,
     });
 
@@ -223,7 +223,7 @@ const defaultActionRequest: StoredReviewActionRequest = {
 const defaultReviewer: StoredReviewer = {
   id: "user_123",
   organizationId: "org_123",
-  email: "reviewer@authrail.local",
+  email: "demo.reviewer@refundhold.com",
   status: "ACTIVE",
 };
 

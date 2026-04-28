@@ -18,7 +18,7 @@ const validBody = {
   },
   parameters: {
     amount: 25,
-    currency: "EUR",
+    currency: "USD",
   },
   context: {
     reason: "customer_request",
@@ -96,7 +96,7 @@ describe("handleActionRequest", () => {
       policies: [
         createPolicy({
           id: "policy_allow",
-          name: "Allow refunds under 50 EUR",
+          name: "Allow refunds under 50 USD",
           decision: "ALLOW",
           priority: 10,
           rules: {
@@ -118,7 +118,7 @@ describe("handleActionRequest", () => {
     expect(response.body).toEqual({
       decision: "allow",
       action_request_id: "ar_123",
-      reason: "allow policy matched: Allow refunds under 50 EUR",
+      reason: "allow policy matched: Allow refunds under 50 USD",
     });
     expect(persistence.createActionRequestWithAudit).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -150,7 +150,7 @@ describe("handleActionRequest", () => {
       policies: [
         createPolicy({
           id: "policy_deny",
-          name: "Deny refunds over 500 EUR",
+          name: "Deny refunds over 500 USD",
           decision: "DENY",
           priority: 10,
           rules: {
@@ -168,7 +168,7 @@ describe("handleActionRequest", () => {
         ...validBody,
         parameters: {
           amount: 750,
-          currency: "EUR",
+          currency: "USD",
         },
       },
       persistence,
@@ -178,7 +178,7 @@ describe("handleActionRequest", () => {
     expect(response.body).toEqual({
       decision: "deny",
       action_request_id: "ar_123",
-      reason: "deny policy matched: Deny refunds over 500 EUR",
+      reason: "deny policy matched: Deny refunds over 500 USD",
     });
     expect(getPersistedInput(persistence).status).toBe("DENIED");
   });
@@ -194,7 +194,7 @@ describe("handleActionRequest", () => {
       policies: [
         createPolicy({
           id: "policy_review",
-          name: "Review refunds from 50 EUR to 500 EUR",
+          name: "Review refunds from 50 USD to 500 USD",
           decision: "APPROVAL_REQUIRED",
           priority: 10,
           rules: {
@@ -213,7 +213,7 @@ describe("handleActionRequest", () => {
         ...validBody,
         parameters: {
           amount: 100,
-          currency: "EUR",
+          currency: "USD",
         },
       },
       persistence,
@@ -225,7 +225,7 @@ describe("handleActionRequest", () => {
       decision: "approval_required",
       action_request_id: "ar_123",
       reason:
-        "approval_required policy matched: Review refunds from 50 EUR to 500 EUR",
+        "approval_required policy matched: Review refunds from 50 USD to 500 USD",
       approval_url: "/approvals/ar_123",
     });
     expect(getPersistedInput(persistence).status).toBe("APPROVAL_REQUIRED");

@@ -18,11 +18,11 @@ describe("dashboard view model", () => {
     expect(
       getAmountCurrency({
         amount: 100,
-        currency: "EUR",
+        currency: "USD",
       }),
     ).toEqual({
       amount: "100",
-      currency: "EUR",
+      currency: "USD",
     });
   });
 
@@ -95,10 +95,10 @@ describe("dashboard view model", () => {
         operation: "refund.create",
         parameters: {
           amount: 100,
-          currency: "eur",
+          currency: "usd",
         },
       }),
-    ).toBe("100 EUR refund.create");
+    ).toBe("100 USD refund.create");
   });
 
   it("falls back to the operation when no amount is available", () => {
@@ -164,14 +164,14 @@ describe("dashboard view model", () => {
     expect(
       getDemoReviewerDisplayName({
         displayName: "RefundHold Demo Reviewer",
-        email: "reviewer@authrail.local",
+        email: "legacy.reviewer@example.internal",
       }),
     ).toBe("RefundHold Demo Reviewer");
 
     expect(
       getDemoReviewerDisplayName({
         displayName: null,
-        email: "reviewer@authrail.local",
+        email: "legacy.reviewer@example.internal",
       }),
     ).toBe("Demo Reviewer");
   });
@@ -213,7 +213,7 @@ function makeRequest(
     operation: "refund.create",
     parameters: {
       amount: 100,
-      currency: "EUR",
+      currency: "USD",
     },
   };
 }

@@ -33,7 +33,7 @@ export default async function DemoAccessPage({
         <p className="mt-3 text-sm leading-6 text-zinc-600">
           This lightweight gate protects the demo dashboard from casual public
           access. RefundHold is not IAM, SSO, Auth0, or Okta. It is an approval
-          and audit layer for AI-initiated refunds.
+          and audit layer for AI-initiated Stripe refunds.
         </p>
 
         {!demoAccess.enabled ? (

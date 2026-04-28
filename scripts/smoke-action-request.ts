@@ -54,7 +54,7 @@ export function buildRefundActionRequestPayload(amount: number) {
     },
     parameters: {
       amount,
-      currency: "EUR",
+      currency: "USD",
     },
     context: {
       source: "local_e2e_smoke",
@@ -92,7 +92,7 @@ export async function runActionRequestSmokeTest(
 
     if (response.decision !== smokeCase.expectedDecision) {
       throw new Error(
-        `Expected ${smokeCase.expectedDecision} for ${smokeCase.amount} EUR refund, received ${response.decision}.`,
+        `Expected ${smokeCase.expectedDecision} for ${smokeCase.amount} USD refund, received ${response.decision}.`,
       );
     }
 
@@ -106,7 +106,7 @@ export async function runActionRequestSmokeTest(
     }
 
     console.log(
-      `${smokeCase.amount} EUR refund -> ${response.decision} (${response.action_request_id})`,
+      `${smokeCase.amount} USD refund -> ${response.decision} (${response.action_request_id})`,
     );
   }
 }
@@ -132,7 +132,7 @@ async function postActionRequest({
 
   if (response.status !== 201) {
     throw new Error(
-      `Expected ${url} to return 201 for ${amount} EUR refund, received ${response.status}: ${JSON.stringify(responseBody)}`,
+      `Expected ${url} to return 201 for ${amount} USD refund, received ${response.status}: ${JSON.stringify(responseBody)}`,
     );
   }
 

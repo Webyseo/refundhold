@@ -16,7 +16,7 @@ describe("approval flow smoke test helpers", () => {
       },
       parameters: {
         amount: 100,
-        currency: "EUR",
+        currency: "USD",
       },
       context: {
         source: "local_e2e_approval_flow",
@@ -34,7 +34,7 @@ describe("approval flow smoke test helpers", () => {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "x-authrail-reviewer-email": "reviewer@authrail.local",
+        "x-refundhold-reviewer-email": "demo.reviewer@refundhold.com",
       },
       body: JSON.stringify({
         comment: "Approved by smoke.",

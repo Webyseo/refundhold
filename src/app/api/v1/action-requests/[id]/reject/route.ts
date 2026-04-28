@@ -27,7 +27,7 @@ export async function POST(
     action: "reject",
     actionRequestId: id,
     body,
-    reviewerEmailHeader: request.headers.get("x-authrail-reviewer-email"),
+    reviewerEmailHeader: request.headers.get("x-refundhold-reviewer-email"),
     persistence: createLazyPrismaPersistence(),
   });
 

@@ -1,31 +1,35 @@
 # RefundHold
 
-Hold AI-initiated Stripe refunds until they are approved.
+RefundHold holds AI-initiated Stripe refunds until a rule or a human approves
+them.
 
 ## What It Does
 
-RefundHold sits between an AI support agent and Stripe. When an agent requests a
-refund, RefundHold checks policy, asks for approval when needed, blocks
-high-risk refunds, executes safely in `dry_run` mode, and records audit
+RefundHold is a control layer for Stripe refunds initiated, prepared, or
+recommended by AI agents. Before a refund can move forward, RefundHold applies
+rules, holds risky cases, requests human approval when needed, and records audit
 evidence.
+
+The current demo runs in dry-run mode, with no Stripe API calls and no real
+money movement.
 
 ## Current Demo
 
 The current demo shows a Stripe refund approval workflow:
 
-1. AI agent requests a Stripe refund.
+1. AI support agent proposes a Stripe refund.
 2. RefundHold evaluates the refund policy.
 3. Small refunds are allowed.
 4. Medium refunds require human approval.
 5. Large refunds are denied.
-6. Approved refunds can be executed in `dry_run`.
+6. Approved refunds can be simulated in `dry_run`.
 7. Every step is recorded in the audit trail.
 
 ## Demo Policy
 
-- < 50 EUR: allowed
-- 50–500 EUR: approval required
-- \> 500 EUR: denied
+- < 50 USD: allowed
+- 50-500 USD: approval required
+- \> 500 USD: denied
 
 ## Current Status
 
@@ -41,8 +45,8 @@ The current demo shows a Stripe refund approval workflow:
 
 ## Not An IAM
 
-RefundHold is not IAM, SSO, Auth0, or Okta. It is an approval and audit layer
-for risky refunds initiated by AI agents.
+RefundHold is not IAM, SSO, Auth0, or Okta. It is a control, approval, and
+audit layer for AI-initiated Stripe refunds.
 
 ## Local Setup
 
@@ -110,7 +114,7 @@ The dashboard lists refund requests from Postgres, shows request detail and
 audit history, and lets the demo reviewer approve, reject, or execute approved
 refunds in `dry_run` mode. This demo does not move real money. It uses
 `AUTHRAIL_DEMO_REVIEWER_EMAIL` from `.env`, defaulting to
-`reviewer@authrail.local`.
+`demo.reviewer@refundhold.com`.
 
 ### Demo Dashboard Access Gate
 
@@ -134,43 +138,9 @@ the demo password. The gate only protects dashboard pages. It does not protect
 for `POST /api/v1/action-requests`, and does not replace production
 authentication.
 
-Run the refund decision smoke test from a second terminal while the Next.js app
-is running:
-
-```bash
-pnpm smoke:action-request
-```
-
-The smoke test calls the real `POST /api/v1/action-requests` endpoint using the
-local demo API key from `.env` and verifies the seeded refund policies:
-
-- 25 EUR refund -> `allow`
-- 100 EUR refund -> `approval_required`
-- 750 EUR refund -> `deny`
-
-The `.env.example` API key is for local development only. The seed hashes it
-before storage and the smoke test sends it as `Authorization: Bearer <key>`.
-
-Run the approval flow smoke test to verify the human review endpoints:
-
-```bash
-pnpm smoke:approval-flow
-```
-
-The approval flow smoke test creates one reviewable 100 EUR refund and approves
-it, then creates a second reviewable 100 EUR refund and rejects it. It uses
-`AUTHRAIL_DEMO_REVIEWER_EMAIL` from `.env`, defaulting to
-`reviewer@authrail.local`.
-
-Run the execution flow smoke test to verify the complete demo path:
-
-```bash
-pnpm smoke:execution-flow
-```
-
-The execution flow smoke test creates a reviewable 100 EUR refund, approves it,
-executes it in `dry_run` mode, then verifies a duplicate execution is rejected.
-This demo does not move real money.
+Developer verification scripts are available in `package.json`. They use
+demo-only API keys, the configured demo reviewer, and `dry_run` execution. Do
+not run them against untrusted environments or real Stripe data.
 
 ## Demo Seed
 
@@ -183,14 +153,14 @@ pnpm db:seed
 The seed creates or updates:
 
 - one demo organization: `authrail-demo`
-- one demo admin/reviewer user: `reviewer@authrail.local`
+- one demo admin/reviewer user: `demo.reviewer@refundhold.com`
 - one demo AI support agent
 - one hashed demo agent API key
 - one Stripe test placeholder
 - three refund policies:
-  - refunds under 50 EUR -> `ALLOW`
-  - refunds from 50 EUR to 500 EUR -> `APPROVAL_REQUIRED`
-  - refunds over 500 EUR -> `DENY`
+  - refunds under 50 USD -> `ALLOW`
+  - refunds from 50 USD to 500 USD -> `APPROVAL_REQUIRED`
+  - refunds over 500 USD -> `DENY`
 
 When the demo API key is created for the first time, the raw key is printed once
 for local development. Later seed runs keep the stored hash and do not show the
@@ -202,17 +172,16 @@ instead of generating a new unknown raw key.
 
 ## Hosted Demo Deployment Checklist
 
-For a controlled hosted demo on Vercel with hosted Postgres:
+For a controlled hosted demo on Dokploy with Postgres:
 
-1. Create a hosted Postgres database and set `DATABASE_URL` for the Vercel
-   project.
+1. Create the RefundHold Dokploy project and configure its Postgres service.
 2. Point the demo domain at the deployment, for example `refundhold.com`.
 3. Set `AUTHRAIL_DEMO_ACCESS_ENABLED=true`.
 4. Set `AUTHRAIL_DEMO_ACCESS_PASSWORD` to a long random demo password.
 5. Set `AUTHRAIL_DEMO_AGENT_API_KEY` to a demo-only key value and keep it out of
    source control.
-6. Set `AUTHRAIL_DEMO_REVIEWER_EMAIL`, usually `reviewer@authrail.local` for
-   the seeded demo reviewer.
+6. Set `AUTHRAIL_DEMO_REVIEWER_EMAIL`, usually
+   `demo.reviewer@refundhold.com` for the seeded demo reviewer.
 7. Set `AUTHRAIL_ACTION_REQUEST_BASE_URL` to the hosted app URL.
 8. Apply migrations against the hosted database with
    `pnpm prisma migrate deploy`.

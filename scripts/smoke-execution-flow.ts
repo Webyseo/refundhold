@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 import { z } from "zod";
 
 const defaultBaseUrl = "http://localhost:3000";
-const defaultDemoReviewerEmail = "reviewer@authrail.local";
+const defaultDemoReviewerEmail = "demo.reviewer@refundhold.com";
 
 const actionRequestResponseSchema = z
   .object({
@@ -58,7 +58,7 @@ export function buildExecutionFlowRefundRequest(label: string) {
     },
     parameters: {
       amount: 100,
-      currency: "EUR",
+      currency: "USD",
     },
     context: {
       source: "local_e2e_execution_flow",
@@ -179,7 +179,7 @@ async function createReviewableActionRequest({
 
   if (parsed.decision !== "approval_required") {
     throw new Error(
-      `Expected 100 EUR refund to require approval, received ${parsed.decision}.`,
+      `Expected 100 USD refund to require approval, received ${parsed.decision}.`,
     );
   }
 
@@ -201,7 +201,7 @@ async function approveActionRequest({
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "x-authrail-reviewer-email": reviewerEmail,
+        "x-refundhold-reviewer-email": reviewerEmail,
       },
       body: JSON.stringify({
         comment: "Approved by local execution flow smoke test.",
