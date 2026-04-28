@@ -6,6 +6,10 @@ import { getPrismaClient } from "../db/prisma";
 
 type PrismaAdapterClient = Parameters<typeof prismaAdapter>[0];
 type BetterAuthInstance = ReturnType<typeof createBetterAuthInstance>;
+type BetterAuthInstanceOptions = {
+  publicSignupEnabled?: boolean;
+  autoSignIn?: boolean;
+};
 
 export const authIdentityModelNames = {
   user: "authUser",
@@ -37,9 +41,27 @@ export async function getBetterAuthOrNull(
   cachedAuth = createBetterAuthInstance(prisma as PrismaAdapterClient, {
     secret: config.betterAuthSecret,
     baseURL: config.betterAuthUrl,
+    publicSignupEnabled,
   });
 
   return cachedAuth;
+}
+
+export async function getProvisioningBetterAuthOrThrow(
+  env: AuthEnv = process.env,
+): Promise<BetterAuthInstance> {
+  const config = getAuthConfig({
+    ...env,
+    AUTHRAIL_AUTH_ENABLED: "true",
+  });
+  const prisma = await getPrismaClient();
+
+  return createBetterAuthInstance(prisma as PrismaAdapterClient, {
+    secret: config.betterAuthSecret,
+    baseURL: config.betterAuthUrl,
+    publicSignupEnabled: true,
+    autoSignIn: false,
+  });
 }
 
 function createBetterAuthInstance(
@@ -47,7 +69,7 @@ function createBetterAuthInstance(
   config: {
     secret: string | null;
     baseURL: string | null;
-  },
+  } & BetterAuthInstanceOptions,
 ) {
   return betterAuth({
     appName: "RefundHold",
@@ -72,7 +94,8 @@ function createBetterAuthInstance(
     },
     emailAndPassword: {
       enabled: emailPasswordAuthEnabled,
-      disableSignUp: !publicSignupEnabled,
+      disableSignUp: !(config.publicSignupEnabled ?? publicSignupEnabled),
+      autoSignIn: config.autoSignIn,
     },
   });
 }

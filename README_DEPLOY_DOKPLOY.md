@@ -76,6 +76,25 @@ into memberships as active reviewers so the current demo reviewer can keep
 approving and executing controlled refund flows once session auth is introduced
 in a later PR.
 
+Controlled auth user provisioning is available through the manual script:
+
+```bash
+pnpm auth:provision-user
+```
+
+It is disabled unless `AUTHRAIL_AUTH_PROVISIONING_ENABLED=true` is set in the
+local or staging environment. Provisioning requires
+`AUTHRAIL_PROVISION_EMAIL`, `AUTHRAIL_PROVISION_PASSWORD`,
+`AUTHRAIL_PROVISION_NAME`, `AUTHRAIL_PROVISION_ORGANIZATION_ID`, and
+`AUTHRAIL_PROVISION_ROLE`. The script uses Better Auth's server-side email
+signup API to create credential accounts, does not print passwords or tokens,
+and blocks `refundhold.com` production URLs by default.
+
+The current session context resolver maps a Better Auth `AuthUser` session to
+the first active `Membership` ordered by creation time, then returns the
+organization, organization-scoped domain `User`, role, and RBAC permissions.
+This is an MVP limitation until organization switching is introduced.
+
 Current planned roles are `OWNER`, `ADMIN`, `REVIEWER`, and `VIEWER`. The
 initial helper map treats owners as full organization admins, admins as refund
 control managers, reviewers as approval/execution reviewers, and viewers as
