@@ -37,6 +37,9 @@ type DemoPrismaClient = {
   user: {
     upsert: (args: unknown) => Promise<{ id: string }>;
   };
+  membership: {
+    upsert: (args: unknown) => Promise<{ id: string }>;
+  };
   agent: {
     upsert: (args: unknown) => Promise<{ id: string }>;
   };
@@ -97,6 +100,11 @@ async function main() {
         displayName: demoUser.displayName,
         status: "ACTIVE",
       },
+    });
+    await ensureDemoReviewerMembership(prisma, {
+      organizationId: organization.id,
+      userId: reviewer.id,
+      role: "REVIEWER",
     });
 
     const agent = await prisma.agent.upsert({
@@ -192,6 +200,38 @@ async function createPrismaClient(
   const adapter = new PrismaPg({ connectionString: databaseUrl });
 
   return new PrismaClient({ adapter });
+}
+
+async function ensureDemoReviewerMembership(
+  prisma: DemoPrismaClient,
+  {
+    organizationId,
+    userId,
+    role,
+  }: {
+    organizationId: string;
+    userId: string;
+    role: "OWNER" | "REVIEWER";
+  },
+) {
+  await prisma.membership.upsert({
+    where: {
+      organizationId_userId: {
+        organizationId,
+        userId,
+      },
+    },
+    update: {
+      role,
+      status: "ACTIVE",
+    },
+    create: {
+      organizationId,
+      userId,
+      role,
+      status: "ACTIVE",
+    },
+  });
 }
 
 async function ensureDemoAgentApiKey(

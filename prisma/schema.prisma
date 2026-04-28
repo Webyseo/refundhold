@@ -17,6 +17,19 @@ enum UserStatus {
   DISABLED
 }
 
+enum MembershipRole {
+  OWNER
+  ADMIN
+  REVIEWER
+  VIEWER
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INVITED
+  DISABLED
+}
+
 enum AgentStatus {
   ACTIVE
   DISABLED
@@ -137,6 +150,7 @@ model Organization {
   executions     Execution[]
   auditEvents    AuditEvent[]
   agentApiKeys   AgentApiKey[]
+  memberships    Membership[]
 
   stripePaymentObjects StripePaymentObject[]
   stripeRefunds        StripeRefund[]
@@ -149,6 +163,8 @@ model User {
   organizationId String
   email          String
   displayName    String?
+  emailVerified  Boolean    @default(false)
+  image          String?
   status         UserStatus @default(ACTIVE)
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
@@ -157,10 +173,30 @@ model User {
 
   reviewedApprovals Approval[]
   auditEvents       AuditEvent[]
+  memberships       Membership[]
 
   @@unique([organizationId, email])
   @@index([organizationId, status])
   @@map("users")
+}
+
+model Membership {
+  id              String           @id @default(cuid())
+  organizationId  String
+  userId          String
+  role            MembershipRole
+  status          MembershipStatus @default(ACTIVE)
+  invitedByUserId String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId, status])
+  @@index([organizationId, role])
+  @@map("memberships")
 }
 
 model Agent {

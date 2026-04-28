@@ -42,6 +42,24 @@ host ports.
 
 Keep the existing `AUTHRAIL_*` names for now. They are still used by the code.
 
+## Auth/RBAC Foundation
+
+RefundHold includes a database foundation for future human login and
+organization-level RBAC. The schema separates human organization memberships
+from agent API keys: AI agents continue to authenticate with agent API keys, and
+those keys are not user sessions.
+
+The demo gate remains active for `/app` when configured. Login routes,
+Better Auth route handlers, passwords, sessions, pricing, and self-service are
+not enabled yet. Existing users are backfilled into memberships as active
+reviewers so the current demo reviewer can keep approving and executing
+controlled refund flows once session auth is introduced in a later PR.
+
+Current planned roles are `OWNER`, `ADMIN`, `REVIEWER`, and `VIEWER`. The
+initial helper map treats owners as full organization admins, admins as refund
+control managers, reviewers as approval/execution reviewers, and viewers as
+read-only dashboard users.
+
 ## Stripe Safety Baseline
 
 Stripe integration is disabled by default. The app includes a server-only Stripe

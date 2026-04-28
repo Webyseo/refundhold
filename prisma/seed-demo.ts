@@ -29,6 +29,7 @@ type UpsertDelegate = {
 type DemoPrismaClient = {
   organization: UpsertDelegate;
   user: UpsertDelegate;
+  membership: UpsertDelegate;
   agent: UpsertDelegate;
   connector: UpsertDelegate;
   policy: UpsertDelegate;
@@ -428,6 +429,10 @@ async function upsertBaseDemoRecords(
       status: "ACTIVE",
     },
   });
+  await ensureDemoReviewerMembership(prisma, {
+    organizationId: organization.id,
+    userId: reviewer.id,
+  });
 
   const agent = await prisma.agent.upsert({
     where: {
@@ -489,6 +494,36 @@ async function upsertBaseDemoRecords(
     agent,
     connector,
   };
+}
+
+async function ensureDemoReviewerMembership(
+  prisma: DemoPrismaClient,
+  {
+    organizationId,
+    userId,
+  }: {
+    organizationId: string;
+    userId: string;
+  },
+) {
+  await prisma.membership.upsert({
+    where: {
+      organizationId_userId: {
+        organizationId,
+        userId,
+      },
+    },
+    update: {
+      role: "REVIEWER",
+      status: "ACTIVE",
+    },
+    create: {
+      organizationId,
+      userId,
+      role: "REVIEWER",
+      status: "ACTIVE",
+    },
+  });
 }
 
 async function upsertDemoPolicies(
