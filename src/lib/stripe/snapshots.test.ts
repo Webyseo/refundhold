@@ -128,6 +128,30 @@ describe("Stripe snapshot helpers", () => {
     expect(snapshot).not.toHaveProperty("metadata");
   });
 
+  it("creates a safe refund snapshot when Stripe omits livemode on refund responses", () => {
+    const snapshot = createSafeRefundSnapshot({
+      object: "refund",
+      id: "re_test",
+      payment_intent: "pi_test",
+      charge: "ch_test",
+      amount: 750,
+      currency: "USD",
+      status: "succeeded",
+      created: 1_776_000_200,
+    });
+
+    expect(snapshot).toEqual({
+      refundId: "re_test",
+      paymentIntentId: "pi_test",
+      chargeId: "ch_test",
+      amountMinor: 750,
+      currency: "usd",
+      status: "succeeded",
+      livemode: false,
+      created: 1_776_000_200,
+    });
+  });
+
   it("normalizes amount minor units", () => {
     expect(normalizeStripeAmountMinor(0)).toBe(0);
     expect(normalizeStripeAmountMinor(1234)).toBe(1234);

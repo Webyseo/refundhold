@@ -93,13 +93,13 @@ export function createSafePaymentSnapshot(
 export function createSafeRefundSnapshot(
   object: StripeObjectRecord,
 ): StripeSafeRefundSnapshot {
-  assertStripeTestModeObject(object);
-
   const objectType = readRequiredString(object.object, "Stripe object type");
 
   if (objectType !== "refund") {
     throw new Error(`Unsupported Stripe refund object type: ${objectType}.`);
   }
+
+  assertStripeRefundTestModeObject(object);
 
   return withDefinedValues({
     refundId: readRequiredString(object.id, "Stripe Refund id"),
@@ -111,6 +111,20 @@ export function createSafeRefundSnapshot(
     livemode: false,
     created: normalizeStripeCreated(object.created),
   });
+}
+
+function assertStripeRefundTestModeObject(object: StripeObjectRecord): void {
+  if (object.livemode === true) {
+    throw new Error(
+      `Stripe object ${readObjectId(object)} is live mode; v1 only accepts test mode.`,
+    );
+  }
+
+  if (object.livemode !== undefined && object.livemode !== false) {
+    throw new Error(
+      `Stripe object ${readObjectId(object)} is not confirmed test mode; v1 only accepts test mode.`,
+    );
+  }
 }
 
 function getExpandedChargeAmountRefunded(value: unknown): number {
