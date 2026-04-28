@@ -7,7 +7,9 @@ import {
   getDemoReviewerDisplayName,
   getImpactSummary,
   getNextSafeAction,
+  getQueueIndicators,
   getRequestFilterCounts,
+  getStripeTestRefundViewModel,
   sortDashboardActionRequestsForReview,
   type DashboardActionRequestState,
   type DashboardActionRequestSummary,
@@ -198,6 +200,178 @@ describe("dashboard view model", () => {
       }),
     ).toBe("No execution is available because policy blocked the refund.");
   });
+
+  it("keeps non-Stripe detail view models free of Stripe state", () => {
+    expect(
+      getStripeTestRefundViewModel({
+        ...makeRequest("dry-run", "APPROVAL_REQUIRED"),
+        connector: {
+          id: "conn_demo",
+          name: "Stripe Demo",
+          type: "stripe_test",
+        },
+        resource: {
+          refund_id: "re_demo",
+        },
+      }),
+    ).toBeNull();
+  });
+
+  it("builds a safe Stripe test payment object view model", () => {
+    const model = getStripeTestRefundViewModel(
+      makeStripeRequest({
+        stripePaymentObject: {
+          id: "spo_123",
+          organizationId: "org_123",
+          connectorId: "conn_123",
+          mode: "TEST",
+          paymentIntentId: "pi_test_123",
+          chargeId: "ch_test_123",
+          amountMinor: 5000,
+          amountRefundedMinor: 1250,
+          currency: "usd",
+          status: "succeeded",
+          livemode: false,
+          safeSnapshot: {
+            paymentIntentId: "pi_test_123",
+            raw_payload: {
+              api_key: "sensitive_test_key_should_not_render",
+            },
+            stripe_signature: "Stripe-Signature should not render",
+          },
+        },
+      }),
+    );
+
+    expect(model?.paymentObject).toEqual({
+      paymentIntentId: "pi_test_123",
+      chargeId: "ch_test_123",
+      amount: "5,000 USD minor units",
+      refundedSoFar: "1,250 USD minor units",
+      refundableAmount: "3,750 USD minor units",
+      proposedRefundAmount: "1,250 USD minor units",
+      currency: "USD",
+      status: "succeeded",
+      mode: "TEST",
+      livemode: "false",
+    });
+    expect(model?.safetyBadges).toEqual([
+      "Test mode only",
+      "No live money movement",
+      "Live refunds disabled",
+    ]);
+    expect(JSON.stringify(model)).not.toContain(
+      "sensitive_test_key_should_not_render",
+    );
+    expect(JSON.stringify(model)).not.toContain("Stripe-Signature");
+  });
+
+  it("builds safe Stripe refund and webhook reconciliation view models", () => {
+    const model = getStripeTestRefundViewModel(
+      makeStripeRequest({
+        status: "EXECUTED",
+        stripeRefund: {
+          id: "sr_123",
+          mode: "TEST",
+          stripeRefundId: "re_test_123",
+          paymentIntentId: "pi_test_123",
+          chargeId: "ch_test_123",
+          amountMinor: 1250,
+          currency: "usd",
+          reason: "requested_by_customer",
+          stripeStatus: "succeeded",
+          safeResponse: {
+            status: "succeeded",
+            full_payload: {
+              secret: "sensitive_restricted_key_should_not_render",
+            },
+          },
+          createdAt: new Date("2026-01-02T10:00:00.000Z"),
+          updatedAt: new Date("2026-01-02T10:02:00.000Z"),
+          execution: {
+            id: "exe_123",
+            status: "SUCCEEDED",
+            startedAt: new Date("2026-01-02T10:00:00.000Z"),
+            completedAt: new Date("2026-01-02T10:01:00.000Z"),
+            createdAt: new Date("2026-01-02T10:00:00.000Z"),
+          },
+        },
+        latestStripeWebhookEvent: {
+          id: "swe_123",
+          type: "refund.updated",
+          status: "PROCESSED",
+          errorMessage: null,
+          receivedAt: new Date("2026-01-02T10:03:00.000Z"),
+          processedAt: new Date("2026-01-02T10:03:01.000Z"),
+          safePayload: {
+            status: "succeeded",
+            stripe_signature: "sig_should_not_render",
+            webhook_secret: "webhook_secret_should_not_render",
+          },
+        },
+      }),
+    );
+
+    expect(model?.refund).toMatchObject({
+      refundId: "re_test_123",
+      executionStatus: "SUCCEEDED",
+      stripeStatus: "succeeded",
+      amount: "1,250 USD minor units",
+      currency: "USD",
+      idempotency: "Protected by idempotency hash",
+    });
+    expect(model?.webhook).toMatchObject({
+      type: "refund.updated",
+      processingStatus: "PROCESSED",
+      stripeStatusAfterReconciliation: "succeeded",
+      message: null,
+    });
+    expect(JSON.stringify(model)).not.toContain(
+      "sensitive_restricted_key_should_not_render",
+    );
+    expect(JSON.stringify(model)).not.toContain(
+      "webhook_secret_should_not_render",
+    );
+    expect(JSON.stringify(model)).not.toContain("sig_should_not_render");
+  });
+
+  it("returns discrete queue indicators for Stripe and dry-run requests", () => {
+    expect(getQueueIndicators(makeStripeRequest())).toEqual([
+      "Stripe test",
+      "Needs approval",
+    ]);
+
+    expect(
+      getQueueIndicators(
+        makeStripeRequest({
+          status: "EXECUTED",
+          stripeRefund: {
+            id: "sr_123",
+            stripeRefundId: "re_test_123",
+            stripeStatus: "succeeded",
+          },
+          auditEvents: [
+            {
+              id: "audit_123",
+              type: "STRIPE_WEBHOOK_PROCESSED",
+              createdAt: new Date("2026-01-02T10:03:00.000Z"),
+            },
+          ],
+        }),
+      ),
+    ).toEqual(["Stripe test", "Executed", "Webhook reconciled"]);
+
+    expect(getQueueIndicators(makeRequest("dry-run", "APPROVED"))).toEqual([
+      "Dry-run",
+    ]);
+  });
+
+  it("does not expose internal product or local host copy in Stripe UI state", () => {
+    const model = getStripeTestRefundViewModel(makeStripeRequest());
+
+    expect(JSON.stringify(model)).not.toContain("AuthRail");
+    expect(JSON.stringify(model)).not.toContain("authrail.local");
+  });
 });
 
 function makeRequest(
@@ -215,5 +389,37 @@ function makeRequest(
       amount: 100,
       currency: "USD",
     },
+  };
+}
+
+function makeStripeRequest(
+  overrides: Partial<Parameters<typeof getStripeTestRefundViewModel>[0]> = {},
+): Parameters<typeof getStripeTestRefundViewModel>[0] {
+  return {
+    id: "ar_stripe",
+    status: "APPROVAL_REQUIRED",
+    decision: "APPROVAL_REQUIRED",
+    createdAt: new Date("2026-01-01"),
+    operation: "refund.create",
+    connector: {
+      id: "conn_123",
+      name: "Stripe Test",
+      type: "stripe_test",
+    },
+    resource: {
+      type: "stripe.payment_intent",
+      payment_intent_id: "pi_test_123",
+      charge_id: "ch_test_123",
+      livemode: false,
+    },
+    parameters: {
+      amount_minor: 1250,
+      currency: "usd",
+      payment_intent_id: "pi_test_123",
+      charge_id: "ch_test_123",
+      refundable_amount_minor: 3750,
+      reason: "requested_by_customer",
+    },
+    ...overrides,
   };
 }

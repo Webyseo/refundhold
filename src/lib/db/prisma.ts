@@ -94,6 +94,44 @@ export type PrismaStripePaymentObjectRecord = {
   safeSnapshot: unknown;
 };
 
+export type PrismaDashboardStripeRefundRecord = {
+  id: string;
+  mode: "TEST" | "LIVE";
+  stripeRefundId: string | null;
+  paymentIntentId: string | null;
+  chargeId: string | null;
+  amountMinor: number;
+  currency: string;
+  reason: string | null;
+  stripeStatus: string | null;
+  safeResponse?: unknown;
+  createdAt: Date;
+  updatedAt: Date;
+  execution: {
+    id: string;
+    status:
+      | "PENDING"
+      | "GRANT_ISSUED"
+      | "RUNNING"
+      | "SUCCEEDED"
+      | "FAILED"
+      | "CANCELED";
+    startedAt: Date | null;
+    completedAt: Date | null;
+    createdAt: Date;
+  } | null;
+};
+
+export type PrismaDashboardStripeWebhookEventRecord = {
+  id: string;
+  type: string;
+  status: "RECEIVED" | "PROCESSED" | "IGNORED" | "FAILED";
+  errorMessage: string | null;
+  receivedAt: Date;
+  processedAt: Date | null;
+  safePayload: unknown;
+};
+
 export type PrismaStripeRefundActionRequestRecord =
   PrismaExecutableActionRequestRecord & {
     connectorId: string | null;
@@ -155,10 +193,21 @@ export type PrismaDashboardUserRecord = {
 export type PrismaDashboardActionRequestListRecord =
   PrismaExecutableActionRequestRecord & {
     operation: string;
+    resource: unknown;
     parameters: unknown;
     createdAt: Date;
     agent: PrismaDashboardAgentRecord;
     connector: PrismaDashboardConnectorRecord | null;
+    stripeRefund: {
+      id: string;
+      stripeRefundId: string | null;
+      stripeStatus: string | null;
+    } | null;
+    auditEvents: Array<{
+      id: string;
+      type: PrismaDashboardAuditEventRecord["type"];
+      createdAt: Date;
+    }>;
   };
 
 export type PrismaDashboardApprovalRecord = {
@@ -217,7 +266,10 @@ export type PrismaDashboardAuditEventRecord = {
 };
 
 export type PrismaDashboardActionRequestDetailRecord =
-  PrismaDashboardActionRequestListRecord & {
+  Omit<
+    PrismaDashboardActionRequestListRecord,
+    "auditEvents" | "stripeRefund"
+  > & {
     resource: unknown;
     context: unknown;
     requestPayload: unknown;
@@ -226,6 +278,9 @@ export type PrismaDashboardActionRequestDetailRecord =
     updatedAt: Date;
     approvals: PrismaDashboardApprovalRecord[];
     executions: PrismaDashboardExecutionRecord[];
+    stripeRefund: PrismaDashboardStripeRefundRecord | null;
+    stripePaymentObject: PrismaStripePaymentObjectRecord | null;
+    latestStripeWebhookEvent: PrismaDashboardStripeWebhookEventRecord | null;
     auditEvents: PrismaDashboardAuditEventRecord[];
   };
 
@@ -267,6 +322,9 @@ export type AuthRailPrismaTransactionClient = {
     findUnique: (
       args: unknown,
     ) => Promise<PrismaStripeWebhookEventRecord | null>;
+    findFirst: (
+      args: unknown,
+    ) => Promise<PrismaDashboardStripeWebhookEventRecord | null>;
     create: (args: unknown) => Promise<PrismaStripeWebhookEventRecord>;
     update: (args: unknown) => Promise<unknown>;
   };

@@ -15,6 +15,7 @@ import {
   getImpactSummary,
   getDecisionLabel,
   getNextSafeAction,
+  getStripeTestRefundViewModel,
   getStatusLabel,
 } from "@/lib/dashboard/view-model";
 
@@ -39,6 +40,7 @@ export default async function ActionRequestDetailPage({
     decision: request.decision,
     status: request.status,
   });
+  const stripeTestRefund = getStripeTestRefundViewModel(request);
   const impactSummary = getImpactSummary({
     operation: request.operation,
     parameters: request.parameters,
@@ -47,10 +49,20 @@ export default async function ActionRequestDetailPage({
     parameters: request.parameters,
     context: request.context,
   });
-  const nextSafeAction = getNextSafeAction({
-    decision: request.decision,
-    status: request.status,
-  });
+  const refundAmount =
+    stripeTestRefund?.paymentObject?.proposedRefundAmount ??
+    stripeTestRefund?.refund?.amount ??
+    demoDetails.refundAmount;
+  const safetyLabel = stripeTestRefund ? "Stripe safety" : "Dry-run guarantee";
+  const safetyValue = stripeTestRefund
+    ? "Test mode only; no live Stripe API calls and no real money movement."
+    : demoDetails.dryRun;
+  const nextSafeAction =
+    stripeTestRefund?.actionStatus.description ??
+    getNextSafeAction({
+      decision: request.decision,
+      status: request.status,
+    });
   const success = getSearchMessage(notices["success"]);
   const error = getSearchMessage(notices["error"]);
 
@@ -89,7 +101,7 @@ export default async function ActionRequestDetailPage({
               Executive summary
             </p>
             <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-              <Detail label="Amount" value={demoDetails.refundAmount} />
+              <Detail label="Amount" value={refundAmount} />
               <Detail label="Status" value={getStatusLabel(request.status)} />
               <Detail
                 label="Policy decision"
@@ -99,7 +111,7 @@ export default async function ActionRequestDetailPage({
                 label="Risk / reason"
                 value={request.decisionReason ?? demoDetails.riskReason}
               />
-              <Detail label="Dry-run guarantee" value={demoDetails.dryRun} />
+              <Detail label={safetyLabel} value={safetyValue} />
               <Detail label="Next safe action" value={nextSafeAction} />
             </dl>
           </section>
@@ -129,11 +141,11 @@ export default async function ActionRequestDetailPage({
                     : "none"
                 }
               />
-              <Detail label="Refund amount" value={demoDetails.refundAmount} />
+              <Detail label="Refund amount" value={refundAmount} />
               <Detail label="Customer context" value={demoDetails.customer} />
               <Detail label="Order context" value={demoDetails.order} />
               <Detail label="AI initiated action" value={request.operation} />
-              <Detail label="Dry-run guarantee" value={demoDetails.dryRun} />
+              <Detail label={safetyLabel} value={safetyValue} />
               <Detail
                 label="Created"
                 value={formatDateTime(request.createdAt)}
@@ -149,6 +161,116 @@ export default async function ActionRequestDetailPage({
               />
             </dl>
           </section>
+
+          {stripeTestRefund?.paymentObject ? (
+            <section className="rounded-lg border border-zinc-200 bg-white p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-base font-semibold text-zinc-950">
+                  Stripe test object
+                </h2>
+                <SafetyBadges labels={stripeTestRefund.safetyBadges} />
+              </div>
+              <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+                <Detail
+                  label="PaymentIntent ID"
+                  value={stripeTestRefund.paymentObject.paymentIntentId}
+                />
+                <Detail
+                  label="Charge ID"
+                  value={stripeTestRefund.paymentObject.chargeId}
+                />
+                <Detail
+                  label="Proposed refund"
+                  value={stripeTestRefund.paymentObject.proposedRefundAmount}
+                />
+                <Detail
+                  label="Amount"
+                  value={stripeTestRefund.paymentObject.amount}
+                />
+                <Detail
+                  label="Refunded so far"
+                  value={stripeTestRefund.paymentObject.refundedSoFar}
+                />
+                <Detail
+                  label="Refundable amount"
+                  value={stripeTestRefund.paymentObject.refundableAmount}
+                />
+                <Detail
+                  label="Currency"
+                  value={stripeTestRefund.paymentObject.currency}
+                />
+                <Detail
+                  label="Stripe object status"
+                  value={stripeTestRefund.paymentObject.status}
+                />
+                <Detail label="Mode" value={stripeTestRefund.paymentObject.mode} />
+                <Detail
+                  label="Livemode"
+                  value={stripeTestRefund.paymentObject.livemode}
+                />
+              </dl>
+            </section>
+          ) : null}
+
+          {stripeTestRefund?.refund ? (
+            <section className="rounded-lg border border-zinc-200 bg-white p-5">
+              <h2 className="text-base font-semibold text-zinc-950">
+                Stripe test refund execution
+              </h2>
+              <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+                <Detail label="Refund ID" value={stripeTestRefund.refund.refundId} />
+                <Detail
+                  label="Execution status"
+                  value={stripeTestRefund.refund.executionStatus}
+                />
+                <Detail
+                  label="Stripe refund status"
+                  value={stripeTestRefund.refund.stripeStatus}
+                />
+                <Detail label="Amount" value={stripeTestRefund.refund.amount} />
+                <Detail label="Currency" value={stripeTestRefund.refund.currency} />
+                <Detail
+                  label="Created"
+                  value={formatDateTime(stripeTestRefund.refund.createdAt)}
+                />
+                <Detail
+                  label="Updated"
+                  value={formatDateTime(stripeTestRefund.refund.updatedAt)}
+                />
+                <Detail
+                  label="Idempotency"
+                  value={stripeTestRefund.refund.idempotency}
+                />
+              </dl>
+            </section>
+          ) : null}
+
+          {stripeTestRefund?.webhook ? (
+            <section className="rounded-lg border border-zinc-200 bg-white p-5">
+              <h2 className="text-base font-semibold text-zinc-950">
+                Webhook reconciliation
+              </h2>
+              <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+                <Detail label="Last event type" value={stripeTestRefund.webhook.type} />
+                <Detail
+                  label="Processing status"
+                  value={stripeTestRefund.webhook.processingStatus}
+                />
+                <Detail
+                  label="Stripe status after reconciliation"
+                  value={stripeTestRefund.webhook.stripeStatusAfterReconciliation}
+                />
+                <Detail
+                  label="Timestamp"
+                  value={formatDateTime(stripeTestRefund.webhook.timestamp)}
+                />
+                <Detail
+                  label="Safe message"
+                  value={stripeTestRefund.webhook.message}
+                />
+              </dl>
+            </section>
+          ) : null}
 
           <JsonSection title="Refund resource JSON" value={request.resource} />
           <JsonSection title="Parameters JSON" value={request.parameters} />
@@ -198,8 +320,9 @@ export default async function ActionRequestDetailPage({
               Executions
             </h2>
             <p className="mt-2 text-sm leading-6 text-zinc-600">
-              Dry-run executions are simulations only. RefundHold does not call
-              Stripe from this dashboard. This demo does not move real money.
+              {stripeTestRefund
+                ? "Stripe test executions are server-side guarded, test mode only, and require approval. This dashboard does not expose live Stripe execution controls."
+                : "Dry-run executions are simulations only. RefundHold does not call Stripe from this dashboard. This demo does not move real money."}
             </p>
             {request.executions.length === 0 ? (
               <EmptyLine>No executions recorded.</EmptyLine>
@@ -243,8 +366,9 @@ export default async function ActionRequestDetailPage({
               Available refund action
             </h2>
             <p className="mt-2 text-sm leading-6 text-zinc-600">
-              These controls use demo-only review logic. Any execution remains
-              dry_run and does not call the Stripe API.
+              {stripeTestRefund
+                ? "Human approval is still the control boundary. Stripe test execution remains server-side flag gated, test mode only, and unavailable from this dashboard."
+                : "These controls use demo-only review logic. Any execution remains dry_run and does not call the Stripe API."}
             </p>
 
             {controls.canApprove || controls.canReject ? (
@@ -262,11 +386,14 @@ export default async function ActionRequestDetailPage({
                     htmlFor="approval-comment"
                     className="text-sm font-semibold text-emerald-950"
                   >
-                    Approve this dry_run refund review
+                    {stripeTestRefund
+                      ? "Approve this Stripe test refund review"
+                      : "Approve this dry_run refund review"}
                   </label>
                   <p className="mt-1 text-sm leading-6 text-emerald-900">
-                    Demo only: this records approval and unlocks dry_run
-                    simulation. It does not create a real Stripe refund.
+                    {stripeTestRefund
+                      ? "This records approval only. It does not automatically create a Stripe refund, and live refunds remain disabled."
+                      : "Demo only: this records approval and unlocks dry_run simulation. It does not create a real Stripe refund."}
                   </p>
                   <textarea
                     id="approval-comment"
@@ -278,7 +405,9 @@ export default async function ActionRequestDetailPage({
                     type="submit"
                     className="mt-2 w-full rounded-md bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800"
                   >
-                    Approve demo refund review
+                    {stripeTestRefund
+                      ? "Approve test refund review"
+                      : "Approve demo refund review"}
                   </button>
                 </form>
                 <form
@@ -294,11 +423,14 @@ export default async function ActionRequestDetailPage({
                     htmlFor="rejection-comment"
                     className="text-sm font-semibold text-red-950"
                   >
-                    Reject and block this dry_run refund
+                    {stripeTestRefund
+                      ? "Reject and block this Stripe test refund"
+                      : "Reject and block this dry_run refund"}
                   </label>
                   <p className="mt-1 text-sm leading-6 text-red-900">
-                    Demo only: this records rejection and keeps the simulated
-                    refund blocked. No Stripe API call is made.
+                    {stripeTestRefund
+                      ? "This records rejection and keeps the test refund blocked. No Stripe refund is created."
+                      : "Demo only: this records rejection and keeps the simulated refund blocked. No Stripe API call is made."}
                   </p>
                   <textarea
                     id="rejection-comment"
@@ -310,13 +442,13 @@ export default async function ActionRequestDetailPage({
                     type="submit"
                     className="mt-2 w-full rounded-md border border-red-300 bg-white px-4 py-3 text-sm font-semibold text-red-800 hover:bg-red-50"
                   >
-                    Reject demo refund
+                    {stripeTestRefund ? "Reject test refund" : "Reject demo refund"}
                   </button>
                 </form>
               </div>
             ) : null}
 
-            {controls.canExecute ? (
+            {controls.canExecute && !stripeTestRefund ? (
               <form
                 action={executeActionRequestFromDashboard}
                 className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4"
@@ -342,9 +474,24 @@ export default async function ActionRequestDetailPage({
               </form>
             ) : null}
 
+            {stripeTestRefund ? (
+              <div className="mt-4 rounded-lg border border-sky-200 bg-sky-50 p-4">
+                <p className="text-sm font-semibold text-sky-950">
+                  {stripeTestRefund.actionStatus.label}
+                </p>
+                <p className="mt-1 text-sm leading-6 text-sky-900">
+                  {stripeTestRefund.actionStatus.description}
+                </p>
+                <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-sky-800">
+                  Test mode only; no real money movement; audit evidence recorded
+                </p>
+              </div>
+            ) : null}
+
             {!controls.canApprove &&
             !controls.canReject &&
-            !controls.canExecute ? (
+            !controls.canExecute &&
+            !stripeTestRefund ? (
               <p className="mt-4 rounded-md bg-zinc-50 p-3 text-sm text-zinc-600">
                 No refund action is available for this request state.
               </p>
@@ -409,6 +556,21 @@ function Detail({ label, value }: { label: string; value: string | null }) {
         {label}
       </dt>
       <dd className="mt-1 text-sm text-zinc-900">{value ?? "none"}</dd>
+    </div>
+  );
+}
+
+function SafetyBadges({ labels }: { labels: string[] }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {labels.map((label) => (
+        <span
+          key={label}
+          className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-900"
+        >
+          {label}
+        </span>
+      ))}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   getAmountCurrency,
   getDecisionLabel,
   getImpactSummary,
+  getQueueIndicators,
   getRequestFilterCounts,
   getStatusLabel,
   sortDashboardActionRequestsForReview,
@@ -125,6 +126,8 @@ export default async function ActionRequestsPage({
                   const isPendingReview =
                     request.decision === "APPROVAL_REQUIRED" &&
                     request.status === "APPROVAL_REQUIRED";
+                  const indicators = getQueueIndicators(request);
+                  const isStripeTest = indicators.includes("Stripe test");
                   const amountCurrency = getAmountCurrency(request.parameters);
                   const amount =
                     amountCurrency.amount && amountCurrency.currency
@@ -146,7 +149,7 @@ export default async function ActionRequestsPage({
                       <td className="px-4 py-3">
                         {isPendingReview ? (
                           <span className="inline-flex rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-900">
-                            Needs review
+                            Needs approval
                           </span>
                         ) : (
                           <span className="text-xs font-medium text-zinc-400">
@@ -171,8 +174,11 @@ export default async function ActionRequestsPage({
                           {request.connector?.name ?? "Stripe Demo"}
                         </span>
                         <span className="block text-xs text-zinc-500">
-                          dry_run; no Stripe API call
+                          {isStripeTest
+                            ? "test mode; no live money movement"
+                            : "dry_run; no Stripe API call"}
                         </span>
+                        <IndicatorBadges labels={indicators} />
                       </td>
                       <td className="px-4 py-3 font-mono text-xs text-zinc-700">
                         {request.operation}
@@ -249,5 +255,20 @@ function DecisionBadge({ decision }: { decision: DashboardDecision }) {
     >
       {getDecisionLabel(decision)}
     </span>
+  );
+}
+
+function IndicatorBadges({ labels }: { labels: string[] }) {
+  return (
+    <div className="mt-2 flex max-w-56 flex-wrap gap-1.5">
+      {labels.map((label) => (
+        <span
+          key={label}
+          className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[11px] font-semibold text-zinc-600"
+        >
+          {label}
+        </span>
+      ))}
+    </div>
   );
 }

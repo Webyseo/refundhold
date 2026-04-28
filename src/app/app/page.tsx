@@ -36,6 +36,10 @@ export default function DashboardHomePage() {
             dashboard shows the refund queue, policy reason, reviewer decision,
             dry-run refund execution, and audit evidence.
           </p>
+          <p className="mt-3 text-sm leading-6 text-zinc-500">
+            Stripe test-mode execution is available only for approved test
+            requests.
+          </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
             <Link

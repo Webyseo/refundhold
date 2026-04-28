@@ -86,6 +86,12 @@ records for events with `livemode=false`. The initial supported events are
 `refund.created`, `refund.updated`, and `refund.failed`. Live mode remains
 blocked.
 
+The reviewer UI can display Stripe test-mode payment snapshots, test refund
+execution state, and webhook reconciliation state from safe stored fields only.
+It does not expose Stripe API keys, webhook secrets, signatures, full Stripe
+payloads, or idempotency raw keys. Test execution remains disabled unless the
+server-side flags are enabled, and live refunds remain unavailable.
+
 ## Database
 
 The Compose file creates a private Postgres service named `postgres` and a
