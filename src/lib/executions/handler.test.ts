@@ -4,6 +4,7 @@ import {
   handleDryRunExecution,
   type DryRunExecutionPersistence,
   type PersistedDryRunExecutionInput,
+  type StripeRefundExecutor,
   type StoredExecutableActionRequest,
 } from "./handler";
 
@@ -168,6 +169,67 @@ describe("handleDryRunExecution", () => {
         status: "SUCCEEDED",
       }),
     );
+  });
+
+  it("keeps dry-run execution when a Stripe executor is present but the request is not reflected", async () => {
+    const persistence = createPersistence();
+    const stripeRefundExecutor = vi.fn<StripeRefundExecutor>();
+
+    const response = await handleDryRunExecution({
+      actionRequestId: "ar_approved",
+      body: {},
+      persistence,
+      stripeRefundExecutor,
+    });
+
+    expect(response.status).toBe(200);
+    expect(stripeRefundExecutor).not.toHaveBeenCalled();
+    expect(persistence.createDryRunExecution).toHaveBeenCalledOnce();
+  });
+
+  it("delegates reflected Stripe test refunds to the Stripe executor", async () => {
+    const persistence = createPersistence({
+      actionRequest: {
+        ...defaultActionRequest,
+        connectorType: "stripe_test",
+        operation: "refund.create",
+        resource: {
+          type: "stripe.payment_intent",
+          payment_intent_id: "pi_test",
+          livemode: false,
+        },
+        parameters: {
+          payment_intent_id: "pi_test",
+          amount_minor: 1000,
+        },
+      },
+    });
+    const stripeRefundExecutor = vi.fn<StripeRefundExecutor>(async () => {
+      return {
+        status: 200,
+        body: {
+          action_request_id: "ar_approved",
+          execution_id: "execution_stripe",
+          status: "SUCCEEDED",
+          execution_mode: "stripe_test_refund",
+          message: "Stripe test-mode refund completed.",
+        },
+      };
+    });
+
+    const response = await handleDryRunExecution({
+      actionRequestId: "ar_approved",
+      body: {},
+      persistence,
+      stripeRefundExecutor,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.execution_mode).toBe("stripe_test_refund");
+    expect(stripeRefundExecutor).toHaveBeenCalledWith({
+      actionRequestId: "ar_approved",
+    });
+    expect(persistence.createDryRunExecution).not.toHaveBeenCalled();
   });
 });
 

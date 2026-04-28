@@ -45,8 +45,8 @@ Keep the existing `AUTHRAIL_*` names for now. They are still used by the code.
 ## Stripe Safety Baseline
 
 Stripe integration is disabled by default. The app includes a server-only Stripe
-test client scaffold, but it does not call Stripe, create webhooks, or execute
-refunds from the current demo flow.
+test client scaffold and guarded test-mode refund execution, but it does not
+create webhooks or execute refunds from the current demo flow.
 
 RefundHold v1 is test-mode only for future Stripe work. Live refunds are
 intentionally blocked: if `AUTHRAIL_STRIPE_LIVE_REFUNDS_ENABLED=true`, the
@@ -58,19 +58,24 @@ Keep Stripe secret and restricted keys out of Git, client-side code, logs, and
 HTML. Configure them only as server-side environment variables. Webhook signing
 secrets are separate from API keys and must also remain server-side only.
 
-No Stripe API calls happen unless future feature flags and explicit server-side
-routes use the test client. Live Stripe keys remain blocked by configuration.
+Stripe API calls happen only when the test-mode feature flags are enabled and an
+explicit server-side execution route handles an approved Stripe test refund.
+Live Stripe keys remain blocked by configuration.
 
-Stripe persistence models exist for future test-mode execution. The database can
-store safe Stripe payment snapshots, future test-mode refund execution records,
-and deduplicated webhook event records. The current app still does not call
-Stripe, execute refunds, or expose a Stripe webhook route.
+Stripe persistence models store safe Stripe payment snapshots, test-mode refund
+execution records, and future deduplicated webhook event records. Webhook routes
+are still not implemented.
 
 Stripe test object reflection is available for future agent requests. When test
 mode flags and server-side test keys are configured, RefundHold can reflect a
 test PaymentIntent or Charge into a safe snapshot and create an action request
-for policy review. It still does not execute refunds; refund execution belongs
-to a later PR.
+for policy review without exposing full Stripe payloads.
+
+Stripe test-mode refund execution is available but disabled by default. It
+requires both `AUTHRAIL_STRIPE_TEST_MODE_ENABLED=true` and
+`AUTHRAIL_STRIPE_TEST_REFUNDS_ENABLED=true`, and it only executes approved
+Stripe test action requests with `livemode=false`. Live refunds remain
+intentionally blocked, and webhook handling is still not implemented.
 
 ## Database
 

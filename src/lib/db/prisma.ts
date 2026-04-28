@@ -59,6 +59,9 @@ export type PrismaExecutableActionRequestRecord = {
   organizationId: string;
   agentId: string;
   connectorId?: string | null;
+  connector?: {
+    type: string;
+  } | null;
   decision: "ALLOW" | "DENY" | "APPROVAL_REQUIRED" | null;
   status:
     | "PROPOSED"
@@ -71,7 +74,48 @@ export type PrismaExecutableActionRequestRecord = {
     | "EXECUTED"
     | "FAILED"
     | "CANCELED";
+  operation?: string;
+  resource?: unknown;
+  parameters?: unknown;
 };
+
+export type PrismaStripePaymentObjectRecord = {
+  id: string;
+  organizationId: string;
+  connectorId: string;
+  mode: "TEST" | "LIVE";
+  paymentIntentId: string | null;
+  chargeId: string | null;
+  amountMinor: number;
+  amountRefundedMinor: number;
+  currency: string;
+  status: string;
+  livemode: boolean;
+  safeSnapshot: unknown;
+};
+
+export type PrismaStripeRefundActionRequestRecord =
+  PrismaExecutableActionRequestRecord & {
+    connectorId: string | null;
+    operation: string;
+    resource: unknown;
+    parameters: unknown;
+    connector: {
+      type: string;
+    } | null;
+    approvals: Array<{
+      id: string;
+    }>;
+    executions: Array<{
+      id: string;
+      status: "SUCCEEDED";
+    }>;
+    stripeRefund: {
+      id: string;
+      stripeRefundId: string | null;
+      stripeStatus: string | null;
+    } | null;
+  };
 
 export type PrismaDashboardAgentRecord = {
   id: string;
@@ -139,6 +183,9 @@ export type PrismaDashboardAuditEventRecord = {
     | "APPROVAL_REJECTED"
     | "EXECUTION_GRANT_ISSUED"
     | "EXECUTION_STARTED"
+    | "STRIPE_REFUND_REQUESTED"
+    | "STRIPE_REFUND_SUCCEEDED"
+    | "STRIPE_REFUND_FAILED"
     | "EXECUTION_SUCCEEDED"
     | "EXECUTION_FAILED";
   metadata: unknown;
@@ -170,11 +217,26 @@ export type AuthRailPrismaTransactionClient = {
   };
   execution: {
     create: (args: unknown) => Promise<{ id: string }>;
+    findFirst: (args: unknown) => Promise<{ id: string; status: "SUCCEEDED" } | null>;
+    update: (args: unknown) => Promise<unknown>;
   };
   stripePaymentObject: {
-    findFirst: (args: unknown) => Promise<{ id: string } | null>;
+    findFirst: (
+      args: unknown,
+    ) => Promise<PrismaStripePaymentObjectRecord | { id: string } | null>;
     update: (args: unknown) => Promise<unknown>;
     create: (args: unknown) => Promise<unknown>;
+  };
+  stripeRefund: {
+    findUnique: (
+      args: unknown,
+    ) => Promise<{
+      id: string;
+      stripeRefundId: string | null;
+      stripeStatus: string | null;
+    } | null>;
+    create: (args: unknown) => Promise<{ id: string }>;
+    update: (args: unknown) => Promise<unknown>;
   };
   auditEvent: {
     create: (args: unknown) => Promise<unknown>;
@@ -201,6 +263,7 @@ export type AuthRailPrismaClient = AuthRailPrismaTransactionClient & {
     ) => Promise<
       | PrismaReviewActionRequestRecord
       | PrismaExecutableActionRequestRecord
+      | PrismaStripeRefundActionRequestRecord
       | PrismaDashboardActionRequestDetailRecord
       | null
     >;

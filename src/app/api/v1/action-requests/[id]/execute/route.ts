@@ -2,8 +2,15 @@ import {
   handleDryRunExecution,
   type DryRunExecutionPersistence,
 } from "@/lib/executions/handler";
-import { createPrismaDryRunExecutionPersistence } from "@/lib/executions/prisma-persistence";
+import {
+  createPrismaDryRunExecutionPersistence,
+  createPrismaStripeTestRefundExecutionPersistence,
+} from "@/lib/executions/prisma-persistence";
 import { getPrismaClient } from "@/lib/db/prisma";
+import {
+  executeStripeTestRefundForActionRequest,
+  type StripeTestRefundExecutionPersistence,
+} from "@/lib/stripe/refund-execution";
 
 const invalidJsonResponse = {
   error: "invalid_payload",
@@ -27,11 +34,55 @@ export async function POST(
     actionRequestId: id,
     body,
     persistence: createLazyPrismaPersistence(),
+    stripeRefundExecutor: async ({ actionRequestId }) => {
+      return executeStripeTestRefundForActionRequest({
+        actionRequestId,
+        persistence: createLazyStripeRefundPersistence(),
+      });
+    },
   });
 
   return Response.json(response.body, {
     status: response.status,
   });
+}
+
+function createLazyStripeRefundPersistence(): StripeTestRefundExecutionPersistence {
+  let persistencePromise: Promise<StripeTestRefundExecutionPersistence> | null =
+    null;
+
+  async function getPersistence() {
+    persistencePromise ??= getPrismaClient().then((prisma) => {
+      return createPrismaStripeTestRefundExecutionPersistence(prisma);
+    });
+
+    return persistencePromise;
+  }
+
+  return {
+    findActionRequestForStripeRefundExecution: async (actionRequestId) => {
+      const persistence = await getPersistence();
+
+      return persistence.findActionRequestForStripeRefundExecution(
+        actionRequestId,
+      );
+    },
+    beginStripeTestRefundExecution: async (input) => {
+      const persistence = await getPersistence();
+
+      return persistence.beginStripeTestRefundExecution(input);
+    },
+    markStripeTestRefundExecutionSucceeded: async (input) => {
+      const persistence = await getPersistence();
+
+      return persistence.markStripeTestRefundExecutionSucceeded(input);
+    },
+    markStripeTestRefundExecutionFailed: async (input) => {
+      const persistence = await getPersistence();
+
+      return persistence.markStripeTestRefundExecutionFailed(input);
+    },
+  };
 }
 
 async function readOptionalJsonBody(request: Request) {

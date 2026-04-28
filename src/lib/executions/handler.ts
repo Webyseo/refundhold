@@ -42,8 +42,12 @@ export type StoredExecutableActionRequest = {
   organizationId: string;
   agentId: string;
   connectorId: string | null;
+  connectorType?: string | null;
   decision: StoredAuthRailDecision | null;
   status: StoredActionRequestStatus;
+  operation?: string;
+  resource?: JsonObject;
+  parameters?: JsonObject;
 };
 
 export type PersistedExecutionAuditEventInput = {
@@ -75,12 +79,17 @@ export type HandleDryRunExecutionInput = {
   actionRequestId: string;
   body: unknown;
   persistence: DryRunExecutionPersistence;
+  stripeRefundExecutor?: StripeRefundExecutor;
 };
 
 export type HandleDryRunExecutionResponse = {
   status: number;
   body: JsonObject;
 };
+
+export type StripeRefundExecutor = (input: {
+  actionRequestId: string;
+}) => Promise<HandleDryRunExecutionResponse>;
 
 const invalidPayloadResponse = {
   error: "invalid_payload",
@@ -101,6 +110,7 @@ export async function handleDryRunExecution({
   actionRequestId,
   body,
   persistence,
+  stripeRefundExecutor,
 }: HandleDryRunExecutionInput): Promise<HandleDryRunExecutionResponse> {
   const parsedBody = bodySchema.safeParse(body);
 
@@ -128,6 +138,16 @@ export async function handleDryRunExecution({
         message: "Action request was not found.",
       },
     };
+  }
+
+  if (isStripeReflectedExecutionCandidate(actionRequest)) {
+    if (!stripeRefundExecutor) {
+      return failedClosedResponse("Stripe refund executor is not configured.");
+    }
+
+    return stripeRefundExecutor({
+      actionRequestId: actionRequest.id,
+    });
   }
 
   const executabilityError = getExecutabilityError(actionRequest);
@@ -192,6 +212,23 @@ export async function handleDryRunExecution({
       message: "Dry-run execution completed.",
     },
   };
+}
+
+function isStripeReflectedExecutionCandidate(
+  actionRequest: StoredExecutableActionRequest,
+): boolean {
+  const resource = actionRequest.resource;
+  const parameters = actionRequest.parameters;
+
+  return (
+    actionRequest.connectorType === "stripe_test" &&
+    actionRequest.operation === "refund.create" &&
+    Boolean(resource) &&
+    (resource?.["type"] === "stripe.payment_intent" ||
+      resource?.["type"] === "stripe.charge") &&
+    Boolean(parameters) &&
+    typeof parameters?.["amount_minor"] === "number"
+  );
 }
 
 function getExecutabilityError(
