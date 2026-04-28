@@ -17,7 +17,8 @@
     "db:seed:demo": "prisma generate && tsx prisma/seed-demo.ts",
     "smoke:action-request": "tsx scripts/smoke-action-request.ts",
     "smoke:approval-flow": "tsx scripts/smoke-approval-flow.ts",
-    "smoke:execution-flow": "tsx scripts/smoke-execution-flow.ts"
+    "smoke:execution-flow": "tsx scripts/smoke-execution-flow.ts",
+    "stripe:e2e:test": "tsx scripts/stripe-test-e2e.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
