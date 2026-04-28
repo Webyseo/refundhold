@@ -1,10 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   assertDuplicateExecuteRejected,
   buildStripeRefundActionRequestPayload,
   readStripeTestE2EConfig,
   redactE2ESecretText,
+  waitForWebhookEvent,
 } from "./stripe-test-e2e";
 
 const testKey = `${"sk"}_${"test"}_unit_fixture`;
@@ -132,5 +133,47 @@ describe("Stripe test-mode E2E script helpers", () => {
         },
       }),
     ).toThrow("Expected duplicate execute to fail with 409.");
+  });
+
+  it("waits for a processed webhook event instead of the latest ignored event", async () => {
+    const findFirst = vi.fn(async () => {
+      return {
+        id: "webhook_event_record",
+        type: "refund.updated",
+        status: "PROCESSED" as const,
+        objectId: "re_test",
+        errorMessage: null,
+        processedAt: new Date("2026-04-28T10:00:00.000Z"),
+      };
+    });
+
+    const event = await waitForWebhookEvent({
+      prisma: {
+        stripeWebhookEvent: {
+          findFirst,
+        },
+      },
+      stripeRefundId: "re_test",
+      waitMs: 0,
+    });
+
+    expect(event?.status).toBe("PROCESSED");
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        objectId: "re_test",
+        status: "PROCESSED",
+      },
+      orderBy: {
+        receivedAt: "desc",
+      },
+      select: {
+        id: true,
+        type: true,
+        status: true,
+        objectId: true,
+        errorMessage: true,
+        processedAt: true,
+      },
+    });
   });
 });

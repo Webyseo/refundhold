@@ -646,12 +646,12 @@ async function checkWebhookReconciliation({
   return event;
 }
 
-async function waitForWebhookEvent({
+export async function waitForWebhookEvent({
   prisma,
   stripeRefundId,
   waitMs,
 }: {
-  prisma: StripeE2EPrismaClient;
+  prisma: Pick<StripeE2EPrismaClient, "stripeWebhookEvent">;
   stripeRefundId: string;
   waitMs: number;
 }) {
@@ -661,6 +661,7 @@ async function waitForWebhookEvent({
     const event = await prisma.stripeWebhookEvent.findFirst({
       where: {
         objectId: stripeRefundId,
+        status: "PROCESSED",
       },
       orderBy: {
         receivedAt: "desc",
