@@ -1,12 +1,29 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { getAuthConfig } from "./lib/auth/config";
 import {
   DEMO_ACCESS_COOKIE_NAME,
   getDemoAccessConfig,
   isValidDemoAccessCookieValue,
-} from "@/lib/demo-access";
+} from "./lib/demo-access";
 
 export default async function proxy(request: NextRequest) {
+  try {
+    const authConfig = getAuthConfig(process.env);
+
+    if (authConfig.authRequired) {
+      return NextResponse.next();
+    }
+  } catch {
+    return NextResponse.json(
+      {
+        error: "failed_closed",
+        message: "Authentication configuration is invalid.",
+      },
+      { status: 503 },
+    );
+  }
+
   const demoAccess = getDemoAccessConfig(process.env);
 
   if (!demoAccess.enabled) {

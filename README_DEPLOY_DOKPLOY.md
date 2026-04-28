@@ -70,11 +70,12 @@ rendering a password form. `BETTER_AUTH_SECRET` is not required in this mode.
 When auth is enabled in a controlled environment, Better Auth is configured
 against the separate `Auth*` identity tables. Email/password sign-in is
 prepared for provisioned users, public signup is disabled, OAuth providers are
-not configured, and `/app` is still not protected by session auth. Do not set
-`AUTHRAIL_AUTH_REQUIRED=true` in production yet. Existing users are backfilled
-into memberships as active reviewers so the current demo reviewer can keep
-approving and executing controlled refund flows once session auth is introduced
-in a later PR.
+not configured, and `/app` can be protected by session auth only when
+`AUTHRAIL_AUTH_REQUIRED=true`. Do not set `AUTHRAIL_AUTH_REQUIRED=true` in
+production until a provisioned auth user has been created and login has been
+validated for that environment. Existing users are backfilled into memberships
+as active reviewers so the current demo reviewer can keep approving and
+executing controlled refund flows.
 
 Controlled auth user provisioning is available through the manual script:
 
@@ -113,8 +114,16 @@ session exists, the demo reviewer path can still resolve the configured demo
 reviewer or `X-RefundHold-Reviewer-Email` header to an active membership.
 Setting `AUTHRAIL_AUTH_REQUIRED=true` disables that fallback and requires a
 real human session. Agent API keys are never accepted for approve, reject, or
-execute; they remain limited to action-request intake. `/app` is not fully
-session-protected yet, and the demo gate remains active.
+execute; they remain limited to action-request intake.
+
+The `/app` dashboard, refund queue, and refund detail pages are
+organization-scoped. With `AUTHRAIL_AUTH_REQUIRED=false`, the demo gate remains
+active and app data is scoped to the configured demo reviewer organization.
+With `AUTHRAIL_AUTH_REQUIRED=true`, those pages require a valid Better Auth
+session, resolve the first active membership by creation time, and filter all
+dashboard data by that membership's `organizationId`. There is no organization
+switcher yet. Requests from another organization return a generic not-found
+state, and Agent API keys cannot access `/app`.
 
 Current planned roles are `OWNER`, `ADMIN`, `REVIEWER`, and `VIEWER`. The
 initial helper map treats owners as full organization admins, admins as refund

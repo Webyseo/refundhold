@@ -12,10 +12,17 @@ const webhookReconciliationAuditTypes = [
   "STRIPE_REFUND_FAILED",
 ];
 
-export async function listDashboardActionRequests() {
+export async function listDashboardActionRequests({
+  organizationId,
+}: {
+  organizationId: string;
+}) {
   const prisma = await getPrismaClient();
 
   return prisma.actionRequest.findMany({
+    where: {
+      organizationId,
+    },
     orderBy: {
       createdAt: "desc",
     },
@@ -71,11 +78,18 @@ export async function listDashboardActionRequests() {
   });
 }
 
-export async function getDashboardActionRequest(actionRequestId: string) {
+export async function getDashboardActionRequest({
+  actionRequestId,
+  organizationId,
+}: {
+  actionRequestId: string;
+  organizationId: string;
+}) {
   const prisma = await getPrismaClient();
-  const record = await prisma.actionRequest.findUnique({
+  const record = await prisma.actionRequest.findFirst({
     where: {
       id: actionRequestId,
+      organizationId,
     },
     select: {
       id: true,

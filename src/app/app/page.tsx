@@ -1,6 +1,24 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
-export default function DashboardHomePage() {
+import { AppAccessNotice } from "./access-notice";
+import { getAppAccessContext } from "@/lib/auth/app-access";
+
+export const dynamic = "force-dynamic";
+
+export default async function DashboardHomePage() {
+  const access = await getAppAccessContext({
+    nextPath: "/app",
+  });
+
+  if (!access.ok) {
+    if (access.reason === "auth_required") {
+      redirect(access.redirectTo);
+    }
+
+    return <AppAccessNotice message={access.message} />;
+  }
+
   const flowSteps = [
     {
       title: "High-risk refund held",

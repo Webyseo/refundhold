@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import {
   approveActionRequestFromDashboard,
   executeActionRequestFromDashboard,
   rejectActionRequestFromDashboard,
 } from "@/app/app/actions";
+import { AppAccessNotice } from "../../access-notice";
+import { getAppAccessContext } from "@/lib/auth/app-access";
 import { getDashboardActionRequest } from "@/lib/dashboard/data";
 import {
   formatDateTime,
@@ -30,7 +32,22 @@ export default async function ActionRequestDetailPage({
 }) {
   const { id } = await params;
   const notices = await searchParams;
-  const request = await getDashboardActionRequest(id);
+  const access = await getAppAccessContext({
+    nextPath: `/app/action-requests/${id}`,
+  });
+
+  if (!access.ok) {
+    if (access.reason === "auth_required") {
+      redirect(access.redirectTo);
+    }
+
+    return <AppAccessNotice message={access.message} />;
+  }
+
+  const request = await getDashboardActionRequest({
+    actionRequestId: id,
+    organizationId: access.context.organizationId,
+  });
 
   if (!request) {
     notFound();

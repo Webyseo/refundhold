@@ -357,6 +357,15 @@ export type AuthRailPrismaClient = AuthRailPrismaTransactionClient & {
       | PrismaDashboardActionRequestDetailRecord
       | null
     >;
+    findFirst: (
+      args: unknown,
+    ) => Promise<
+      | PrismaReviewActionRequestRecord
+      | PrismaExecutableActionRequestRecord
+      | PrismaStripeRefundActionRequestRecord
+      | PrismaDashboardActionRequestDetailRecord
+      | null
+    >;
   };
   user: {
     findFirst: (args: unknown) => Promise<PrismaReviewerRecord | null>;

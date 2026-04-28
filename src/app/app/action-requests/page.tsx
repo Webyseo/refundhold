@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
+import { AppAccessNotice } from "../access-notice";
+import { getAppAccessContext } from "@/lib/auth/app-access";
 import { listDashboardActionRequests } from "@/lib/dashboard/data";
 import {
   filterActionRequestsByDashboardStatus,
@@ -33,7 +36,21 @@ export default async function ActionRequestsPage({
 }) {
   const query = await searchParams;
   const selectedFilter = parseRequestFilter(query["status"]);
-  const actionRequests = await listDashboardActionRequests();
+  const access = await getAppAccessContext({
+    nextPath: getActionRequestsNextPath(selectedFilter),
+  });
+
+  if (!access.ok) {
+    if (access.reason === "auth_required") {
+      redirect(access.redirectTo);
+    }
+
+    return <AppAccessNotice message={access.message} />;
+  }
+
+  const actionRequests = await listDashboardActionRequests({
+    organizationId: access.context.organizationId,
+  });
   const sortedActionRequests =
     sortDashboardActionRequestsForReview(actionRequests);
   const filteredActionRequests = filterActionRequestsByDashboardStatus(
@@ -208,6 +225,12 @@ export default async function ActionRequestsPage({
       </div>
     </section>
   );
+}
+
+function getActionRequestsNextPath(filter: DashboardRequestFilter): string {
+  return filter === "all"
+    ? "/app/action-requests"
+    : `/app/action-requests?status=${filter}`;
 }
 
 function parseRequestFilter(

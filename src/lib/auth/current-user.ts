@@ -13,7 +13,7 @@ import { getBetterAuthOrNull } from "./auth";
 import { getAuthConfig, type AuthEnv } from "./config";
 import { getPrismaClient } from "../db/prisma";
 
-type AuthSession = {
+export type AuthSession = {
   session: {
     id: string;
     userId: string;
