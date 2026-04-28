@@ -22,6 +22,13 @@ export type PrismaPolicyRecord = {
   rules: unknown;
 };
 
+export type PrismaConnectorRecord = {
+  id: string;
+  organizationId: string;
+  type: string;
+  status: "ACTIVE" | "DISABLED";
+};
+
 export type PrismaReviewActionRequestRecord = {
   id: string;
   organizationId: string;
@@ -126,6 +133,7 @@ export type PrismaDashboardAuditEventRecord = {
     | "REQUEST_RECEIVED"
     | "POLICY_EVALUATED"
     | "DECISION_CREATED"
+    | "STRIPE_PAYMENT_OBJECT_REFLECTED"
     | "APPROVAL_REQUESTED"
     | "APPROVAL_APPROVED"
     | "APPROVAL_REJECTED"
@@ -163,6 +171,11 @@ export type AuthRailPrismaTransactionClient = {
   execution: {
     create: (args: unknown) => Promise<{ id: string }>;
   };
+  stripePaymentObject: {
+    findFirst: (args: unknown) => Promise<{ id: string } | null>;
+    update: (args: unknown) => Promise<unknown>;
+    create: (args: unknown) => Promise<unknown>;
+  };
   auditEvent: {
     create: (args: unknown) => Promise<unknown>;
     createMany: (args: unknown) => Promise<unknown>;
@@ -175,6 +188,9 @@ export type AuthRailPrismaClient = AuthRailPrismaTransactionClient & {
   };
   policy: {
     findMany: (args: unknown) => Promise<PrismaPolicyRecord[]>;
+  };
+  connector: {
+    findFirst: (args: unknown) => Promise<PrismaConnectorRecord | null>;
   };
   actionRequest: AuthRailPrismaTransactionClient["actionRequest"] & {
     findMany: (

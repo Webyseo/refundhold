@@ -1,13 +1,16 @@
 import type {
   ActionRequestPersistence,
   PersistedActionRequestInput,
+  PersistedStripePaymentObjectInput,
   StoredAgentApiKey,
+  StoredConnector,
   StoredPolicy,
 } from "./handler";
 import type {
   AuthRailPrismaClient,
   AuthRailPrismaTransactionClient,
   PrismaAgentApiKeyRecord,
+  PrismaConnectorRecord,
   PrismaPolicyRecord,
 } from "../db/prisma";
 
@@ -55,6 +58,26 @@ export function createPrismaActionRequestPersistence(
       }
 
       return records[0] ? toStoredAgentApiKey(records[0]) : null;
+    },
+    findActiveConnectorByOrganizationAndType: async ({
+      organizationId,
+      connectorType,
+    }) => {
+      const record = await prisma.connector.findFirst({
+        where: {
+          organizationId,
+          type: connectorType,
+          status: "ACTIVE",
+        },
+        select: {
+          id: true,
+          organizationId: true,
+          type: true,
+          status: true,
+        },
+      });
+
+      return record ? toStoredConnector(record) : null;
     },
     listActivePoliciesForOrganization: async (organizationId) => {
       const records = await prisma.policy.findMany({
@@ -116,6 +139,15 @@ function toStoredPolicy(record: PrismaPolicyRecord): StoredPolicy {
   };
 }
 
+function toStoredConnector(record: PrismaConnectorRecord): StoredConnector {
+  return {
+    id: record.id,
+    organizationId: record.organizationId,
+    type: record.type,
+    status: record.status,
+  };
+}
+
 async function createActionRequestWithAudit(
   prisma: AuthRailPrismaClient,
   input: PersistedActionRequestInput,
@@ -129,6 +161,10 @@ async function persistActionRequestWithAudit(
   tx: AuthRailPrismaTransactionClient,
   input: PersistedActionRequestInput,
 ): Promise<{ id: string }> {
+  if (input.stripePaymentObject) {
+    await persistStripePaymentObject(tx, input.stripePaymentObject);
+  }
+
   const actionRequest = await tx.actionRequest.create({
     data: {
       organizationId: input.organizationId,
@@ -164,4 +200,63 @@ async function persistActionRequestWithAudit(
   });
 
   return actionRequest;
+}
+
+async function persistStripePaymentObject(
+  tx: AuthRailPrismaTransactionClient,
+  input: PersistedStripePaymentObjectInput,
+): Promise<void> {
+  const existingPaymentObject = await tx.stripePaymentObject.findFirst({
+    where: {
+      organizationId: input.organizationId,
+      connectorId: input.connectorId,
+      OR: [
+        ...(input.paymentIntentId
+          ? [
+              {
+                paymentIntentId: input.paymentIntentId,
+              },
+            ]
+          : []),
+        ...(input.chargeId
+          ? [
+              {
+                chargeId: input.chargeId,
+              },
+            ]
+          : []),
+      ],
+    },
+    select: {
+      id: true,
+    },
+  });
+  const data = {
+    organizationId: input.organizationId,
+    connectorId: input.connectorId,
+    mode: input.mode,
+    paymentIntentId: input.paymentIntentId ?? null,
+    chargeId: input.chargeId ?? null,
+    amountMinor: input.amountMinor,
+    amountRefundedMinor: input.amountRefundedMinor,
+    currency: input.currency,
+    status: input.status,
+    livemode: input.livemode,
+    safeSnapshot: input.safeSnapshot,
+    lastSyncedAt: new Date(),
+  };
+
+  if (existingPaymentObject) {
+    await tx.stripePaymentObject.update({
+      where: {
+        id: existingPaymentObject.id,
+      },
+      data,
+    });
+    return;
+  }
+
+  await tx.stripePaymentObject.create({
+    data,
+  });
 }

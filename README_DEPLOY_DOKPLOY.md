@@ -66,6 +66,12 @@ store safe Stripe payment snapshots, future test-mode refund execution records,
 and deduplicated webhook event records. The current app still does not call
 Stripe, execute refunds, or expose a Stripe webhook route.
 
+Stripe test object reflection is available for future agent requests. When test
+mode flags and server-side test keys are configured, RefundHold can reflect a
+test PaymentIntent or Charge into a safe snapshot and create an action request
+for policy review. It still does not execute refunds; refund execution belongs
+to a later PR.
+
 ## Database
 
 The Compose file creates a private Postgres service named `postgres` and a
