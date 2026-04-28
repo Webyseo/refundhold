@@ -11,8 +11,10 @@ import {
   formatDateTime,
   formatJson,
   getActionRequestControls,
+  getDemoReviewerDisplayName,
   getImpactSummary,
   getDecisionLabel,
+  getNextSafeAction,
   getStatusLabel,
 } from "@/lib/dashboard/view-model";
 
@@ -44,6 +46,10 @@ export default async function ActionRequestDetailPage({
   const demoDetails = getDemoRefundDetails({
     parameters: request.parameters,
     context: request.context,
+  });
+  const nextSafeAction = getNextSafeAction({
+    decision: request.decision,
+    status: request.status,
   });
   const success = getSearchMessage(notices["success"]);
   const error = getSearchMessage(notices["error"]);
@@ -78,6 +84,26 @@ export default async function ActionRequestDetailPage({
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-6">
+          <section className="rounded-lg border border-zinc-200 bg-white p-5">
+            <p className="text-sm font-semibold text-zinc-950">
+              Executive summary
+            </p>
+            <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+              <Detail label="Amount" value={demoDetails.refundAmount} />
+              <Detail label="Status" value={getStatusLabel(request.status)} />
+              <Detail
+                label="Policy decision"
+                value={getDecisionLabel(request.decision)}
+              />
+              <Detail
+                label="Risk / reason"
+                value={request.decisionReason ?? demoDetails.riskReason}
+              />
+              <Detail label="Dry-run guarantee" value={demoDetails.dryRun} />
+              <Detail label="Next safe action" value={nextSafeAction} />
+            </dl>
+          </section>
+
           <section className="rounded-lg border border-amber-200 bg-amber-50 p-5">
             <p className="text-sm font-semibold text-amber-950">
               Review focus
@@ -151,7 +177,7 @@ export default async function ActionRequestDetailPage({
                     </div>
                     <p className="mt-2 text-sm text-zinc-600">
                       Reviewer:{" "}
-                      {approval.reviewer?.email ?? "unknown reviewer"}
+                      {getDemoReviewerDisplayName(approval.reviewer)}
                     </p>
                     <p className="mt-1 text-sm text-zinc-600">
                       Reason: {approval.reason ?? "none"}
@@ -217,8 +243,8 @@ export default async function ActionRequestDetailPage({
               Available refund action
             </h2>
             <p className="mt-2 text-sm leading-6 text-zinc-600">
-              These controls use demo review logic and the demo-only reviewer
-              identity from the hosted environment.
+              These controls use demo-only review logic. Any execution remains
+              dry_run and does not call the Stripe API.
             </p>
 
             {controls.canApprove || controls.canReject ? (
@@ -239,8 +265,8 @@ export default async function ActionRequestDetailPage({
                     Approve this dry_run refund review
                   </label>
                   <p className="mt-1 text-sm leading-6 text-emerald-900">
-                    This records approval for the demo scenario only. It does
-                    not create a real Stripe refund.
+                    Demo only: this records approval and unlocks dry_run
+                    simulation. It does not create a real Stripe refund.
                   </p>
                   <textarea
                     id="approval-comment"
@@ -271,8 +297,8 @@ export default async function ActionRequestDetailPage({
                     Reject and block this dry_run refund
                   </label>
                   <p className="mt-1 text-sm leading-6 text-red-900">
-                    This records a demo rejection and keeps the simulated refund
-                    blocked.
+                    Demo only: this records rejection and keeps the simulated
+                    refund blocked. No Stripe API call is made.
                   </p>
                   <textarea
                     id="rejection-comment"
@@ -304,8 +330,8 @@ export default async function ActionRequestDetailPage({
                   Approved and ready for simulation
                 </p>
                 <p className="mt-1 text-sm leading-6 text-emerald-900">
-                  This creates a dry_run refund execution record only. This demo
-                  does not move real money.
+                  Demo only: this creates a dry_run refund execution record.
+                  RefundHold does not call Stripe and no money moves.
                 </p>
                 <button
                   type="submit"
@@ -389,12 +415,18 @@ function Detail({ label, value }: { label: string; value: string | null }) {
 
 function JsonSection({ title, value }: { title: string; value: unknown }) {
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-5">
-      <h2 className="text-base font-semibold text-zinc-950">{title}</h2>
+    <details className="rounded-lg border border-zinc-200 bg-white p-5">
+      <summary className="cursor-pointer text-base font-semibold text-zinc-950">
+        {title}
+      </summary>
+      <p className="mt-2 text-sm text-zinc-500">
+        Technical evidence for the guided demo. Expand only when a lead asks
+        for implementation-level detail.
+      </p>
       <pre className="mt-4 overflow-auto rounded-md bg-zinc-950 p-4 text-xs leading-5 text-zinc-100">
         {formatJson(value)}
       </pre>
-    </section>
+    </details>
   );
 }
 
@@ -440,6 +472,7 @@ function getDemoRefundDetails({
   customer: string | null;
   order: string | null;
   dryRun: string | null;
+  riskReason: string | null;
 } {
   const parameterRecord = isRecord(parameters) ? parameters : {};
   const contextRecord = isRecord(context) ? context : {};
@@ -449,6 +482,9 @@ function getDemoRefundDetails({
     ? contextRecord["customer"]
     : {};
   const order = isRecord(contextRecord["order"]) ? contextRecord["order"] : {};
+  const risk = isRecord(contextRecord["risk"]) ? contextRecord["risk"] : {};
+  const riskLabel = risk["label"];
+  const riskScore = risk["score"];
 
   return {
     refundAmount:
@@ -466,6 +502,10 @@ function getDemoRefundDetails({
     dryRun:
       contextRecord["dry_run"] === true
         ? "dry_run=true; Stripe is not called and no money moves."
+        : null,
+    riskReason:
+      typeof riskLabel === "string" && typeof riskScore === "number"
+        ? `${riskLabel} risk; score ${riskScore}`
         : null,
   };
 }

@@ -5,18 +5,18 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { generateDemoApiKey, hashApiKey } from "../src/lib/security/api-keys";
 
 const demoOrganization = {
-  name: "AuthRail Demo",
+  name: "RefundHold Demo",
   slug: "authrail-demo",
 };
 
 const demoUser = {
-  email: "reviewer@authrail.local",
+  email: "demo.reviewer@refundhold.com",
   displayName: "Demo Reviewer",
 };
 
 const demoAgent = {
   name: "Demo AI Support Agent",
-  description: "Demo support agent for local AuthRail development.",
+  description: "Demo support agent for RefundHold dry_run development.",
 };
 
 const demoApiKeyName = "Demo Support Agent API Key";
@@ -60,7 +60,7 @@ async function main() {
   const databaseUrl = process.env["DATABASE_URL"];
 
   if (!databaseUrl) {
-    console.error("DATABASE_URL is required to run the AuthRail demo seed.");
+    console.error("DATABASE_URL is required to run the RefundHold demo seed.");
     console.error(
       "Set DATABASE_URL to a local Postgres connection string, apply migrations, then run pnpm db:seed.",
     );
@@ -161,7 +161,7 @@ async function main() {
       connectorId: connector.id,
     });
 
-    console.log("AuthRail demo seed complete.");
+    console.log("RefundHold demo seed complete.");
     console.log(`Organization: ${demoOrganization.slug}`);
     console.log(`Reviewer: ${reviewer.id} (${demoUser.email})`);
     console.log(`Agent: ${agent.id} (${demoAgent.name})`);

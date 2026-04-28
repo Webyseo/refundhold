@@ -4,7 +4,9 @@ import {
   filterActionRequestsByDashboardStatus,
   getActionRequestControls,
   getAmountCurrency,
+  getDemoReviewerDisplayName,
   getImpactSummary,
+  getNextSafeAction,
   getRequestFilterCounts,
   sortDashboardActionRequestsForReview,
   type DashboardActionRequestState,
@@ -156,6 +158,45 @@ describe("dashboard view model", () => {
     expect(
       sortDashboardActionRequestsForReview(requests).map((request) => request.id),
     ).toEqual(["new-pending", "old-pending", "new-executed", "old-executed"]);
+  });
+
+  it("uses a clean demo reviewer display name instead of internal emails", () => {
+    expect(
+      getDemoReviewerDisplayName({
+        displayName: "RefundHold Demo Reviewer",
+        email: "reviewer@authrail.local",
+      }),
+    ).toBe("RefundHold Demo Reviewer");
+
+    expect(
+      getDemoReviewerDisplayName({
+        displayName: null,
+        email: "reviewer@authrail.local",
+      }),
+    ).toBe("Demo Reviewer");
+  });
+
+  it("explains the next safe action for demo refund states", () => {
+    expect(
+      getNextSafeAction({
+        decision: "APPROVAL_REQUIRED",
+        status: "APPROVAL_REQUIRED",
+      }),
+    ).toBe("Review evidence, then approve or reject before any dry_run execution.");
+
+    expect(
+      getNextSafeAction({
+        decision: "APPROVAL_REQUIRED",
+        status: "APPROVED",
+      }),
+    ).toBe("Run the dry_run execution simulation; no Stripe API call is made.");
+
+    expect(
+      getNextSafeAction({
+        decision: "DENY",
+        status: "DENIED",
+      }),
+    ).toBe("No execution is available because policy blocked the refund.");
   });
 });
 

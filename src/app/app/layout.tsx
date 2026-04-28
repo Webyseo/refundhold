@@ -7,10 +7,6 @@ export default function DashboardLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const reviewerEmail =
-    process.env["AUTHRAIL_DEMO_REVIEWER_EMAIL"]?.trim() ||
-    "reviewer@authrail.local";
-
   return (
     <main className="min-h-screen bg-stone-50 text-zinc-950">
       <header className="border-b border-zinc-200 bg-white">
@@ -24,7 +20,7 @@ export default function DashboardLayout({
             </Link>
             <p className="mt-1 text-sm text-zinc-500">
               Demo reviewer:{" "}
-              <span className="font-mono text-zinc-700">{reviewerEmail}</span>
+              <span className="font-semibold text-zinc-700">Demo Reviewer</span>
             </p>
           </div>
           <nav className="flex items-center gap-2 text-sm font-medium">

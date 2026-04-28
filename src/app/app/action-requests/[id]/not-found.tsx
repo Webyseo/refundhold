@@ -10,8 +10,8 @@ export default function ActionRequestNotFound() {
         This refund request is not available in the local demo database.
       </h1>
       <p className="mt-4 text-sm leading-6 text-zinc-600">
-        Go back to the queue to choose a real Stripe refund request, or run the
-        local smoke scripts to generate fresh demo refund records.
+        Go back to the queue to choose an available demo refund request. If the
+        queue is empty, confirm the RefundHold demo seed has run.
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
         <Link
@@ -20,9 +20,6 @@ export default function ActionRequestNotFound() {
         >
           Back to refund requests
         </Link>
-        <code className="rounded-md border border-zinc-200 bg-white px-3 py-2.5 font-mono text-xs text-zinc-700">
-          pnpm smoke:action-request
-        </code>
       </div>
     </section>
   );

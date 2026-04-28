@@ -3,24 +3,20 @@ import Link from "next/link";
 export default function DashboardHomePage() {
   const flowSteps = [
     {
-      title: "Refund request",
-      body: "An AI support agent asks RefundHold before creating a Stripe refund.",
+      title: "High-risk refund held",
+      body: "AI support can propose a refund, but risky requests are held before execution.",
     },
     {
-      title: "Policy decision",
-      body: "RefundHold returns allow, deny, or approval required with a reason.",
+      title: "Human approval required",
+      body: "RefundHold turns policy results into a clear reviewer decision point.",
     },
     {
-      title: "Human review",
-      body: "The demo reviewer approves or rejects medium-risk refund requests.",
+      title: "Dry-run refund execution",
+      body: "Approved demo refunds can be simulated without calling Stripe or moving money.",
     },
     {
-      title: "Dry-run execution",
-      body: "Approved refunds can be simulated in dry_run. This demo does not move real money.",
-    },
-    {
-      title: "Audit trail",
-      body: "Every step is recorded as explicit lifecycle evidence.",
+      title: "Audit evidence recorded",
+      body: "Every proposal, policy decision, review, and dry_run execution is recorded.",
     },
   ];
 
@@ -68,7 +64,7 @@ export default function DashboardHomePage() {
         </div>
       </div>
 
-      <div className="mt-10 grid gap-3 lg:grid-cols-5">
+      <div className="mt-10 grid gap-3 lg:grid-cols-4">
         {flowSteps.map((step, index) => (
           <div
             key={step.title}
@@ -85,41 +81,42 @@ export default function DashboardHomePage() {
         ))}
       </div>
 
-      <div className="mt-10 grid gap-4 lg:grid-cols-3">
+      <div className="mt-10 grid gap-4 lg:grid-cols-4">
         <section className="rounded-lg border border-zinc-200 bg-white p-5">
           <p className="text-sm font-semibold text-zinc-950">
-            Refund decision smoke test
+            High-risk refund held
           </p>
           <p className="mt-2 text-sm leading-6 text-zinc-600">
-            Creates allowed, approval-required, and denied Stripe refund
-            requests.
+            See a proposed refund pause before it can reach any payment
+            execution path.
           </p>
-          <code className="mt-4 block rounded-md bg-zinc-950 px-3 py-2 font-mono text-xs text-zinc-100">
-            pnpm smoke:action-request
-          </code>
         </section>
         <section className="rounded-lg border border-zinc-200 bg-white p-5">
           <p className="text-sm font-semibold text-zinc-950">
-            Refund review smoke test
+            Human approval required
           </p>
           <p className="mt-2 text-sm leading-6 text-zinc-600">
-            Creates reviewable refunds, then approves one and rejects one.
+            Reviewers get a focused decision with policy reason, risk context,
+            and the next safe action.
           </p>
-          <code className="mt-4 block rounded-md bg-zinc-950 px-3 py-2 font-mono text-xs text-zinc-100">
-            pnpm smoke:approval-flow
-          </code>
         </section>
         <section className="rounded-lg border border-zinc-200 bg-white p-5">
           <p className="text-sm font-semibold text-zinc-950">
-            Dry-run refund smoke test
+            Dry-run refund execution
           </p>
           <p className="mt-2 text-sm leading-6 text-zinc-600">
-            Approves a refund, executes it in dry_run mode, then checks
-            duplicate execution is blocked.
+            Executions stay in dry_run for the demo. RefundHold records the
+            control path without moving real money.
           </p>
-          <code className="mt-4 block rounded-md bg-zinc-950 px-3 py-2 font-mono text-xs text-zinc-100">
-            pnpm smoke:execution-flow
-          </code>
+        </section>
+        <section className="rounded-lg border border-zinc-200 bg-white p-5">
+          <p className="text-sm font-semibold text-zinc-950">
+            Audit evidence recorded
+          </p>
+          <p className="mt-2 text-sm leading-6 text-zinc-600">
+            The timeline shows proposal, policy, approval, rejection, and
+            dry_run execution evidence for the walkthrough.
+          </p>
         </section>
       </div>
     </section>

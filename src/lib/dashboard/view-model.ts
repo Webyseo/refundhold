@@ -39,6 +39,11 @@ export type DashboardActionRequestSummary = DashboardActionRequestState & {
   createdAt: Date;
 };
 
+export type DashboardReviewerDisplay = {
+  displayName: string | null;
+  email: string | null;
+};
+
 export function getAmountCurrency(parameters: unknown): {
   amount: string | null;
   currency: string | null;
@@ -92,6 +97,57 @@ export function getActionRequestControls(
     canExecute:
       state.decision === "APPROVAL_REQUIRED" && state.status === "APPROVED",
   };
+}
+
+export function getDemoReviewerDisplayName(
+  reviewer: DashboardReviewerDisplay | null | undefined,
+): string {
+  const displayName = reviewer?.displayName?.trim();
+
+  if (displayName) {
+    return displayName;
+  }
+
+  const email = reviewer?.email?.trim();
+
+  if (email?.endsWith("@refundhold.com")) {
+    return email;
+  }
+
+  return "Demo Reviewer";
+}
+
+export function getNextSafeAction(
+  state: DashboardActionRequestState,
+): string {
+  if (
+    state.decision === "APPROVAL_REQUIRED" &&
+    state.status === "APPROVAL_REQUIRED"
+  ) {
+    return "Review evidence, then approve or reject before any dry_run execution.";
+  }
+
+  if (state.decision === "APPROVAL_REQUIRED" && state.status === "APPROVED") {
+    return "Run the dry_run execution simulation; no Stripe API call is made.";
+  }
+
+  if (state.decision === "DENY" || state.status === "DENIED") {
+    return "No execution is available because policy blocked the refund.";
+  }
+
+  if (state.status === "REJECTED") {
+    return "No execution is available because the demo reviewer rejected it.";
+  }
+
+  if (state.status === "EXECUTED") {
+    return "Use the audit evidence and dry_run execution record in the walkthrough.";
+  }
+
+  if (state.decision === "ALLOW" || state.status === "ALLOWED") {
+    return "Policy allowed this low-risk dry_run request; no human approval is required.";
+  }
+
+  return "Review the policy evidence before taking any demo action.";
 }
 
 export function filterActionRequestsByDashboardStatus<

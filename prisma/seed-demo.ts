@@ -358,7 +358,7 @@ async function main() {
   try {
     const reviewerEmail =
       process.env["AUTHRAIL_DEMO_REVIEWER_EMAIL"]?.trim() ||
-      "reviewer@authrail.local";
+      "demo.reviewer@refundhold.com";
     const baseRecords = await upsertBaseDemoRecords(prisma, reviewerEmail);
     const policyIds = await upsertDemoPolicies(prisma, {
       organizationId: baseRecords.organization.id,

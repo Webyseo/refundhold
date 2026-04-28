@@ -11,7 +11,7 @@ import { DEMO_ACCESS_COOKIE_NAME } from "@/lib/demo-access";
 import { handleDryRunExecution } from "@/lib/executions/handler";
 import { createPrismaDryRunExecutionPersistence } from "@/lib/executions/prisma-persistence";
 
-const defaultReviewerEmail = "reviewer@authrail.local";
+const defaultReviewerEmail = "demo.reviewer@refundhold.com";
 
 export async function approveActionRequestFromDashboard(formData: FormData) {
   await reviewActionRequestFromDashboard("approve", formData);

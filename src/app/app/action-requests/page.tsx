@@ -4,6 +4,7 @@ import { listDashboardActionRequests } from "@/lib/dashboard/data";
 import {
   filterActionRequestsByDashboardStatus,
   formatDateTime,
+  getAmountCurrency,
   getDecisionLabel,
   getImpactSummary,
   getRequestFilterCounts,
@@ -99,10 +100,8 @@ export default async function ActionRequestsPage({
               No refund requests match this view.
             </p>
             <p className="mt-2 leading-6">
-              Run <code className="font-mono">pnpm smoke:action-request</code>,{" "}
-              <code className="font-mono">pnpm smoke:approval-flow</code>, or{" "}
-              <code className="font-mono">pnpm smoke:execution-flow</code> to
-              generate demo refund records.
+              The hosted demo seed should provide reviewable refund requests.
+              Switch filters or confirm the RefundHold demo seed has run.
             </p>
           </div>
         ) : (
@@ -111,13 +110,14 @@ export default async function ActionRequestsPage({
               <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 <tr>
                   <th className="px-4 py-3">Attention</th>
+                  <th className="px-4 py-3">Amount</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Decision</th>
-                  <th className="px-4 py-3">Impact</th>
                   <th className="px-4 py-3">AI support agent</th>
                   <th className="px-4 py-3">Payment system</th>
                   <th className="px-4 py-3">Refund action</th>
                   <th className="px-4 py-3">Created</th>
+                  <th className="px-4 py-3">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
@@ -125,6 +125,14 @@ export default async function ActionRequestsPage({
                   const isPendingReview =
                     request.decision === "APPROVAL_REQUIRED" &&
                     request.status === "APPROVAL_REQUIRED";
+                  const amountCurrency = getAmountCurrency(request.parameters);
+                  const amount =
+                    amountCurrency.amount && amountCurrency.currency
+                      ? `${amountCurrency.amount} ${amountCurrency.currency}`
+                      : getImpactSummary({
+                          operation: request.operation,
+                          parameters: request.parameters,
+                        });
 
                   return (
                     <tr
@@ -146,6 +154,9 @@ export default async function ActionRequestsPage({
                           </span>
                         )}
                       </td>
+                      <td className="px-4 py-3 font-medium text-zinc-950">
+                        {amount}
+                      </td>
                       <td className="px-4 py-3">
                         <StatusBadge status={request.status} />
                       </td>
@@ -153,27 +164,33 @@ export default async function ActionRequestsPage({
                         <DecisionBadge decision={request.decision} />
                       </td>
                       <td className="px-4 py-3 font-medium text-zinc-950">
-                        {getImpactSummary({
-                          operation: request.operation,
-                          parameters: request.parameters,
-                        })}
-                      </td>
-                      <td className="px-4 py-3 font-medium text-zinc-950">
                         {request.agent.name}
                       </td>
                       <td className="px-4 py-3 text-zinc-700">
-                        {request.connector?.name ?? "none"}
+                        <span className="font-medium text-zinc-950">
+                          {request.connector?.name ?? "Stripe Demo"}
+                        </span>
+                        <span className="block text-xs text-zinc-500">
+                          dry_run; no Stripe API call
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-zinc-700">
+                        {request.operation}
+                      </td>
+                      <td className="px-4 py-3 text-zinc-500">
+                        {formatDateTime(request.createdAt)}
                       </td>
                       <td className="px-4 py-3">
                         <Link
                           href={`/app/action-requests/${request.id}`}
-                          className="font-mono text-emerald-700 hover:text-emerald-900"
+                          className={`inline-flex rounded-md px-3 py-2 text-xs font-semibold ${
+                            isPendingReview
+                              ? "bg-zinc-950 text-white hover:bg-zinc-800"
+                              : "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                          }`}
                         >
-                          {request.operation}
+                          {isPendingReview ? "Review" : "View evidence"}
                         </Link>
-                      </td>
-                      <td className="px-4 py-3 text-zinc-500">
-                        {formatDateTime(request.createdAt)}
                       </td>
                     </tr>
                   );
