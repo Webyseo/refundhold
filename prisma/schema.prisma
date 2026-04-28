@@ -101,6 +101,18 @@ enum AuditEventType {
   EXECUTION_FAILED
 }
 
+enum StripeMode {
+  TEST
+  LIVE
+}
+
+enum StripeWebhookEventStatus {
+  RECEIVED
+  PROCESSED
+  IGNORED
+  FAILED
+}
+
 model Organization {
   id        String   @id @default(cuid())
   name      String
@@ -117,6 +129,9 @@ model Organization {
   executions     Execution[]
   auditEvents    AuditEvent[]
   agentApiKeys   AgentApiKey[]
+
+  stripePaymentObjects StripePaymentObject[]
+  stripeRefunds        StripeRefund[]
 
   @@map("organizations")
 }
@@ -200,6 +215,9 @@ model Connector {
   actionRequests ActionRequest[]
   executions     Execution[]
 
+  stripePaymentObjects StripePaymentObject[]
+  stripeRefunds        StripeRefund[]
+
   @@unique([organizationId, name])
   @@index([organizationId, type])
   @@index([organizationId, status])
@@ -257,6 +275,8 @@ model ActionRequest {
   executions  Execution[]
   auditEvents AuditEvent[]
 
+  stripeRefund StripeRefund?
+
   @@index([organizationId, status])
   @@index([organizationId, decision])
   @@index([organizationId, agentId])
@@ -311,6 +331,8 @@ model Execution {
 
   auditEvents AuditEvent[]
 
+  stripeRefund StripeRefund?
+
   @@index([organizationId, status])
   @@index([organizationId, actionRequestId])
   @@index([organizationId, connectorId])
@@ -344,4 +366,82 @@ model AuditEvent {
   @@index([organizationId, agentId])
   @@index([organizationId, userId])
   @@map("audit_events")
+}
+
+model StripePaymentObject {
+  id                  String     @id @default(cuid())
+  organizationId      String
+  connectorId         String
+  mode                StripeMode @default(TEST)
+  paymentIntentId     String?
+  chargeId            String?
+  amountMinor         Int
+  amountRefundedMinor Int        @default(0)
+  currency            String
+  status              String
+  livemode            Boolean    @default(false)
+  safeSnapshot        Json
+  lastSyncedAt        DateTime
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  connector    Connector    @relation(fields: [connectorId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, connectorId])
+  @@index([paymentIntentId])
+  @@index([chargeId])
+  @@map("stripe_payment_objects")
+}
+
+model StripeRefund {
+  id                 String     @id @default(cuid())
+  organizationId     String
+  connectorId        String
+  actionRequestId    String     @unique
+  executionId        String     @unique
+  mode               StripeMode @default(TEST)
+  stripeRefundId     String?    @unique
+  paymentIntentId    String?
+  chargeId           String?
+  amountMinor        Int
+  currency           String
+  reason             String?
+  stripeStatus       String?
+  idempotencyKeyHash String     @unique
+  stripeRequestId    String?
+  safeResponse       Json?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  organization  Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  connector     Connector     @relation(fields: [connectorId], references: [id], onDelete: Cascade)
+  actionRequest ActionRequest @relation(fields: [actionRequestId], references: [id], onDelete: Cascade)
+  execution     Execution     @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, connectorId])
+  @@index([organizationId, stripeStatus])
+  @@index([paymentIntentId])
+  @@index([chargeId])
+  @@map("stripe_refunds")
+}
+
+model StripeWebhookEvent {
+  id            String                   @id @default(cuid())
+  stripeEventId String                   @unique
+  mode          StripeMode
+  livemode      Boolean
+  type          String
+  objectId      String?
+  payloadHash   String
+  safePayload   Json?
+  status        StripeWebhookEventStatus @default(RECEIVED)
+  errorMessage  String?
+  receivedAt    DateTime                 @default(now())
+  processedAt   DateTime?
+
+  @@index([type, receivedAt])
+  @@index([objectId])
+  @@index([status])
+  @@map("stripe_webhook_events")
 }

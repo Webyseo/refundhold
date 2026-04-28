@@ -61,6 +61,11 @@ secrets are separate from API keys and must also remain server-side only.
 No Stripe API calls happen unless future feature flags and explicit server-side
 routes use the test client. Live Stripe keys remain blocked by configuration.
 
+Stripe persistence models exist for future test-mode execution. The database can
+store safe Stripe payment snapshots, future test-mode refund execution records,
+and deduplicated webhook event records. The current app still does not call
+Stripe, execute refunds, or expose a Stripe webhook route.
+
 ## Database
 
 The Compose file creates a private Postgres service named `postgres` and a
