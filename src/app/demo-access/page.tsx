@@ -22,79 +22,94 @@ export default async function DemoAccessPage({
   const demoAccess = getDemoAccessStatus(process.env);
 
   return (
-    <main className="min-h-screen bg-stone-50 px-5 py-16 text-zinc-950 sm:px-8">
-      <section className="mx-auto max-w-xl rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium uppercase tracking-[0.16em] text-emerald-700">
-          RefundHold hosted demo
+    <main className="min-h-screen bg-zinc-950 px-6 py-16 text-zinc-50">
+      <section className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-xl flex-col justify-center">
+        <p className="text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">
+          RefundHold
         </p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight">
-          Demo access required
+        <h1 className="mt-4 text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+          Private demo access
         </h1>
-        <p className="mt-3 text-sm leading-6 text-zinc-600">
-          This lightweight gate protects the demo dashboard from casual public
-          access. RefundHold is not IAM, SSO, Auth0, or Okta. It is an approval
-          and audit layer for AI-initiated Stripe refunds.
+        <p className="mt-5 text-base leading-7 text-zinc-300">
+          Enter the password provided by the RefundHold team.
         </p>
 
         {!demoAccess.enabled ? (
-          <div className="mt-6 rounded-md border border-zinc-200 bg-zinc-50 p-4">
-            <p className="text-sm font-semibold text-zinc-950">
-              Demo access is disabled locally.
+          <div className="mt-8 rounded-lg border border-zinc-800 bg-zinc-900/70 p-5">
+            <p className="text-sm font-semibold text-zinc-100">
+              Private demo access is not available right now.
             </p>
-            <p className="mt-2 text-sm leading-6 text-zinc-600">
-              Set <code>AUTHRAIL_DEMO_ACCESS_ENABLED=true</code> and
-              <code> AUTHRAIL_DEMO_ACCESS_PASSWORD</code> to test hosted-demo
-              protection.
+            <p className="mt-2 text-sm leading-6 text-zinc-400">
+              Use the public demo below, or ask the RefundHold team for private
+              access.
             </p>
           </div>
         ) : null}
 
         {demoAccess.enabled && !demoAccess.hasPassword ? (
-          <div className="mt-6 rounded-md border border-red-200 bg-red-50 p-4">
-            <p className="text-sm font-semibold text-red-950">
-              Demo access is enabled but no password is configured.
+          <div className="mt-8 rounded-lg border border-zinc-800 bg-zinc-900/70 p-5">
+            <p className="text-sm font-semibold text-zinc-100">
+              Private demo access is not available right now.
             </p>
-            <p className="mt-2 text-sm leading-6 text-red-900">
-              Set <code>AUTHRAIL_DEMO_ACCESS_PASSWORD</code> before exposing a
-              hosted dashboard.
+            <p className="mt-2 text-sm leading-6 text-zinc-400">
+              Use the public demo below, or ask the RefundHold team for private
+              access.
             </p>
           </div>
         ) : null}
 
         {demoAccess.enabled && demoAccess.hasPassword ? (
-          <form action={submitDemoAccess} className="mt-6 space-y-4">
+          <form
+            action={submitDemoAccess}
+            className="mt-8 rounded-lg border border-zinc-800 bg-zinc-900/70 p-5"
+          >
             <input type="hidden" name="next" value={nextPath} />
             <div>
               <label
                 htmlFor="demo-access-password"
-                className="text-sm font-semibold text-zinc-950"
+                className="text-sm font-semibold text-zinc-100"
               >
-                Demo password
+                Password
               </label>
               <input
                 id="demo-access-password"
                 name="password"
                 type="password"
                 autoComplete="current-password"
-                className="mt-2 w-full rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                className="mt-2 w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-300/20"
                 required
               />
             </div>
 
             {error === "invalid" ? (
-              <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
-                Invalid demo password.
+              <p className="mt-4 rounded-md border border-red-300/30 bg-red-300/10 px-3 py-2 text-sm text-red-100">
+                The password did not work. Please try again.
               </p>
             ) : null}
 
             <button
               type="submit"
-              className="w-full rounded-md bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800"
+              className="mt-5 w-full rounded-md bg-emerald-300 px-4 py-2.5 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200"
             >
-              Continue to dashboard
+              Continue
             </button>
           </form>
         ) : null}
+
+        <div className="mt-8 rounded-lg border border-zinc-800 bg-zinc-900/50 p-5">
+          <p className="text-sm font-semibold text-zinc-100">
+            Want to try the public demo instead?
+          </p>
+          <p className="mt-2 text-sm leading-6 text-zinc-400">
+            Public demo mode does not move real Stripe money.
+          </p>
+          <a
+            className="mt-4 inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2.5 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900"
+            href="/demo"
+          >
+            Open public demo
+          </a>
+        </div>
       </section>
     </main>
   );

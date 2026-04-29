@@ -29,15 +29,25 @@ const filters = [
   { value: "executed", label: "Executed" },
 ] satisfies { value: DashboardRequestFilter; label: string }[];
 
+type RefundRequestsPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  routeBase?: "/app/action-requests" | "/app/refund-requests";
+};
+
 export default async function ActionRequestsPage({
   searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
+}: RefundRequestsPageProps) {
+  return RefundRequestsPage({ searchParams, routeBase: "/app/action-requests" });
+}
+
+export async function RefundRequestsPage({
+  searchParams,
+  routeBase = "/app/action-requests",
+}: RefundRequestsPageProps) {
   const query = await searchParams;
   const selectedFilter = parseRequestFilter(query["status"]);
   const access = await getAppAccessContext({
-    nextPath: getActionRequestsNextPath(selectedFilter),
+    nextPath: getRefundRequestsNextPath(selectedFilter, routeBase),
   });
 
   if (!access.ok) {
@@ -70,8 +80,7 @@ export default async function ActionRequestsPage({
             Refund requests
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600">
-            Pending review items are sorted first so the demo reviewer can see
-            the next AI-initiated Stripe refund immediately.
+            Review Stripe refunds proposed by AI agents before they continue.
           </p>
         </div>
         <p className="text-sm text-zinc-500">
@@ -89,8 +98,8 @@ export default async function ActionRequestsPage({
               key={filter.value}
               href={
                 filter.value === "all"
-                  ? "/app/action-requests"
-                  : `/app/action-requests?status=${filter.value}`
+                  ? routeBase
+                  : `${routeBase}?status=${filter.value}`
               }
               className={`rounded-md border px-3 py-2 text-sm font-semibold ${
                 active
@@ -133,7 +142,7 @@ export default async function ActionRequestsPage({
                   <th className="px-4 py-3">Decision</th>
                   <th className="px-4 py-3">AI support agent</th>
                   <th className="px-4 py-3">Payment system</th>
-                  <th className="px-4 py-3">Refund action</th>
+                  <th className="px-4 py-3">Refund type</th>
                   <th className="px-4 py-3">Created</th>
                   <th className="px-4 py-3">Action</th>
                 </tr>
@@ -144,7 +153,7 @@ export default async function ActionRequestsPage({
                     request.decision === "APPROVAL_REQUIRED" &&
                     request.status === "APPROVAL_REQUIRED";
                   const indicators = getQueueIndicators(request);
-                  const isStripeTest = indicators.includes("Stripe test");
+                  const isStripeTest = indicators.includes("Stripe test-mode");
                   const amountCurrency = getAmountCurrency(request.parameters);
                   const amount =
                     amountCurrency.amount && amountCurrency.currency
@@ -153,6 +162,10 @@ export default async function ActionRequestsPage({
                           operation: request.operation,
                           parameters: request.parameters,
                         });
+                  const stripeModeLabel = getStripeModeLabel({
+                    connectorType: request.connector?.type,
+                    isStripeTest,
+                  });
 
                   return (
                     <tr
@@ -166,7 +179,7 @@ export default async function ActionRequestsPage({
                       <td className="px-4 py-3">
                         {isPendingReview ? (
                           <span className="inline-flex rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-900">
-                            Needs approval
+                            Needs review
                           </span>
                         ) : (
                           <span className="text-xs font-medium text-zinc-400">
@@ -188,31 +201,31 @@ export default async function ActionRequestsPage({
                       </td>
                       <td className="px-4 py-3 text-zinc-700">
                         <span className="font-medium text-zinc-950">
-                          {request.connector?.name ?? "Stripe Demo"}
+                          {stripeModeLabel}
                         </span>
                         <span className="block text-xs text-zinc-500">
                           {isStripeTest
                             ? "test mode; no live money movement"
-                            : "dry_run; no Stripe API call"}
+                            : "Demo simulation; no Stripe call"}
                         </span>
                         <IndicatorBadges labels={indicators} />
                       </td>
-                      <td className="px-4 py-3 font-mono text-xs text-zinc-700">
-                        {request.operation}
+                      <td className="px-4 py-3 text-zinc-700">
+                        Stripe refund
                       </td>
                       <td className="px-4 py-3 text-zinc-500">
                         {formatDateTime(request.createdAt)}
                       </td>
                       <td className="px-4 py-3">
                         <Link
-                          href={`/app/action-requests/${request.id}`}
+                          href={`${routeBase}/${request.id}`}
                           className={`inline-flex rounded-md px-3 py-2 text-xs font-semibold ${
                             isPendingReview
                               ? "bg-zinc-950 text-white hover:bg-zinc-800"
                               : "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
                           }`}
                         >
-                          {isPendingReview ? "Review" : "View evidence"}
+                          {isPendingReview ? "Review" : "View details"}
                         </Link>
                       </td>
                     </tr>
@@ -227,10 +240,11 @@ export default async function ActionRequestsPage({
   );
 }
 
-function getActionRequestsNextPath(filter: DashboardRequestFilter): string {
-  return filter === "all"
-    ? "/app/action-requests"
-    : `/app/action-requests?status=${filter}`;
+function getRefundRequestsNextPath(
+  filter: DashboardRequestFilter,
+  routeBase: NonNullable<RefundRequestsPageProps["routeBase"]>,
+): string {
+  return filter === "all" ? routeBase : `${routeBase}?status=${filter}`;
 }
 
 function parseRequestFilter(
@@ -255,7 +269,7 @@ function StatusBadge({ status }: { status: DashboardStatus }) {
 
   return (
     <span
-      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${styles}`}
+      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${styles}`}
     >
       {getStatusLabel(status)}
     </span>
@@ -274,7 +288,7 @@ function DecisionBadge({ decision }: { decision: DashboardDecision }) {
 
   return (
     <span
-      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${styles}`}
+      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${styles}`}
     >
       {getDecisionLabel(decision)}
     </span>
@@ -294,4 +308,18 @@ function IndicatorBadges({ labels }: { labels: string[] }) {
       ))}
     </div>
   );
+}
+
+function getStripeModeLabel({
+  connectorType,
+  isStripeTest,
+}: {
+  connectorType: string | undefined;
+  isStripeTest: boolean;
+}): string {
+  if (connectorType === "stripe_test" || isStripeTest) {
+    return "Stripe test-mode";
+  }
+
+  return "Demo simulation";
 }

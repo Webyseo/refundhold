@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  extractDemoApiKeyPrefix,
   generateDemoApiKey,
   hashApiKey,
+  readConfiguredDemoAgentApiKey,
   verifyApiKey,
 } from "./api-keys";
 
@@ -42,5 +44,34 @@ describe("API key utilities", () => {
     const { key } = generateDemoApiKey();
 
     expect(verifyApiKey(key, "not-a-valid-hash")).toBe(false);
+  });
+
+  it("reads the preferred RefundHold demo agent API key first", () => {
+    expect(
+      readConfiguredDemoAgentApiKey({
+        REFUNDHOLD_DEMO_AGENT_API_KEY: "ar_demo_preferred_secret",
+        AUTHRAIL_DEMO_AGENT_API_KEY: "ar_demo_legacy_secret",
+      }),
+    ).toEqual({
+      apiKey: "ar_demo_preferred_secret",
+      envName: "REFUNDHOLD_DEMO_AGENT_API_KEY",
+    });
+  });
+
+  it("falls back to the legacy demo agent API key", () => {
+    expect(
+      readConfiguredDemoAgentApiKey({
+        AUTHRAIL_DEMO_AGENT_API_KEY: "ar_demo_legacy_secret",
+      }),
+    ).toEqual({
+      apiKey: "ar_demo_legacy_secret",
+      envName: "AUTHRAIL_DEMO_AGENT_API_KEY",
+    });
+  });
+
+  it("extracts the demo API key prefix", () => {
+    expect(extractDemoApiKeyPrefix("ar_demo_prefix_secret")).toBe(
+      "ar_demo_prefix",
+    );
   });
 });

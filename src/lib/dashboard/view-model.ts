@@ -242,7 +242,7 @@ export function getQueueIndicators(
   request: DashboardStripeTestRefundViewModelInput,
 ): string[] {
   const indicators: string[] = [
-    isStripeTestRefundRequest(request) ? "Stripe test" : "Dry-run",
+    isStripeTestRefundRequest(request) ? "Stripe test-mode" : "Demo simulation",
   ];
 
   if (
@@ -260,7 +260,7 @@ export function getQueueIndicators(
     request.decision === "APPROVAL_REQUIRED" &&
     request.status === "APPROVAL_REQUIRED"
   ) {
-    indicators.push("Needs approval");
+    indicators.push("Needs review");
   }
 
   return indicators;
@@ -276,10 +276,12 @@ export function getImpactSummary({
   const amountCurrency = getAmountCurrency(parameters);
 
   if (amountCurrency.amount) {
-    return `${amountCurrency.amount} ${amountCurrency.currency ?? ""} ${operation}`.trim();
+    return `${amountCurrency.amount} ${
+      amountCurrency.currency ?? ""
+    } Stripe refund`.trim();
   }
 
-  return operation;
+  return operation === "refund.create" ? "Stripe refund" : "Refund request";
 }
 
 export function getActionRequestControls(
@@ -322,11 +324,11 @@ export function getNextSafeAction(
     state.decision === "APPROVAL_REQUIRED" &&
     state.status === "APPROVAL_REQUIRED"
   ) {
-    return "Review evidence, then approve or reject before any dry_run execution.";
+    return "Review evidence, then approve or reject before any demo execution.";
   }
 
   if (state.decision === "APPROVAL_REQUIRED" && state.status === "APPROVED") {
-    return "Run the dry_run execution simulation; no Stripe API call is made.";
+    return "Record the demo execution simulation; no Stripe API call is made.";
   }
 
   if (state.decision === "DENY" || state.status === "DENIED") {
@@ -338,11 +340,11 @@ export function getNextSafeAction(
   }
 
   if (state.status === "EXECUTED") {
-    return "Use the audit evidence and dry_run execution record in the walkthrough.";
+    return "Use the audit evidence and demo execution record in the walkthrough.";
   }
 
   if (state.decision === "ALLOW" || state.status === "ALLOWED") {
-    return "Policy allowed this low-risk dry_run request; no human approval is required.";
+    return "Policy allowed this low-risk demo request; no human approval is required.";
   }
 
   return "Review the policy evidence before taking any demo action.";
@@ -419,11 +421,40 @@ export function formatMinorUnitAmount(
 }
 
 export function getStatusLabel(status: DashboardStatus): string {
-  return status.toLowerCase().replaceAll("_", " ");
+  switch (status) {
+    case "PROPOSED":
+      return "Proposed";
+    case "ALLOWED":
+      return "Allowed by policy";
+    case "DENIED":
+    case "CANCELED":
+      return "Blocked";
+    case "APPROVAL_REQUIRED":
+      return "Needs review";
+    case "APPROVED":
+      return "Approved";
+    case "REJECTED":
+      return "Rejected";
+    case "EXECUTING":
+      return "Recording";
+    case "EXECUTED":
+      return "Executed";
+    case "FAILED":
+      return "Failed";
+  }
 }
 
 export function getDecisionLabel(decision: DashboardDecision): string {
-  return decision ? decision.toLowerCase().replaceAll("_", " ") : "none";
+  switch (decision) {
+    case "ALLOW":
+      return "Allowed by policy";
+    case "DENY":
+      return "Blocked";
+    case "APPROVAL_REQUIRED":
+      return "Needs review";
+    case null:
+      return "None";
+  }
 }
 
 function getDashboardRequestFilter(

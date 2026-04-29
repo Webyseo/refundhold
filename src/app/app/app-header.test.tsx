@@ -17,7 +17,14 @@ describe("AppHeaderContent", () => {
     expect(html).toContain("Demo mode");
     expect(html).toContain("Demo Reviewer");
     expect(html).toContain("Reviewer");
-    expect(html).toContain("Dry-run demo");
+    expect(html).toContain("Demo simulation");
+    expect(html).toContain("href=\"/app/refund-requests\"");
+    expect(html).toContain("href=\"/app/onboarding\"");
+    expect(html).toContain("Onboarding");
+    expect(html).toContain("href=\"/app/stripe\"");
+    expect(html).toContain("Stripe");
+    expect(html).toContain("href=\"/contact\"");
+    expect(html).toContain("Send feedback");
     expect(html).toContain("Exit demo");
     expect(html).not.toContain("Authenticated session");
     expect(html).not.toContain("reviewer@example.com");
@@ -34,7 +41,7 @@ describe("AppHeaderContent", () => {
     expect(html).toContain("Reviewer");
     expect(html).toContain("Sign out");
     expect(html).not.toContain("Exit demo");
-    expect(html).not.toContain("Dry-run demo");
+    expect(html).not.toContain("Demo simulation");
   });
 });
 

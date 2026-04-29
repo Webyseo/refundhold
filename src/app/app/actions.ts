@@ -24,6 +24,7 @@ export async function rejectActionRequestFromDashboard(formData: FormData) {
 
 export async function executeActionRequestFromDashboard(formData: FormData) {
   const actionRequestId = getActionRequestId(formData);
+  const returnPath = getDashboardReturnPath(formData, actionRequestId);
   const actorResult = await resolveHumanActionActor({
     requiredPermission: "executeRefunds",
     demoReviewerEmail: getDemoReviewerEmail(),
@@ -31,8 +32,8 @@ export async function executeActionRequestFromDashboard(formData: FormData) {
 
   if (!actorResult.ok) {
     redirectWithResult({
-      actionRequestId,
-      successMessage: "Dry-run execution completed.",
+      returnPath,
+      successMessage: "Demo execution recorded.",
       response: actorResult.response,
     });
   }
@@ -51,8 +52,8 @@ export async function executeActionRequestFromDashboard(formData: FormData) {
 
   revalidateDashboardPaths(actionRequestId);
   redirectWithResult({
-    actionRequestId,
-    successMessage: "Dry-run execution completed.",
+    returnPath,
+    successMessage: "Demo execution recorded.",
     response,
   });
 }
@@ -77,6 +78,7 @@ async function reviewActionRequestFromDashboard(
   formData: FormData,
 ) {
   const actionRequestId = getActionRequestId(formData);
+  const returnPath = getDashboardReturnPath(formData, actionRequestId);
   const comment = getOptionalString(formData, "comment");
   const actorResult = await resolveHumanActionActor({
     requiredPermission: "reviewActionRequests",
@@ -85,7 +87,7 @@ async function reviewActionRequestFromDashboard(
 
   if (!actorResult.ok) {
     redirectWithResult({
-      actionRequestId,
+      returnPath,
       successMessage:
         action === "approve"
           ? "Refund request approved."
@@ -108,7 +110,7 @@ async function reviewActionRequestFromDashboard(
 
   revalidateDashboardPaths(actionRequestId);
   redirectWithResult({
-    actionRequestId,
+    returnPath,
     successMessage:
       action === "approve"
         ? "Refund request approved."
@@ -139,6 +141,17 @@ function getOptionalString(formData: FormData, key: string): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+function getDashboardReturnPath(
+  formData: FormData,
+  actionRequestId: string,
+): string {
+  const value = getOptionalString(formData, "returnPath");
+  const legacyPath = `/app/action-requests/${actionRequestId}`;
+  const refundPath = `/app/refund-requests/${actionRequestId}`;
+
+  return value === refundPath || value === legacyPath ? value : legacyPath;
+}
+
 function getDemoReviewerEmail(): string {
   const reviewerEmail = process.env["AUTHRAIL_DEMO_REVIEWER_EMAIL"]?.trim();
 
@@ -150,14 +163,16 @@ function getDemoReviewerEmail(): string {
 function revalidateDashboardPaths(actionRequestId: string) {
   revalidatePath("/app/action-requests");
   revalidatePath(`/app/action-requests/${actionRequestId}`);
+  revalidatePath("/app/refund-requests");
+  revalidatePath(`/app/refund-requests/${actionRequestId}`);
 }
 
 function redirectWithResult({
-  actionRequestId,
+  returnPath,
   successMessage,
   response,
 }: {
-  actionRequestId: string;
+  returnPath: string;
   successMessage: string;
   response: {
     status: number;
@@ -177,5 +192,5 @@ function redirectWithResult({
     );
   }
 
-  redirect(`/app/action-requests/${actionRequestId}?${searchParams}`);
+  redirect(`${returnPath}?${searchParams}`);
 }

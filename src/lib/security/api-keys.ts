@@ -6,10 +6,19 @@ const scryptKeyLength = 32;
 const saltBytes = 16;
 const hashAlgorithm = "scrypt";
 const hashVersion = "v1";
+const preferredDemoAgentApiKeyEnv = "REFUNDHOLD_DEMO_AGENT_API_KEY";
+const legacyDemoAgentApiKeyEnv = "AUTHRAIL_DEMO_AGENT_API_KEY";
 
 export type GeneratedDemoApiKey = {
   key: string;
   prefix: string;
+};
+
+export type ConfiguredDemoAgentApiKey = {
+  apiKey: string;
+  envName:
+    | typeof preferredDemoAgentApiKeyEnv
+    | typeof legacyDemoAgentApiKeyEnv;
 };
 
 export function generateDemoApiKey(): GeneratedDemoApiKey {
@@ -20,6 +29,42 @@ export function generateDemoApiKey(): GeneratedDemoApiKey {
     key: `${prefix}_${secret}`,
     prefix,
   };
+}
+
+export function readConfiguredDemoAgentApiKey(
+  env: Partial<Record<string, string | undefined>> = process.env,
+): ConfiguredDemoAgentApiKey | null {
+  const preferredApiKey = env[preferredDemoAgentApiKeyEnv]?.trim();
+
+  if (preferredApiKey) {
+    return {
+      apiKey: preferredApiKey,
+      envName: preferredDemoAgentApiKeyEnv,
+    };
+  }
+
+  const legacyApiKey = env[legacyDemoAgentApiKeyEnv]?.trim();
+
+  if (legacyApiKey) {
+    return {
+      apiKey: legacyApiKey,
+      envName: legacyDemoAgentApiKeyEnv,
+    };
+  }
+
+  return null;
+}
+
+export function extractDemoApiKeyPrefix(apiKey: string): string {
+  const separatorIndex = apiKey.lastIndexOf("_");
+
+  if (separatorIndex <= 0 || separatorIndex === apiKey.length - 1) {
+    throw new Error(
+      "Demo agent API key must use the local demo format <prefix>_<secret>.",
+    );
+  }
+
+  return apiKey.slice(0, separatorIndex);
 }
 
 export function hashApiKey(apiKey: string): string {

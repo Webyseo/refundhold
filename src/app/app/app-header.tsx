@@ -51,7 +51,7 @@ export function AppHeaderContent({
             </span>
             {!isSession ? (
               <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-zinc-700">
-                Dry-run demo
+                Demo simulation
               </span>
             ) : null}
             <span className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-zinc-700">
@@ -77,10 +77,28 @@ export function AppHeaderContent({
             Overview
           </Link>
           <Link
-            href="/app/action-requests"
+            href="/app/refund-requests"
             className="rounded-md bg-zinc-950 px-3 py-2 text-white hover:bg-zinc-800"
           >
             Refund requests
+          </Link>
+          <Link
+            href="/app/onboarding"
+            className="rounded-md px-3 py-2 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
+          >
+            Onboarding
+          </Link>
+          <Link
+            href="/app/stripe"
+            className="rounded-md px-3 py-2 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
+          >
+            Stripe
+          </Link>
+          <Link
+            href="/contact"
+            className="rounded-md px-3 py-2 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
+          >
+            Send feedback
           </Link>
           {isSession ? (
             <SessionSignOutButton

@@ -26,9 +26,9 @@ describe("ActionRequestControlsPanel", () => {
 
     expect(html).toContain("You have read-only access.");
     expect(html).toContain("Reviewer permission required.");
-    expect(html).not.toContain("Approve demo refund review");
-    expect(html).not.toContain("Reject demo refund");
-    expect(html).not.toContain("Execute dry_run refund simulation");
+    expect(html).not.toContain("Approve refund");
+    expect(html).not.toContain("Reject refund");
+    expect(html).not.toContain("Record demo execution");
   });
 
   it("shows review actions for reviewers when the request state allows review", () => {
@@ -41,12 +41,16 @@ describe("ActionRequestControlsPanel", () => {
       />,
     );
 
-    expect(html).toContain("Approve demo refund review");
-    expect(html).toContain("Reject demo refund");
+    expect(html).toContain("Decision needed");
+    expect(html).toContain(
+      "Approve this refund only if the customer should receive the money back.",
+    );
+    expect(html).toContain("Approve refund");
+    expect(html).toContain("Reject refund");
     expect(html).not.toContain("You have read-only access.");
   });
 
-  it("shows dry_run execution for reviewers when the request is approved", () => {
+  it("shows demo execution for reviewers when the request is approved", () => {
     const html = renderToStaticMarkup(
       <ActionRequestControlsPanel
         actionRequestId="ar_123"
@@ -56,7 +60,7 @@ describe("ActionRequestControlsPanel", () => {
       />,
     );
 
-    expect(html).toContain("Execute dry_run refund simulation");
+    expect(html).toContain("Record demo execution");
     expect(html).not.toContain("Reviewer permission required.");
   });
 });

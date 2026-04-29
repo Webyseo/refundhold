@@ -11,6 +11,7 @@ import {
   createDemoAccessCookieValue,
 } from "../src/lib/demo-access";
 import { getPrismaClient } from "../src/lib/db/prisma";
+import { readConfiguredDemoAgentApiKey } from "../src/lib/security/api-keys";
 
 type StripeE2EEnv = {
   [key: string]: string | undefined;
@@ -160,7 +161,15 @@ export function readStripeTestE2EConfig(
     throw new Error("A Stripe test-mode secret or restricted key is required.");
   }
 
-  const apiKey = readRequiredEnv(env, "AUTHRAIL_DEMO_AGENT_API_KEY");
+  const configuredApiKey = readConfiguredDemoAgentApiKey(env);
+
+  if (!configuredApiKey) {
+    throw new Error(
+      "REFUNDHOLD_DEMO_AGENT_API_KEY is required. AUTHRAIL_DEMO_AGENT_API_KEY remains supported as a legacy fallback.",
+    );
+  }
+
+  const apiKey = configuredApiKey.apiKey;
   const baseUrl = normalizeBaseUrl(readRequiredEnv(env, "BASE_URL"), env);
   readRequiredEnv(env, "DATABASE_URL");
   const expectWebhook = isEnabledValue(env["STRIPE_E2E_EXPECT_WEBHOOK"]);

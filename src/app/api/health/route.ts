@@ -1,14 +1,14 @@
 import { z } from "zod";
 
 const healthResponseSchema = z.object({
-  service: z.literal("authrail"),
+  service: z.literal("refundhold"),
   status: z.literal("ok"),
 });
 
 export function GET() {
   return Response.json(
     healthResponseSchema.parse({
-      service: "authrail",
+      service: "refundhold",
       status: "ok",
     }),
   );

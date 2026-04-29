@@ -9,27 +9,48 @@ import {
   formatDateTime,
   formatJson,
   getActionRequestControls,
-  getDemoReviewerDisplayName,
   getImpactSummary,
-  getDecisionLabel,
-  getNextSafeAction,
   getStripeTestRefundViewModel,
-  getStatusLabel,
+  type DashboardDecision,
+  type DashboardStatus,
 } from "@/lib/dashboard/view-model";
 
 export const dynamic = "force-dynamic";
 
+type RefundRequestDetailPageProps = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  routeBase?: "/app/action-requests" | "/app/refund-requests";
+};
+
+type RefundRequestDetail = NonNullable<
+  Awaited<ReturnType<typeof getDashboardActionRequest>>
+>;
+
+type DemoRefundDetails = ReturnType<typeof getDemoRefundDetails>;
+
+type StripeTestRefundDetails = ReturnType<typeof getStripeTestRefundViewModel>;
+
 export default async function ActionRequestDetailPage({
   params,
   searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
+}: RefundRequestDetailPageProps) {
+  return RefundRequestDetailPage({
+    params,
+    searchParams,
+    routeBase: "/app/refund-requests",
+  });
+}
+
+export async function RefundRequestDetailPage({
+  params,
+  searchParams,
+  routeBase = "/app/refund-requests",
+}: RefundRequestDetailPageProps) {
   const { id } = await params;
   const notices = await searchParams;
   const access = await getAppAccessContext({
-    nextPath: `/app/action-requests/${id}`,
+    nextPath: `${routeBase}/${id}`,
   });
 
   if (!access.ok) {
@@ -66,369 +87,134 @@ export default async function ActionRequestDetailPage({
     stripeTestRefund?.paymentObject?.proposedRefundAmount ??
     stripeTestRefund?.refund?.amount ??
     demoDetails.refundAmount;
-  const safetyLabel = stripeTestRefund ? "Stripe safety" : "Dry-run guarantee";
+  const safetyLabel = stripeTestRefund ? "Stripe safety" : "Demo simulation";
   const safetyValue = stripeTestRefund
     ? "Test mode only; no live Stripe API calls and no real money movement."
     : demoDetails.dryRun;
-  const nextSafeAction =
-    stripeTestRefund?.actionStatus.description ??
-    getNextSafeAction({
-      decision: request.decision,
-      status: request.status,
-    });
+  const summaryAmount = formatRefundAmountForSentence({
+    parameters: request.parameters,
+    fallback: refundAmount,
+  });
+  const summarySentence = summaryAmount
+    ? `AI support agent proposed a ${summaryAmount} Stripe refund.`
+    : "AI support agent proposed a Stripe refund.";
+  const statusLabel = getReviewerStatusLabel({
+    decision: request.decision,
+    status: request.status,
+  });
+  const auditTrail = getReadableAuditTrail({
+    status: request.status,
+    auditEvents: request.auditEvents,
+  });
+  const nextSafeAction = getReviewerStatusDescription({
+    decision: request.decision,
+    status: request.status,
+  });
   const success = getSearchMessage(notices["success"]);
   const error = getSearchMessage(notices["error"]);
 
   return (
     <section className="mx-auto max-w-7xl px-5 py-8 sm:px-8">
       <Link
-        href="/app/action-requests"
+        href="/app/refund-requests"
         className="text-sm font-medium text-emerald-700 hover:text-emerald-900"
       >
         Back to refund requests
       </Link>
 
-      <div className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <p className="text-sm font-medium uppercase tracking-[0.16em] text-emerald-700">
-            Refund request
-          </p>
-          <h1 className="mt-2 font-mono text-2xl font-semibold tracking-tight text-zinc-950">
-            {request.operation}
-          </h1>
-          <p className="mt-2 font-mono text-sm text-zinc-500">{request.id}</p>
-        </div>
-        <div className="grid gap-2 sm:grid-cols-2 lg:min-w-80">
-          <StatePanel label="Current status" value={getStatusLabel(request.status)} />
-          <StatePanel label="Policy decision" value={getDecisionLabel(request.decision)} />
-        </div>
+      <div className="mt-5">
+        <p className="text-sm font-medium uppercase tracking-[0.16em] text-emerald-700">
+          Refund review
+        </p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950">
+          Refund request
+        </h1>
       </div>
 
       {success ? <Notice tone="success">{success}</Notice> : null}
       {error ? <Notice tone="error">{error}</Notice> : null}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="space-y-6">
-          <section className="rounded-lg border border-zinc-200 bg-white p-5">
-            <p className="text-sm font-semibold text-zinc-950">
-              Executive summary
+      <div className="mt-6 space-y-6">
+        <section className="rounded-lg border border-zinc-200 bg-white p-5">
+          <h2 className="text-base font-semibold text-zinc-950">Summary</h2>
+          <div className="mt-3 space-y-2 text-sm leading-6 text-zinc-700">
+            <p>{summarySentence}</p>
+            <p>
+              RefundHold held it because your policy requires human approval for
+              refunds between $50 and $500.
             </p>
-            <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-              <Detail label="Amount" value={refundAmount} />
-              <Detail label="Status" value={getStatusLabel(request.status)} />
-              <Detail
-                label="Policy decision"
-                value={getDecisionLabel(request.decision)}
-              />
-              <Detail
-                label="Risk / reason"
-                value={request.decisionReason ?? demoDetails.riskReason}
-              />
-              <Detail label={safetyLabel} value={safetyValue} />
-              <Detail label="Next safe action" value={nextSafeAction} />
-            </dl>
-          </section>
+          </div>
+          <dl className="mt-5 grid gap-4 sm:grid-cols-3">
+            <Detail label="AI support agent" value={request.agent.name} />
+            <Detail label="Refund amount" value={refundAmount} />
+            <Detail label="Customer context" value={demoDetails.customer} />
+          </dl>
+        </section>
 
-          <section className="rounded-lg border border-amber-200 bg-amber-50 p-5">
-            <p className="text-sm font-semibold text-amber-950">
-              Review focus
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-amber-950">
-              {impactSummary}
-            </h2>
-            <p className="mt-3 text-sm leading-6 text-amber-900">
-              {request.decisionReason ??
-                "No policy reason was recorded for this request."}
-            </p>
-          </section>
+        <ActionRequestControlsPanel
+          actionRequestId={request.id}
+          controls={controls}
+          permissions={access.context.permissions}
+          returnPath={`${routeBase}/${request.id}`}
+          stripeTestRefund={stripeTestRefund}
+        />
 
-          <section className="rounded-lg border border-zinc-200 bg-white p-5">
-            <h2 className="text-base font-semibold text-zinc-950">Summary</h2>
-            <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-              <Detail label="AI support agent" value={request.agent.name} />
-              <Detail
-                label="Payment system"
-                value={
-                  request.connector
-                    ? `${request.connector.name} (${request.connector.type})`
-                    : "none"
-                }
-              />
-              <Detail label="Refund amount" value={refundAmount} />
-              <Detail label="Customer context" value={demoDetails.customer} />
-              <Detail label="Order context" value={demoDetails.order} />
-              <Detail label="AI initiated action" value={request.operation} />
-              <Detail label={safetyLabel} value={safetyValue} />
-              <Detail
-                label="Created"
-                value={formatDateTime(request.createdAt)}
-              />
-              <Detail
-                label="Updated"
-                value={formatDateTime(request.updatedAt)}
-              />
-              <Detail label="Decision reason" value={request.decisionReason} />
-              <Detail
-                label="Decided"
-                value={request.decidedAt ? formatDateTime(request.decidedAt) : null}
-              />
-            </dl>
-          </section>
+        <section className="rounded-lg border border-zinc-200 bg-white p-5">
+          <h2 className="text-base font-semibold text-zinc-950">
+            Policy matched
+          </h2>
+          <p className="mt-3 text-lg font-semibold text-zinc-950">
+            $50–$500 → human approval required
+          </p>
+          <p className="mt-2 text-sm leading-6 text-zinc-600">
+            RefundHold requires a reviewer decision before this refund can
+            continue.
+          </p>
+        </section>
 
-          {stripeTestRefund?.paymentObject ? (
-            <section className="rounded-lg border border-zinc-200 bg-white p-5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="text-base font-semibold text-zinc-950">
-                  Stripe test object
-                </h2>
-                <SafetyBadges labels={stripeTestRefund.safetyBadges} />
-              </div>
-              <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-                <Detail
-                  label="PaymentIntent ID"
-                  value={stripeTestRefund.paymentObject.paymentIntentId}
-                />
-                <Detail
-                  label="Charge ID"
-                  value={stripeTestRefund.paymentObject.chargeId}
-                />
-                <Detail
-                  label="Proposed refund"
-                  value={stripeTestRefund.paymentObject.proposedRefundAmount}
-                />
-                <Detail
-                  label="Amount"
-                  value={stripeTestRefund.paymentObject.amount}
-                />
-                <Detail
-                  label="Refunded so far"
-                  value={stripeTestRefund.paymentObject.refundedSoFar}
-                />
-                <Detail
-                  label="Refundable amount"
-                  value={stripeTestRefund.paymentObject.refundableAmount}
-                />
-                <Detail
-                  label="Currency"
-                  value={stripeTestRefund.paymentObject.currency}
-                />
-                <Detail
-                  label="Stripe object status"
-                  value={stripeTestRefund.paymentObject.status}
-                />
-                <Detail label="Mode" value={stripeTestRefund.paymentObject.mode} />
-                <Detail
-                  label="Livemode"
-                  value={stripeTestRefund.paymentObject.livemode}
-                />
-              </dl>
-            </section>
-          ) : null}
+        <section className="rounded-lg border border-zinc-200 bg-white p-5">
+          <h2 className="text-base font-semibold text-zinc-950">
+            Current status
+          </h2>
+          <p className="mt-3 w-fit rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-900">
+            {statusLabel}
+          </p>
+          <p className="mt-3 text-sm leading-6 text-zinc-600">
+            {nextSafeAction}
+          </p>
+          <p className="mt-2 text-sm font-medium text-zinc-700">
+            {stripeTestRefund ? "Stripe test-mode" : "Demo simulation"} · No
+            real money moved.
+          </p>
+        </section>
 
-          {stripeTestRefund?.refund ? (
-            <section className="rounded-lg border border-zinc-200 bg-white p-5">
-              <h2 className="text-base font-semibold text-zinc-950">
-                Stripe test refund execution
-              </h2>
-              <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-                <Detail label="Refund ID" value={stripeTestRefund.refund.refundId} />
-                <Detail
-                  label="Execution status"
-                  value={stripeTestRefund.refund.executionStatus}
-                />
-                <Detail
-                  label="Stripe refund status"
-                  value={stripeTestRefund.refund.stripeStatus}
-                />
-                <Detail label="Amount" value={stripeTestRefund.refund.amount} />
-                <Detail label="Currency" value={stripeTestRefund.refund.currency} />
-                <Detail
-                  label="Created"
-                  value={formatDateTime(stripeTestRefund.refund.createdAt)}
-                />
-                <Detail
-                  label="Updated"
-                  value={formatDateTime(stripeTestRefund.refund.updatedAt)}
-                />
-                <Detail
-                  label="Idempotency"
-                  value={stripeTestRefund.refund.idempotency}
-                />
-              </dl>
-            </section>
-          ) : null}
+        <section className="rounded-lg border border-zinc-200 bg-white p-5">
+          <h2 className="text-base font-semibold text-zinc-950">Audit trail</h2>
+          <ol className="mt-4 space-y-3">
+            {auditTrail.map((item, index) => (
+              <li
+                className="flex gap-3 text-sm text-zinc-700"
+                key={`${item}-${index}`}
+              >
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-semibold text-emerald-900">
+                  {index + 1}
+                </span>
+                <span className="pt-0.5">{item}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
 
-          {stripeTestRefund?.webhook ? (
-            <section className="rounded-lg border border-zinc-200 bg-white p-5">
-              <h2 className="text-base font-semibold text-zinc-950">
-                Webhook reconciliation
-              </h2>
-              <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-                <Detail label="Last event type" value={stripeTestRefund.webhook.type} />
-                <Detail
-                  label="Processing status"
-                  value={stripeTestRefund.webhook.processingStatus}
-                />
-                <Detail
-                  label="Stripe status after reconciliation"
-                  value={stripeTestRefund.webhook.stripeStatusAfterReconciliation}
-                />
-                <Detail
-                  label="Timestamp"
-                  value={formatDateTime(stripeTestRefund.webhook.timestamp)}
-                />
-                <Detail
-                  label="Safe message"
-                  value={stripeTestRefund.webhook.message}
-                />
-              </dl>
-            </section>
-          ) : null}
-
-          <JsonSection title="Refund resource JSON" value={request.resource} />
-          <JsonSection title="Parameters JSON" value={request.parameters} />
-          <JsonSection title="Context JSON" value={request.context} />
-
-          <section className="rounded-lg border border-zinc-200 bg-white p-5">
-            <h2 className="text-base font-semibold text-zinc-950">
-              Approvals
-            </h2>
-            {request.approvals.length === 0 ? (
-              <EmptyLine>No approvals recorded.</EmptyLine>
-            ) : (
-              <div className="mt-4 space-y-3">
-                {request.approvals.map((approval) => (
-                  <div
-                    key={approval.id}
-                    className="border-t border-zinc-100 py-4 first:border-t-0 first:pt-0 last:pb-0"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-semibold text-zinc-950">
-                        {approval.status}
-                      </p>
-                      <p className="font-mono text-xs text-zinc-500">
-                        {approval.id}
-                      </p>
-                    </div>
-                    <p className="mt-2 text-sm text-zinc-600">
-                      Reviewer:{" "}
-                      {getDemoReviewerDisplayName(approval.reviewer)}
-                    </p>
-                    <p className="mt-1 text-sm text-zinc-600">
-                      Reason: {approval.reason ?? "none"}
-                    </p>
-                    <p className="mt-1 text-xs text-zinc-500">
-                      {approval.reviewedAt
-                        ? formatDateTime(approval.reviewedAt)
-                        : formatDateTime(approval.createdAt)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <section className="rounded-lg border border-zinc-200 bg-white p-5">
-            <h2 className="text-base font-semibold text-zinc-950">
-              Executions
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-zinc-600">
-              {stripeTestRefund
-                ? "Stripe test executions are server-side guarded, test mode only, and require approval. This dashboard does not expose live Stripe execution controls."
-                : "Dry-run executions are simulations only. RefundHold does not call Stripe from this dashboard. This demo does not move real money."}
-            </p>
-            {request.executions.length === 0 ? (
-              <EmptyLine>No executions recorded.</EmptyLine>
-            ) : (
-              <div className="mt-4 space-y-3">
-                {request.executions.map((execution) => (
-                  <div
-                    key={execution.id}
-                    className="border-t border-zinc-100 py-4 first:border-t-0 first:pt-0 last:pb-0"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-semibold text-zinc-950">
-                        {execution.status} / {execution.mode}
-                      </p>
-                      <p className="font-mono text-xs text-zinc-500">
-                        {execution.id}
-                      </p>
-                    </div>
-                    <p className="mt-2 text-xs text-zinc-500">
-                      Started:{" "}
-                      {execution.startedAt
-                        ? formatDateTime(execution.startedAt)
-                        : "not recorded"}
-                    </p>
-                    <p className="mt-1 text-xs text-zinc-500">
-                      Completed:{" "}
-                      {execution.completedAt
-                        ? formatDateTime(execution.completedAt)
-                        : "not recorded"}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
-
-        <aside className="space-y-6">
-          <ActionRequestControlsPanel
-            actionRequestId={request.id}
-            controls={controls}
-            permissions={access.context.permissions}
-            stripeTestRefund={stripeTestRefund}
-          />
-
-          <section className="rounded-lg border border-zinc-200 bg-white p-5">
-            <h2 className="text-base font-semibold text-zinc-950">
-              Audit timeline
-            </h2>
-            {request.auditEvents.length === 0 ? (
-              <EmptyLine>No audit events recorded.</EmptyLine>
-            ) : (
-              <ol className="mt-4 space-y-0">
-                {request.auditEvents.map((event) => (
-                  <li
-                    key={event.id}
-                    className="border-l-2 border-zinc-200 pb-5 pl-4 last:pb-0"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-zinc-950">
-                        {event.type}
-                      </p>
-                      <p className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-semibold text-zinc-600">
-                        {event.actorType}
-                      </p>
-                    </div>
-                    <p className="mt-1 text-xs text-zinc-500">
-                      {formatDateTime(event.createdAt)}
-                    </p>
-                    <pre className="mt-2 max-h-48 overflow-auto rounded-md bg-zinc-950 p-3 text-xs leading-5 text-zinc-100">
-                      {formatJson(event.metadata)}
-                    </pre>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </section>
-        </aside>
+        <DeveloperDetails
+          demoDetails={demoDetails}
+          impactSummary={impactSummary}
+          request={request}
+          safetyLabel={safetyLabel}
+          safetyValue={safetyValue}
+          stripeTestRefund={stripeTestRefund}
+        />
       </div>
     </section>
-  );
-}
-
-function StatePanel({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-        {label}
-      </p>
-      <p className="mt-2 text-lg font-semibold capitalize text-zinc-950">
-        {value}
-      </p>
-    </div>
   );
 }
 
@@ -443,35 +229,261 @@ function Detail({ label, value }: { label: string; value: string | null }) {
   );
 }
 
-function SafetyBadges({ labels }: { labels: string[] }) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {labels.map((label) => (
-        <span
-          key={label}
-          className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-900"
-        >
-          {label}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function JsonSection({ title, value }: { title: string; value: unknown }) {
+function DeveloperDetails({
+  demoDetails,
+  impactSummary,
+  request,
+  safetyLabel,
+  safetyValue,
+  stripeTestRefund,
+}: {
+  demoDetails: DemoRefundDetails;
+  impactSummary: string;
+  request: RefundRequestDetail;
+  safetyLabel: string;
+  safetyValue: string | null;
+  stripeTestRefund: StripeTestRefundDetails;
+}) {
   return (
     <details className="rounded-lg border border-zinc-200 bg-white p-5">
       <summary className="cursor-pointer text-base font-semibold text-zinc-950">
-        {title}
+        Developer details
       </summary>
       <p className="mt-2 text-sm text-zinc-500">
-        Technical evidence for the guided demo. Expand only when a lead asks
-        for implementation-level detail.
+        Raw request, policy, execution, Stripe test-mode and audit data for
+        debugging.
       </p>
-      <pre className="mt-4 overflow-auto rounded-md bg-zinc-950 p-4 text-xs leading-5 text-zinc-100">
+
+      <div className="mt-5 space-y-6">
+        <section>
+          <h3 className="text-sm font-semibold text-zinc-950">
+            Request metadata
+          </h3>
+          <dl className="mt-3 grid gap-4 sm:grid-cols-2">
+            <Detail label="Request ID" value={request.id} />
+            <Detail label="Operation" value={request.operation} />
+            <Detail label="Raw status" value={request.status} />
+            <Detail
+              label="Raw decision"
+              value={request.decision}
+            />
+            <Detail label="Raw policy reason" value={request.decisionReason} />
+            <Detail label="Impact summary" value={impactSummary} />
+            <Detail label={safetyLabel} value={safetyValue} />
+            <Detail label="Order context" value={demoDetails.order} />
+            <Detail label="Risk context" value={demoDetails.riskReason} />
+            <Detail label="Created" value={formatDateTime(request.createdAt)} />
+            <Detail label="Updated" value={formatDateTime(request.updatedAt)} />
+          </dl>
+        </section>
+
+        {stripeTestRefund?.paymentObject ? (
+          <section>
+            <h3 className="text-sm font-semibold text-zinc-950">
+              Stripe test-mode payment metadata
+            </h3>
+            <dl className="mt-3 grid gap-4 sm:grid-cols-2">
+              <Detail
+                label="PaymentIntent ID"
+                value={stripeTestRefund.paymentObject.paymentIntentId}
+              />
+              <Detail
+                label="Charge ID"
+                value={stripeTestRefund.paymentObject.chargeId}
+              />
+              <Detail
+                label="Proposed refund"
+                value={stripeTestRefund.paymentObject.proposedRefundAmount}
+              />
+              <Detail label="Amount" value={stripeTestRefund.paymentObject.amount} />
+              <Detail
+                label="Refunded so far"
+                value={stripeTestRefund.paymentObject.refundedSoFar}
+              />
+              <Detail
+                label="Refundable amount"
+                value={stripeTestRefund.paymentObject.refundableAmount}
+              />
+              <Detail
+                label="Currency"
+                value={stripeTestRefund.paymentObject.currency}
+              />
+              <Detail
+                label="Stripe object status"
+                value={stripeTestRefund.paymentObject.status}
+              />
+              <Detail label="Mode" value={stripeTestRefund.paymentObject.mode} />
+              <Detail
+                label="Livemode"
+                value={stripeTestRefund.paymentObject.livemode}
+              />
+            </dl>
+          </section>
+        ) : null}
+
+        {stripeTestRefund?.refund ? (
+          <section>
+            <h3 className="text-sm font-semibold text-zinc-950">
+              Stripe test-mode refund metadata
+            </h3>
+            <dl className="mt-3 grid gap-4 sm:grid-cols-2">
+              <Detail label="Refund ID" value={stripeTestRefund.refund.refundId} />
+              <Detail
+                label="Execution status"
+                value={stripeTestRefund.refund.executionStatus}
+              />
+              <Detail
+                label="Stripe refund status"
+                value={stripeTestRefund.refund.stripeStatus}
+              />
+              <Detail label="Amount" value={stripeTestRefund.refund.amount} />
+              <Detail label="Currency" value={stripeTestRefund.refund.currency} />
+              <Detail
+                label="Created"
+                value={formatDateTime(stripeTestRefund.refund.createdAt)}
+              />
+              <Detail
+                label="Updated"
+                value={formatDateTime(stripeTestRefund.refund.updatedAt)}
+              />
+              <Detail
+                label="Idempotency"
+                value={stripeTestRefund.refund.idempotency}
+              />
+            </dl>
+          </section>
+        ) : null}
+
+        {stripeTestRefund?.webhook ? (
+          <section>
+            <h3 className="text-sm font-semibold text-zinc-950">
+              Webhook reconciliation
+            </h3>
+            <dl className="mt-3 grid gap-4 sm:grid-cols-2">
+              <Detail label="Last event type" value={stripeTestRefund.webhook.type} />
+              <Detail
+                label="Processing status"
+                value={stripeTestRefund.webhook.processingStatus}
+              />
+              <Detail
+                label="Stripe status after reconciliation"
+                value={stripeTestRefund.webhook.stripeStatusAfterReconciliation}
+              />
+              <Detail
+                label="Timestamp"
+                value={formatDateTime(stripeTestRefund.webhook.timestamp)}
+              />
+              <Detail label="Safe message" value={stripeTestRefund.webhook.message} />
+            </dl>
+          </section>
+        ) : null}
+
+        <DeveloperList
+          empty="No approvals recorded."
+          items={request.approvals.map((approval) => ({
+            id: approval.id,
+            title: approval.status,
+            body: [
+              `Reviewer: ${
+                approval.reviewer?.displayName ??
+                approval.reviewer?.email ??
+                "unknown"
+              }`,
+              `Reason: ${approval.reason ?? "none"}`,
+              `Reviewed: ${
+                approval.reviewedAt
+                  ? formatDateTime(approval.reviewedAt)
+                  : formatDateTime(approval.createdAt)
+              }`,
+            ],
+          }))}
+          title="Approval records"
+        />
+
+        <DeveloperList
+          empty="No executions recorded."
+          items={request.executions.map((execution) => ({
+            id: execution.id,
+            title: `${execution.status} / ${execution.mode}`,
+            body: [
+              `Started: ${
+                execution.startedAt
+                  ? formatDateTime(execution.startedAt)
+                  : "not recorded"
+              }`,
+              `Completed: ${
+                execution.completedAt
+                  ? formatDateTime(execution.completedAt)
+                  : "not recorded"
+              }`,
+            ],
+          }))}
+          title="Execution metadata"
+        />
+
+        <DeveloperList
+          empty="No audit events recorded."
+          items={request.auditEvents.map((event) => ({
+            id: event.id,
+            title: `${event.type} / ${event.actorType}`,
+            body: [formatDateTime(event.createdAt), formatJson(event.metadata)],
+          }))}
+          title="Raw audit events"
+        />
+
+        <JsonBlock title="Refund resource" value={request.resource} />
+        <JsonBlock title="Parameters" value={request.parameters} />
+        <JsonBlock title="Context" value={request.context} />
+      </div>
+    </details>
+  );
+}
+
+function DeveloperList({
+  empty,
+  items,
+  title,
+}: {
+  empty: string;
+  items: { id: string; title: string; body: string[] }[];
+  title: string;
+}) {
+  return (
+    <section>
+      <h3 className="text-sm font-semibold text-zinc-950">{title}</h3>
+      {items.length === 0 ? (
+        <EmptyLine>{empty}</EmptyLine>
+      ) : (
+        <div className="mt-3 space-y-3">
+          {items.map((item) => (
+            <div
+              className="rounded-md border border-zinc-200 bg-zinc-50 p-3"
+              key={item.id}
+            >
+              <p className="text-sm font-semibold text-zinc-950">
+                {item.title}
+              </p>
+              {item.body.map((line) => (
+                <p className="mt-1 text-xs leading-5 text-zinc-600" key={line}>
+                  {line}
+                </p>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function JsonBlock({ title, value }: { title: string; value: unknown }) {
+  return (
+    <section>
+      <h3 className="text-sm font-semibold text-zinc-950">{title}</h3>
+      <pre className="mt-3 overflow-auto rounded-md bg-zinc-950 p-4 text-xs leading-5 text-zinc-100">
         {formatJson(value)}
       </pre>
-    </details>
+    </section>
   );
 }
 
@@ -496,6 +508,134 @@ function Notice({
 
 function EmptyLine({ children }: { children: React.ReactNode }) {
   return <p className="mt-4 text-sm text-zinc-500">{children}</p>;
+}
+
+function formatRefundAmountForSentence({
+  fallback,
+  parameters,
+}: {
+  fallback: string | null;
+  parameters: unknown;
+}): string | null {
+  const parameterRecord = isRecord(parameters) ? parameters : {};
+  const amount = parameterRecord["amount"];
+  const currency = parameterRecord["currency"];
+
+  if (typeof amount === "number" && typeof currency === "string") {
+    const normalizedCurrency = currency.trim().toUpperCase();
+
+    if (normalizedCurrency === "USD") {
+      return `$${new Intl.NumberFormat("en").format(amount)}`;
+    }
+
+    return `${new Intl.NumberFormat("en").format(amount)} ${normalizedCurrency}`;
+  }
+
+  return fallback;
+}
+
+function getReviewerStatusLabel({
+  decision,
+  status,
+}: {
+  decision: DashboardDecision;
+  status: DashboardStatus;
+}): string {
+  if (decision === "DENY" || status === "DENIED" || status === "CANCELED") {
+    return "Blocked";
+  }
+
+  if (decision === "APPROVAL_REQUIRED" && status === "APPROVAL_REQUIRED") {
+    return "Waiting for human approval";
+  }
+
+  if (status === "APPROVED") {
+    return "Approved";
+  }
+
+  if (status === "REJECTED") {
+    return "Rejected";
+  }
+
+  if (status === "EXECUTED") {
+    return "Executed";
+  }
+
+  if (status === "FAILED") {
+    return "Failed";
+  }
+
+  return "Waiting for human approval";
+}
+
+function getReviewerStatusDescription({
+  decision,
+  status,
+}: {
+  decision: DashboardDecision;
+  status: DashboardStatus;
+}): string {
+  if (decision === "DENY" || status === "DENIED" || status === "CANCELED") {
+    return "RefundHold blocked this refund before it could continue.";
+  }
+
+  if (decision === "APPROVAL_REQUIRED" && status === "APPROVAL_REQUIRED") {
+    return "A human reviewer must approve or reject this refund before it can continue.";
+  }
+
+  if (status === "APPROVED") {
+    return "The human reviewer approved this refund. Demo execution can be recorded separately.";
+  }
+
+  if (status === "REJECTED") {
+    return "The human reviewer rejected this refund, so it cannot continue.";
+  }
+
+  if (status === "EXECUTED") {
+    return "The approved demo execution was recorded for the audit trail.";
+  }
+
+  if (status === "FAILED") {
+    return "RefundHold recorded a failed execution state for review.";
+  }
+
+  return "RefundHold is waiting for the next safe reviewer action.";
+}
+
+function getReadableAuditTrail({
+  auditEvents,
+  status,
+}: {
+  auditEvents: RefundRequestDetail["auditEvents"];
+  status: DashboardStatus;
+}): string[] {
+  const trail = [
+    "Request received from AI agent",
+    "Policy evaluated",
+    "Human approval requested",
+  ];
+
+  if (status === "APPROVED" || status === "EXECUTED" || status === "FAILED") {
+    trail.push("Human reviewer approved the refund");
+  }
+
+  if (status === "REJECTED") {
+    trail.push("Human reviewer rejected the refund");
+  }
+
+  if (status === "EXECUTED") {
+    trail.push("Demo execution recorded");
+  }
+
+  if (status === "FAILED") {
+    trail.push("Execution failed");
+  }
+
+  if (auditEvents.length > trail.length) {
+    trail.push("Additional audit events recorded in Developer details");
+  }
+
+  return trail;
 }
 
 function getSearchMessage(value: string | string[] | undefined): string | null {
@@ -546,7 +686,7 @@ function getDemoRefundDetails({
     }),
     dryRun:
       contextRecord["dry_run"] === true
-        ? "dry_run=true; Stripe is not called and no money moves."
+        ? "Demo simulation only; Stripe is not called and no money moves."
         : null,
     riskReason:
       typeof riskLabel === "string" && typeof riskScore === "number"

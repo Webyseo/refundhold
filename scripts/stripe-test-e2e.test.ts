@@ -20,23 +20,37 @@ describe("Stripe test-mode E2E script helpers", () => {
     );
   });
 
-  it("requires Stripe test mode, test refunds, key, agent key, base URL, and database URL", () => {
+  it("uses the preferred demo agent API key for Stripe test-mode rehearsals", () => {
     expect(
       readStripeTestE2EConfig({
         AUTHRAIL_STRIPE_TEST_MODE_ENABLED: "true",
         AUTHRAIL_STRIPE_TEST_REFUNDS_ENABLED: "true",
         AUTHRAIL_STRIPE_TEST_SECRET_KEY: testKey,
-        AUTHRAIL_DEMO_AGENT_API_KEY: "ar_demo_prefix_secret",
+        REFUNDHOLD_DEMO_AGENT_API_KEY: "ar_demo_prefix_secret",
         BASE_URL: "http://localhost:3000",
         DATABASE_URL: "postgresql://user:password@localhost:5432/refundhold",
       }),
     ).toMatchObject({
+      apiKey: "ar_demo_prefix_secret",
       baseUrl: "http://localhost:3000",
       amountMinor: 10000,
       currency: "usd",
       expectWebhook: false,
       reviewerEmail: "demo.reviewer@refundhold.com",
     });
+  });
+
+  it("accepts the legacy demo agent API key fallback", () => {
+    expect(
+      readStripeTestE2EConfig({
+        AUTHRAIL_STRIPE_TEST_MODE_ENABLED: "true",
+        AUTHRAIL_STRIPE_TEST_REFUNDS_ENABLED: "true",
+        AUTHRAIL_STRIPE_TEST_SECRET_KEY: testKey,
+        AUTHRAIL_DEMO_AGENT_API_KEY: "ar_demo_legacy_secret",
+        BASE_URL: "http://localhost:3000",
+        DATABASE_URL: "postgresql://user:password@localhost:5432/refundhold",
+      }).apiKey,
+    ).toBe("ar_demo_legacy_secret");
   });
 
   it("accepts restricted test keys for controlled test mode", () => {

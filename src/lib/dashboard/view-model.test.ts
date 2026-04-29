@@ -100,7 +100,7 @@ describe("dashboard view model", () => {
           currency: "usd",
         },
       }),
-    ).toBe("100 USD refund.create");
+    ).toBe("100 USD Stripe refund");
   });
 
   it("falls back to the operation when no amount is available", () => {
@@ -109,7 +109,7 @@ describe("dashboard view model", () => {
         operation: "refund.create",
         parameters: {},
       }),
-    ).toBe("refund.create");
+    ).toBe("Stripe refund");
   });
 
   it("counts dashboard filters from request status", () => {
@@ -184,14 +184,14 @@ describe("dashboard view model", () => {
         decision: "APPROVAL_REQUIRED",
         status: "APPROVAL_REQUIRED",
       }),
-    ).toBe("Review evidence, then approve or reject before any dry_run execution.");
+    ).toBe("Review evidence, then approve or reject before any demo execution.");
 
     expect(
       getNextSafeAction({
         decision: "APPROVAL_REQUIRED",
         status: "APPROVED",
       }),
-    ).toBe("Run the dry_run execution simulation; no Stripe API call is made.");
+    ).toBe("Record the demo execution simulation; no Stripe API call is made.");
 
     expect(
       getNextSafeAction({
@@ -337,8 +337,8 @@ describe("dashboard view model", () => {
 
   it("returns discrete queue indicators for Stripe and dry-run requests", () => {
     expect(getQueueIndicators(makeStripeRequest())).toEqual([
-      "Stripe test",
-      "Needs approval",
+      "Stripe test-mode",
+      "Needs review",
     ]);
 
     expect(
@@ -359,10 +359,10 @@ describe("dashboard view model", () => {
           ],
         }),
       ),
-    ).toEqual(["Stripe test", "Executed", "Webhook reconciled"]);
+    ).toEqual(["Stripe test-mode", "Executed", "Webhook reconciled"]);
 
     expect(getQueueIndicators(makeRequest("dry-run", "APPROVED"))).toEqual([
-      "Dry-run",
+      "Demo simulation",
     ]);
   });
 

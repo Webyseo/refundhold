@@ -2,6 +2,12 @@ import "dotenv/config";
 
 import { PrismaPg } from "@prisma/adapter-pg";
 
+import {
+  extractDemoApiKeyPrefix,
+  hashApiKey,
+  readConfiguredDemoAgentApiKey,
+} from "../src/lib/security/api-keys";
+
 const demoOrganization = {
   name: "RefundHold Demo",
   slug: "authrail-demo",
@@ -13,9 +19,11 @@ const demoAgent = {
     "Fictitious support agent used for RefundHold dry_run commercial demos.",
 };
 
+const demoApiKeyName = "Demo Support Agent API Key";
+
 const demoConnector = {
   name: "Stripe Demo (dry_run)",
-  type: "stripe_demo",
+  type: "stripe_test",
 };
 
 type PrismaClientConstructor = new (options: {
@@ -26,12 +34,21 @@ type UpsertDelegate = {
   upsert: (args: unknown) => Promise<{ id: string }>;
 };
 
+type AgentApiKeyDelegate = {
+  findFirst: (
+    args: unknown,
+  ) => Promise<{ id: string; keyPrefix: string } | null>;
+  create: (args: unknown) => Promise<{ id: string }>;
+  update: (args: unknown) => Promise<{ id: string }>;
+};
+
 type DemoPrismaClient = {
   organization: UpsertDelegate;
   authUser: UpsertDelegate;
   user: UpsertDelegate;
   membership: UpsertDelegate;
   agent: UpsertDelegate;
+  agentApiKey: AgentApiKeyDelegate;
   connector: UpsertDelegate;
   policy: UpsertDelegate;
   actionRequest: UpsertDelegate;
@@ -102,7 +119,7 @@ const policyDefinitions = [
     decision: "ALLOW",
     priority: 10,
     rules: {
-      connector: "stripe_demo",
+      connector: "stripe_test",
       action: "refund.create",
       amount_lt: 50,
     },
@@ -115,7 +132,7 @@ const policyDefinitions = [
     decision: "APPROVAL_REQUIRED",
     priority: 20,
     rules: {
-      connector: "stripe_demo",
+      connector: "stripe_test",
       action: "refund.create",
       amount_gte: 50,
       amount_lte: 250,
@@ -129,7 +146,7 @@ const policyDefinitions = [
     decision: "APPROVAL_REQUIRED",
     priority: 30,
     rules: {
-      connector: "stripe_demo",
+      connector: "stripe_test",
       action: "refund.create",
       amount_gt: 250,
       amount_lte: 500,
@@ -143,7 +160,7 @@ const policyDefinitions = [
     decision: "DENY",
     priority: 40,
     rules: {
-      connector: "stripe_demo",
+      connector: "stripe_test",
       action: "refund.create",
       amount_gt: 500,
     },
@@ -362,6 +379,10 @@ async function main() {
       process.env["AUTHRAIL_DEMO_REVIEWER_EMAIL"]?.trim() ||
       "demo.reviewer@refundhold.com";
     const baseRecords = await upsertBaseDemoRecords(prisma, reviewerEmail);
+    const demoApiKey = await ensureDemoAgentApiKey(prisma, {
+      organizationId: baseRecords.organization.id,
+      agentId: baseRecords.agent.id,
+    });
     const policyIds = await upsertDemoPolicies(prisma, {
       organizationId: baseRecords.organization.id,
       connectorId: baseRecords.connector.id,
@@ -381,6 +402,16 @@ async function main() {
     console.log(
       `RefundHold demo seed complete: ${demoRefundRequests.length} dry_run refund requests are available.`,
     );
+
+    if (demoApiKey.source === "configured") {
+      console.log(`Demo agent API key configured from ${demoApiKey.envName}.`);
+    } else if (demoApiKey.source === "existing") {
+      console.log("Demo agent API key already exists; raw key was not shown.");
+    } else {
+      console.log(
+        "No demo agent API key configured. Set REFUNDHOLD_DEMO_AGENT_API_KEY and rerun pnpm db:seed:demo before calling /api/v1/refund-requests.",
+      );
+    }
   } finally {
     await prisma.$disconnect();
   }
@@ -565,6 +596,72 @@ async function ensureDemoReviewerMembership(
       status: "ACTIVE",
     },
   });
+}
+
+async function ensureDemoAgentApiKey(
+  prisma: DemoPrismaClient,
+  {
+    organizationId,
+    agentId,
+  }: {
+    organizationId: string;
+    agentId: string;
+  },
+) {
+  const configuredApiKey = readConfiguredDemoAgentApiKey();
+  const existingApiKey = await prisma.agentApiKey.findFirst({
+    where: {
+      organizationId,
+      agentId,
+      name: demoApiKeyName,
+    },
+  });
+
+  if (configuredApiKey) {
+    const keyPrefix = extractDemoApiKeyPrefix(configuredApiKey.apiKey);
+    const data = {
+      keyPrefix,
+      keyHash: hashApiKey(configuredApiKey.apiKey),
+      status: "ACTIVE",
+      expiresAt: null,
+      revokedAt: null,
+    };
+
+    if (existingApiKey) {
+      await prisma.agentApiKey.update({
+        where: {
+          id: existingApiKey.id,
+        },
+        data,
+      });
+    } else {
+      await prisma.agentApiKey.create({
+        data: {
+          organizationId,
+          agentId,
+          name: demoApiKeyName,
+          ...data,
+        },
+      });
+    }
+
+    return {
+      source: "configured" as const,
+      envName: configuredApiKey.envName,
+      keyPrefix,
+    };
+  }
+
+  if (existingApiKey) {
+    return {
+      source: "existing" as const,
+      keyPrefix: existingApiKey.keyPrefix,
+    };
+  }
+
+  return {
+    source: "missing" as const,
+  };
 }
 
 async function upsertDemoPolicies(

@@ -2,7 +2,12 @@ import "dotenv/config";
 
 import { PrismaPg } from "@prisma/adapter-pg";
 
-import { generateDemoApiKey, hashApiKey } from "../src/lib/security/api-keys";
+import {
+  extractDemoApiKeyPrefix,
+  generateDemoApiKey,
+  hashApiKey,
+  readConfiguredDemoAgentApiKey,
+} from "../src/lib/security/api-keys";
 
 const demoOrganization = {
   name: "RefundHold Demo",
@@ -186,13 +191,14 @@ async function main() {
     console.log(`Agent: ${agent.id} (${demoAgent.name})`);
 
     if (demoApiKey.source === "generated") {
-      console.log("Generated demo agent API key for local development:");
-      console.log(demoApiKey.key);
-      console.log("Store this key locally now; only its hash was saved.");
-    } else if (demoApiKey.source === "configured") {
       console.log(
-        "Demo agent API key configured from AUTHRAIL_DEMO_AGENT_API_KEY.",
+        "Generated demo agent API key hash for local development; raw key was not shown.",
       );
+      console.log(
+        "Set REFUNDHOLD_DEMO_AGENT_API_KEY and rerun pnpm db:seed:demo to use a known local demo key.",
+      );
+    } else if (demoApiKey.source === "configured") {
+      console.log(`Demo agent API key configured from ${demoApiKey.envName}.`);
     } else {
       console.log("Demo agent API key already exists; raw key was not shown.");
     }
@@ -287,7 +293,7 @@ async function ensureDemoAgentApiKey(
     agentId: string;
   },
 ) {
-  const configuredApiKey = readConfiguredDemoApiKey();
+  const configuredApiKey = readConfiguredDemoAgentApiKey();
   const existingApiKey = await prisma.agentApiKey.findFirst({
     where: {
       organizationId,
@@ -297,10 +303,10 @@ async function ensureDemoAgentApiKey(
   });
 
   if (configuredApiKey) {
-    const keyPrefix = extractApiKeyPrefix(configuredApiKey);
+    const keyPrefix = extractDemoApiKeyPrefix(configuredApiKey.apiKey);
     const data = {
       keyPrefix,
-      keyHash: hashApiKey(configuredApiKey),
+      keyHash: hashApiKey(configuredApiKey.apiKey),
       status: "ACTIVE",
       expiresAt: null,
       revokedAt: null,
@@ -326,6 +332,7 @@ async function ensureDemoAgentApiKey(
 
     return {
       source: "configured" as const,
+      envName: configuredApiKey.envName,
       keyPrefix,
     };
   }
@@ -354,24 +361,6 @@ async function ensureDemoAgentApiKey(
     source: "generated" as const,
     ...generatedApiKey,
   };
-}
-
-function readConfiguredDemoApiKey(): string | null {
-  const apiKey = process.env["AUTHRAIL_DEMO_AGENT_API_KEY"]?.trim();
-
-  return apiKey && apiKey.length > 0 ? apiKey : null;
-}
-
-function extractApiKeyPrefix(apiKey: string): string {
-  const separatorIndex = apiKey.lastIndexOf("_");
-
-  if (separatorIndex <= 0 || separatorIndex === apiKey.length - 1) {
-    throw new Error(
-      "AUTHRAIL_DEMO_AGENT_API_KEY must use the local demo format <prefix>_<secret>.",
-    );
-  }
-
-  return apiKey.slice(0, separatorIndex);
 }
 
 async function upsertDemoRefundPolicies(

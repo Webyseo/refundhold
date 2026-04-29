@@ -4,6 +4,8 @@ import { pathToFileURL } from "node:url";
 
 import { z } from "zod";
 
+import { readConfiguredDemoAgentApiKey } from "../src/lib/security/api-keys";
+
 const defaultBaseUrl = "http://localhost:3000";
 const apiPath = "/api/v1/action-requests";
 
@@ -63,18 +65,18 @@ export function buildRefundActionRequestPayload(amount: number) {
 }
 
 export function readSmokeConfig(): SmokeConfig {
-  const apiKey = process.env["AUTHRAIL_DEMO_AGENT_API_KEY"]?.trim();
+  const configuredApiKey = readConfiguredDemoAgentApiKey();
 
-  if (!apiKey) {
+  if (!configuredApiKey) {
     throw new Error(
-      "AUTHRAIL_DEMO_AGENT_API_KEY is required. Copy .env.example to .env, run pnpm db:seed, then run this smoke test.",
+      "REFUNDHOLD_DEMO_AGENT_API_KEY is required. Copy .env.example to .env, set a local demo key, run pnpm db:seed:demo, then run this smoke test. AUTHRAIL_DEMO_AGENT_API_KEY remains supported as a legacy fallback.",
     );
   }
 
   return {
     baseUrl:
       process.env["AUTHRAIL_ACTION_REQUEST_BASE_URL"]?.trim() ?? defaultBaseUrl,
-    apiKey,
+    apiKey: configuredApiKey.apiKey,
   };
 }
 
