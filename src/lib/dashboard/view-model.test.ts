@@ -246,10 +246,10 @@ describe("dashboard view model", () => {
     expect(model?.paymentObject).toEqual({
       paymentIntentId: "pi_test_123",
       chargeId: "ch_test_123",
-      amount: "5,000 USD minor units",
-      refundedSoFar: "1,250 USD minor units",
-      refundableAmount: "3,750 USD minor units",
-      proposedRefundAmount: "1,250 USD minor units",
+      amount: "$50.00 USD",
+      refundedSoFar: "$12.50 USD",
+      refundableAmount: "$37.50 USD",
+      proposedRefundAmount: "$12.50 USD",
       currency: "USD",
       status: "succeeded",
       mode: "TEST",
@@ -316,7 +316,7 @@ describe("dashboard view model", () => {
       refundId: "re_test_123",
       executionStatus: "SUCCEEDED",
       stripeStatus: "succeeded",
-      amount: "1,250 USD minor units",
+      amount: "$12.50 USD",
       currency: "USD",
       idempotency: "Protected by idempotency hash",
     });

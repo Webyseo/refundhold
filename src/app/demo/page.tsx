@@ -106,7 +106,7 @@ export default function DemoPage() {
           <div className="mt-10 rounded-lg border border-zinc-800 bg-zinc-900/70 p-5 shadow-2xl shadow-black/20">
             <div className="flex flex-col gap-3 border-b border-zinc-800 pb-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-medium uppercase tracking-[0.16em] text-zinc-500">
+                <p className="text-sm font-medium uppercase tracking-[0.16em] text-zinc-400">
                   Demo refund
                 </p>
                 <p className="mt-2 text-xl font-semibold text-zinc-50">
@@ -123,7 +123,7 @@ export default function DemoPage() {
 
           {isFinalStep ? (
             <div className="mt-8">
-              <div className="flex flex-col gap-4 sm:flex-row">
+              <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap">
                 <Link
                   className="inline-flex items-center justify-center rounded-md bg-emerald-300 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200"
                   href="/docs/quickstart"
@@ -236,7 +236,7 @@ function renderDemoStep(
         <p className="mt-6 text-base font-medium text-zinc-100">
           Approve or reject this refund before it can continue.
         </p>
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <button
             className="inline-flex items-center justify-center rounded-md bg-emerald-300 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200"
             onClick={actions.approveRefund}

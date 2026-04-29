@@ -83,6 +83,11 @@ export async function RefundRequestDetailPage({
     parameters: request.parameters,
     context: request.context,
   });
+  const reviewerEvidence = getReviewerEvidence({
+    auditEvents: request.auditEvents,
+    context: request.context,
+    parameters: request.parameters,
+  });
   const refundAmount =
     stripeTestRefund?.paymentObject?.proposedRefundAmount ??
     stripeTestRefund?.refund?.amount ??
@@ -144,6 +149,25 @@ export async function RefundRequestDetailPage({
               refunds between $50 and $500.
             </p>
           </div>
+          <div className="mt-5 rounded-md border border-amber-200/50 bg-amber-50/50 p-4">
+            <h3 className="text-sm font-semibold text-amber-900">
+              AI agent rationale
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-amber-900">
+              {reviewerEvidence.rationale}
+            </p>
+            {reviewerEvidence.riskReason ? (
+              <p className="mt-2 text-sm font-medium text-amber-900">
+                Risk assessment: {reviewerEvidence.riskReason}
+              </p>
+            ) : null}
+            {reviewerEvidence.technicalReason ? (
+              <p className="mt-2 text-xs font-medium uppercase tracking-wide text-amber-800">
+                Stripe reason: {reviewerEvidence.technicalReason}
+              </p>
+            ) : null}
+          </div>
+
           <dl className="mt-5 grid gap-4 sm:grid-cols-3">
             <Detail label="AI support agent" value={request.agent.name} />
             <Detail label="Refund amount" value={refundAmount} />
@@ -636,6 +660,90 @@ function getReadableAuditTrail({
   }
 
   return trail;
+}
+
+function getReviewerEvidence({
+  auditEvents,
+  context,
+  parameters,
+}: {
+  auditEvents: RefundRequestDetail["auditEvents"];
+  context: unknown;
+  parameters: unknown;
+}): {
+  rationale: string;
+  riskReason: string | null;
+  technicalReason: string | null;
+} {
+  const contextRecord = isRecord(context) ? context : {};
+  const aiAgent = isRecord(contextRecord["ai_agent"])
+    ? contextRecord["ai_agent"]
+    : {};
+  const risk = isRecord(contextRecord["risk"]) ? contextRecord["risk"] : {};
+  const parameterRecord = isRecord(parameters) ? parameters : {};
+  const technicalReason =
+    readString(parameterRecord["reason"]) ??
+    readString(contextRecord["reason"]);
+
+  const rationale =
+    readString(aiAgent["rationale"]) ??
+    readString(contextRecord["ai_agent_reason"]) ??
+    readString(contextRecord["customer_message"]) ??
+    readAuditMetadataString(auditEvents, "customer_message") ??
+    humanizeRefundReason(technicalReason) ??
+    "No customer-facing rationale was provided by the agent.";
+
+  const riskLabel = readString(risk["label"]);
+  const riskScore = typeof risk["score"] === "number" ? risk["score"] : null;
+  const riskReason =
+    readString(contextRecord["risk_reason"]) ??
+    (riskLabel && riskScore !== null
+      ? `${riskLabel} risk; score ${riskScore}`
+      : null);
+
+  return {
+    rationale,
+    riskReason,
+    technicalReason:
+      technicalReason && technicalReason !== rationale
+        ? humanizeRefundReason(technicalReason) ?? technicalReason
+        : null,
+  };
+}
+
+function readAuditMetadataString(
+  auditEvents: RefundRequestDetail["auditEvents"],
+  key: string,
+): string | null {
+  for (const event of auditEvents) {
+    const metadata = isRecord(event.metadata) ? event.metadata : {};
+    const value = readString(metadata[key]);
+
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function humanizeRefundReason(reason: string | null): string | null {
+  switch (reason) {
+    case "requested_by_customer":
+      return "Customer requested a refund; reviewer should confirm the support evidence before approving.";
+    case "duplicate":
+      return "The AI agent detected a possible duplicate charge and requested a refund.";
+    case "fraudulent":
+      return "The AI agent flagged the payment as potentially fraudulent and requested a refund review.";
+    default:
+      return reason;
+  }
+}
+
+function readString(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function getSearchMessage(value: string | string[] | undefined): string | null {

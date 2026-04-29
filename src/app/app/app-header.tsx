@@ -51,7 +51,7 @@ export function AppHeaderContent({
             </span>
             {!isSession ? (
               <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-zinc-700">
-                Demo simulation
+                Controlled demo access
               </span>
             ) : null}
             <span className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-zinc-700">

@@ -121,7 +121,7 @@ export default function ContactPage() {
             >
               Request a test-mode pilot
             </a>
-            <p className="mt-4 text-sm text-zinc-500">{contactEmail}</p>
+            <p className="mt-4 text-sm text-zinc-400">{contactEmail}</p>
 
             <div className="mt-6 border-t border-zinc-800 pt-5">
               <p className="text-sm font-semibold text-zinc-100">
@@ -161,7 +161,7 @@ export default function ContactPage() {
               </div>
             </div>
 
-            <p className="mt-6 border-t border-zinc-800 pt-5 text-xs leading-5 text-zinc-500">
+            <p className="mt-6 border-t border-zinc-800 pt-5 text-xs leading-5 text-zinc-400">
               RefundHold is not affiliated with, endorsed by, or sponsored by
               Stripe. Stripe is a trademark of Stripe, Inc.
             </p>

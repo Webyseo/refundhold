@@ -414,10 +414,19 @@ export function formatMinorUnitAmount(
 ): string {
   const normalizedCurrency = currency.trim().toUpperCase();
   const amount = Number.isFinite(amountMinor) ? amountMinor : 0;
+  const majorAmount = amount / 100;
 
-  return `${new Intl.NumberFormat("en").format(amount)} ${
-    normalizedCurrency || "UNKNOWN"
-  } minor units`;
+  if (normalizedCurrency === "USD") {
+    return `${new Intl.NumberFormat("en", {
+      style: "currency",
+      currency: "USD",
+    }).format(majorAmount)} USD`;
+  }
+
+  return `${new Intl.NumberFormat("en", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+  }).format(majorAmount)} ${normalizedCurrency || "UNKNOWN"}`;
 }
 
 export function getStatusLabel(status: DashboardStatus): string {

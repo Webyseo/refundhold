@@ -17,7 +17,7 @@ describe("AppHeaderContent", () => {
     expect(html).toContain("Demo mode");
     expect(html).toContain("Demo Reviewer");
     expect(html).toContain("Reviewer");
-    expect(html).toContain("Demo simulation");
+    expect(html).toContain("Controlled demo access");
     expect(html).toContain("href=\"/app/refund-requests\"");
     expect(html).toContain("href=\"/app/onboarding\"");
     expect(html).toContain("Onboarding");
@@ -41,7 +41,7 @@ describe("AppHeaderContent", () => {
     expect(html).toContain("Reviewer");
     expect(html).toContain("Sign out");
     expect(html).not.toContain("Exit demo");
-    expect(html).not.toContain("Demo simulation");
+    expect(html).not.toContain("Controlled demo access");
   });
 });
 

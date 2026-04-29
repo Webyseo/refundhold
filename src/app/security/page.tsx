@@ -160,7 +160,7 @@ export default function SecurityPage() {
               </Link>
             </div>
 
-            <p className="mt-6 border-t border-zinc-800 pt-5 text-xs leading-5 text-zinc-500">
+            <p className="mt-6 border-t border-zinc-800 pt-5 text-xs leading-5 text-zinc-400">
               RefundHold is not affiliated with, endorsed by, or sponsored by
               Stripe. Stripe is a trademark of Stripe, Inc.
             </p>
