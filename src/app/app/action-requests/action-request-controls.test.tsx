@@ -1,0 +1,76 @@
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it, vi } from "vitest";
+
+import { ActionRequestControlsPanel } from "./action-request-controls";
+import type { CurrentUserPermissions } from "@/lib/auth/current-user";
+
+vi.mock("../actions", () => ({
+  approveActionRequestFromDashboard: async () => undefined,
+  rejectActionRequestFromDashboard: async () => undefined,
+  executeActionRequestFromDashboard: async () => undefined,
+}));
+
+describe("ActionRequestControlsPanel", () => {
+  it("shows read-only messaging instead of review actions for viewers", () => {
+    const html = renderToStaticMarkup(
+      <ActionRequestControlsPanel
+        actionRequestId="ar_123"
+        controls={{ canApprove: true, canReject: true, canExecute: false }}
+        permissions={createPermissions({
+          reviewActionRequests: false,
+          executeRefunds: false,
+        })}
+        stripeTestRefund={null}
+      />,
+    );
+
+    expect(html).toContain("You have read-only access.");
+    expect(html).toContain("Reviewer permission required.");
+    expect(html).not.toContain("Approve demo refund review");
+    expect(html).not.toContain("Reject demo refund");
+    expect(html).not.toContain("Execute dry_run refund simulation");
+  });
+
+  it("shows review actions for reviewers when the request state allows review", () => {
+    const html = renderToStaticMarkup(
+      <ActionRequestControlsPanel
+        actionRequestId="ar_123"
+        controls={{ canApprove: true, canReject: true, canExecute: false }}
+        permissions={createPermissions()}
+        stripeTestRefund={null}
+      />,
+    );
+
+    expect(html).toContain("Approve demo refund review");
+    expect(html).toContain("Reject demo refund");
+    expect(html).not.toContain("You have read-only access.");
+  });
+
+  it("shows dry_run execution for reviewers when the request is approved", () => {
+    const html = renderToStaticMarkup(
+      <ActionRequestControlsPanel
+        actionRequestId="ar_123"
+        controls={{ canApprove: false, canReject: false, canExecute: true }}
+        permissions={createPermissions()}
+        stripeTestRefund={null}
+      />,
+    );
+
+    expect(html).toContain("Execute dry_run refund simulation");
+    expect(html).not.toContain("Reviewer permission required.");
+  });
+});
+
+function createPermissions(
+  overrides: Partial<CurrentUserPermissions> = {},
+): CurrentUserPermissions {
+  return {
+    viewDashboard: true,
+    reviewActionRequests: true,
+    executeRefunds: true,
+    managePolicies: false,
+    manageConnectors: false,
+    manageMembers: false,
+    ...overrides,
+  };
+}

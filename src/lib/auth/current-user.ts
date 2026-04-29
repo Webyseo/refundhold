@@ -60,6 +60,7 @@ export type CurrentUserPermissions = {
 
 export type CurrentUserContext = {
   authUserId: string;
+  displayName?: string | null;
   email: string;
   organizationId: string;
   organizationName: string;
@@ -137,6 +138,7 @@ export async function getCurrentUserContext(
 
   return {
     authUserId: session.user.id,
+    displayName: session.user.name?.trim() || session.user.email,
     email: session.user.email,
     organizationId: membership.organization.id,
     organizationName: membership.organization.name,

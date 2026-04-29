@@ -90,6 +90,7 @@ describe("current auth user context", () => {
 
     expect(context).toMatchObject({
       authUserId: "auth_user_123",
+      displayName: "Reviewer",
       email: "reviewer@example.com",
       organizationId: "org_123",
       organizationName: "RefundHold Demo",

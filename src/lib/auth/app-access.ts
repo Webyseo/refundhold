@@ -45,7 +45,11 @@ export type AppAccessPrisma = {
 
 export type AppAccessContext = {
   source: "session" | "demo";
+  mode: "session" | "demo";
+  authEnabled: boolean;
+  authRequired: boolean;
   authUserId: string | null;
+  displayName: string;
   email: string;
   organizationId: string;
   organizationName: string;
@@ -151,7 +155,11 @@ export async function resolveAppAccessContext({
       ok: true,
       context: {
         source: "session",
+        mode: "session",
+        authEnabled: authConfig.authEnabled,
+        authRequired: authConfig.authRequired,
         authUserId: context.authUserId,
+        displayName: context.displayName?.trim() || context.email,
         email: context.email,
         organizationId: context.organizationId,
         organizationName: context.organizationName,
@@ -167,6 +175,8 @@ export async function resolveAppAccessContext({
       demoReviewerEmail ??
       env["AUTHRAIL_DEMO_REVIEWER_EMAIL"] ??
       defaultDemoReviewerEmail,
+    authEnabled: authConfig.authEnabled,
+    authRequired: authConfig.authRequired,
     prisma,
   });
 }
@@ -204,9 +214,13 @@ function buildLoginRedirect(nextPath: string | null | undefined): string {
 
 async function resolveDemoAppAccess({
   email,
+  authEnabled,
+  authRequired,
   prisma,
 }: {
   email: string | null;
+  authEnabled: boolean;
+  authRequired: boolean;
   prisma?: AppAccessPrisma;
 }): Promise<ResolveAppAccessContextResult> {
   const normalizedEmail = email?.trim().toLowerCase();
@@ -264,7 +278,11 @@ async function resolveDemoAppAccess({
     ok: true,
     context: {
       source: "demo",
+      mode: "demo",
+      authEnabled,
+      authRequired,
       authUserId: membership.authUserId,
+      displayName: "Demo Reviewer",
       email: membership.user.email,
       organizationId: membership.organization.id,
       organizationName: membership.organization.name,

@@ -125,6 +125,19 @@ dashboard data by that membership's `organizationId`. There is no organization
 switcher yet. Requests from another organization return a generic not-found
 state, and Agent API keys cannot access `/app`.
 
+The dashboard header is session-aware. In demo mode it shows the demo reviewer,
+demo role, dry-run status, and an `Exit demo` control that clears only the demo
+access cookie. In session mode it shows the authenticated user email/name,
+active organization, role, permission summary, and a `Sign out` control that
+uses Better Auth's sign-out endpoint. Demo exit and Better Auth sign-out remain
+separate paths.
+
+The refund detail page hides or disables sensitive review and execution buttons
+based on the resolved role permissions. `VIEWER` users see read-only messaging;
+`OWNER`, `ADMIN`, and `REVIEWER` can see eligible approve, reject, and dry-run
+execution controls when the request state allows it. This is only a UX layer:
+server-side RBAC on approve, reject, and execute remains the source of truth.
+
 Current planned roles are `OWNER`, `ADMIN`, `REVIEWER`, and `VIEWER`. The
 initial helper map treats owners as full organization admins, admins as refund
 control managers, reviewers as approval/execution reviewers, and viewers as

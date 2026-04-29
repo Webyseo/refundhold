@@ -30,6 +30,10 @@ describe("app access context", () => {
     expect(result.ok).toBe(true);
     expect(result.ok ? result.context : null).toMatchObject({
       source: "demo",
+      mode: "demo",
+      authEnabled: false,
+      authRequired: false,
+      displayName: "Demo Reviewer",
       organizationId: "org_demo",
       domainUserId: "user_demo",
       role: "REVIEWER",
@@ -93,6 +97,9 @@ describe("app access context", () => {
       expect(result.ok).toBe(true);
       expect(result.ok ? result.context : null).toMatchObject({
         source: "session",
+        mode: "session",
+        authEnabled: true,
+        authRequired: true,
         organizationId: "org_session",
         domainUserId: "user_session",
         role,
