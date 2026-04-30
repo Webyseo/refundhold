@@ -22,6 +22,7 @@ describe("prevent bypass docs page", () => {
     expect(html).toContain("The API reference documents the current execution model, decision values, and retry limits for pilots.");
     expect(html).toContain("Live refunds are blocked in v1.");
     expect(html).toContain("href=\"/docs/api\"");
+    expect(html).toContain("href=\"/docs/pilot-acceptance\"");
     expect(html).toContain("href=\"/docs/test-mode-pilot\"");
     expect(html).toContain("href=\"/docs/stripe-test-mode\"");
     expect(html).toContain("href=\"/demo/reviewer\"");

@@ -9,6 +9,7 @@ describe("quickstart page", () => {
 
     expect(html).toContain("5-minute setup");
     expect(html).toContain("href=\"/docs/api\"");
+    expect(html).toContain("href=\"/docs/pilot-acceptance\"");
     expect(html).toContain("href=\"/docs/test-mode-pilot\"");
     expect(html).toContain("full request and response examples, expected errors, idempotency limits, and agent behavior guidance");
     expect(html).toContain("href=\"/docs/stripe-test-mode\"");

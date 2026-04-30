@@ -458,6 +458,9 @@ export default function TestModePilotPage() {
 
             <DocsSection title="Related docs">
               <div className="grid gap-3 sm:grid-cols-2">
+                <CtaLink href="/docs/pilot-acceptance">
+                  Pilot acceptance contract
+                </CtaLink>
                 <CtaLink href="/docs/api">API reference</CtaLink>
                 <CtaLink href="/docs/stripe-test-mode">
                   Stripe test-mode setup
@@ -477,6 +480,9 @@ export default function TestModePilotPage() {
               Pilot contract
             </h2>
             <div className="mt-5 flex flex-col gap-3">
+              <CtaLink href="/docs/pilot-acceptance">
+                Pilot acceptance contract
+              </CtaLink>
               <CtaLink href="/docs/api">API reference</CtaLink>
               <CtaLink href="/docs/stripe-test-mode">
                 Stripe test-mode setup
