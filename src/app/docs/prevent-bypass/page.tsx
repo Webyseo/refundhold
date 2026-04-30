@@ -219,6 +219,10 @@ export default function PreventBypassPage() {
                   objects are used.
                 </p>
                 <p>
+                  The API reference documents the current execution model,
+                  decision values, and retry limits for pilots.
+                </p>
+                <p>
                   For live-money production, require{" "}
                   {productionRequirements.join(", ")}.
                 </p>

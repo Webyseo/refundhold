@@ -217,6 +217,10 @@ export default function StripeTestModePage() {
                 <p>
                   Do not use live Stripe object IDs or live Stripe keys.
                 </p>
+                <p>
+                  For the public API contract and execution model, read the API
+                  reference before testing execution paths.
+                </p>
               </div>
               <CommandBlock value={testModeCurl} />
             </RunbookSection>

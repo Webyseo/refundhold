@@ -19,6 +19,7 @@ describe("prevent bypass docs page", () => {
     );
     expect(html).toContain("trusted execution boundary");
     expect(html).toContain("approval boundary");
+    expect(html).toContain("The API reference documents the current execution model, decision values, and retry limits for pilots.");
     expect(html).toContain("Live refunds are blocked in v1.");
     expect(html).toContain("href=\"/docs/api\"");
     expect(html).toContain("href=\"/docs/stripe-test-mode\"");

@@ -1,147 +1,206 @@
 import Link from "next/link";
 
-type RefundStatus =
-  | "Waiting for review"
-  | "Approved"
-  | "Rejected"
-  | "Executed"
-  | "Blocked"
-  | "Needs attention";
-
-type PolicyResult =
-  | "Allowed by policy"
-  | "Human approval required"
-  | "Blocked by policy";
-
-type RiskLevel = "Low" | "Medium" | "High" | "Attention";
-
+type RefundStatus = "Needs review" | "Approved" | "Rejected" | "Executed" | "Blocked";
+type PolicyResult = "Allowed by policy" | "Human approval required" | "Blocked by policy";
+type RiskLevel = "Low" | "Medium" | "High";
+type Priority = "Low" | "Medium" | "High";
 type StripeMode = "Demo simulation" | "Stripe test-mode";
 
 type DemoRefund = {
   id: string;
+  time: string;
   amount: string;
   customer: string;
   status: RefundStatus;
   policy: PolicyResult;
   risk: RiskLevel;
   stripeMode: StripeMode;
-  outcome: string;
-  reason: string;
+  owner: string;
+  sla: string;
+  priority: Priority;
+  nextAction: string;
+  context: string;
 };
+
+const summaryCards = [
+  ["Needs review", "2"],
+  ["Approved today", "2"],
+  ["Blocked by policy", "1"],
+  ["Demo/test executions recorded", "2"],
+];
+
+const filterLabels = ["Needs review", "Approved", "Rejected", "Executed", "Blocked"];
 
 const demoRefunds: DemoRefund[] = [
   {
     id: "demo-refund-420",
+    time: "09:03",
     amount: "$420.00 USD",
-    customer: "customer-042@example.test",
-    status: "Waiting for review",
+    customer: "billing-upgrade@example.test",
+    status: "Needs review",
     policy: "Human approval required",
     risk: "Medium",
     stripeMode: "Demo simulation",
-    outcome: "Reviewer decision needed",
-    reason: "Possible duplicate billing",
+    owner: "Finance reviewer",
+    sla: "Due in 12 min",
+    priority: "High",
+    nextAction: "Review duplicate billing claim",
+    context: "Possible duplicate charge after plan upgrade",
+  },
+  {
+    id: "demo-refund-064",
+    time: "09:07",
+    amount: "$64.00 USD",
+    customer: "delivery-case@example.test",
+    status: "Needs review",
+    policy: "Human approval required",
+    risk: "Medium",
+    stripeMode: "Demo simulation",
+    owner: "Ops reviewer",
+    sla: "Waiting 4 min",
+    priority: "Medium",
+    nextAction: "Check delivery evidence",
+    context: "Late delivery refund request",
   },
   {
     id: "demo-refund-100",
+    time: "09:11",
     amount: "$100.00 USD",
-    customer: "customer-100@example.test",
+    customer: "damaged-item@example.test",
     status: "Approved",
     policy: "Human approval required",
     risk: "Medium",
     stripeMode: "Stripe test-mode",
-    outcome: "Approved after damaged item evidence",
-    reason: "Damaged item evidence",
+    owner: "Finance reviewer",
+    sla: "Reviewed 9 min ago",
+    priority: "Medium",
+    nextAction: "Approved for controlled test-mode path",
+    context: "Damaged item evidence attached",
   },
   {
-    id: "demo-refund-275",
-    amount: "$275.00 USD",
-    customer: "customer-275@example.test",
-    status: "Rejected",
+    id: "demo-refund-210",
+    time: "09:18",
+    amount: "$210.00 USD",
+    customer: "subscription-credit@example.test",
+    status: "Approved",
     policy: "Human approval required",
     risk: "Medium",
     stripeMode: "Demo simulation",
-    outcome: "AI reason incomplete",
-    reason: "AI reason incomplete",
+    owner: "Support lead",
+    sla: "Reviewed 16 min ago",
+    priority: "Medium",
+    nextAction: "Demo approval recorded",
+    context: "Unused annual plan credit",
   },
   {
     id: "demo-refund-035",
+    time: "09:24",
     amount: "$35.00 USD",
-    customer: "customer-035@example.test",
+    customer: "small-refund@example.test",
     status: "Executed",
     policy: "Allowed by policy",
     risk: "Low",
     stripeMode: "Demo simulation",
-    outcome: "Demo execution recorded",
-    reason: "Allowed by low-value policy",
+    owner: "Support lead",
+    sla: "Completed 21 min ago",
+    priority: "Low",
+    nextAction: "Demo execution evidence recorded",
+    context: "Allowed by low-value policy",
+  },
+  {
+    id: "demo-refund-048",
+    time: "09:27",
+    amount: "$48.00 USD",
+    customer: "test-object@example.test",
+    status: "Executed",
+    policy: "Allowed by policy",
+    risk: "Low",
+    stripeMode: "Stripe test-mode",
+    owner: "Ops reviewer",
+    sla: "Completed 24 min ago",
+    priority: "Low",
+    nextAction: "Test execution evidence recorded",
+    context: "Stripe test object validation",
+  },
+  {
+    id: "demo-refund-275",
+    time: "09:31",
+    amount: "$275.00 USD",
+    customer: "unclear-request@example.test",
+    status: "Rejected",
+    policy: "Human approval required",
+    risk: "Medium",
+    stripeMode: "Demo simulation",
+    owner: "Finance reviewer",
+    sla: "Reviewed 29 min ago",
+    priority: "Medium",
+    nextAction: "AI support agent should escalate",
+    context: "Customer reason did not match order evidence",
   },
   {
     id: "demo-refund-850",
+    time: "09:36",
     amount: "$850.00 USD",
-    customer: "customer-850@example.test",
+    customer: "high-value-refund@example.test",
     status: "Blocked",
     policy: "Blocked by policy",
     risk: "High",
     stripeMode: "Demo simulation",
-    outcome: "Above policy limit",
-    reason: "Above policy limit",
-  },
-  {
-    id: "demo-refund-120",
-    amount: "$120.00 USD",
-    customer: "customer-120@example.test",
-    status: "Needs attention",
-    policy: "Human approval required",
-    risk: "Attention",
-    stripeMode: "Stripe test-mode",
-    outcome: "Missing Stripe test object or webhook pending",
-    reason: "Missing Stripe test object",
-  },
-  {
-    id: "demo-refund-064",
-    amount: "$64.00 USD",
-    customer: "customer-064@example.test",
-    status: "Waiting for review",
-    policy: "Human approval required",
-    risk: "Medium",
-    stripeMode: "Demo simulation",
-    outcome: "Reviewer should check order notes",
-    reason: "Late delivery refund request",
+    owner: "Finance reviewer",
+    sla: "Blocked at policy check",
+    priority: "High",
+    nextAction: "Escalate outside automatic refund path",
+    context: "Above demo policy limit",
   },
 ];
 
-const refundSummary = [
-  ["Amount", "$420.00 USD"],
-  ["Customer", "customer-042@example.test"],
-  ["Requested by", "AI support agent"],
+const reviewerFields = [
+  ["AI reason", "Possible duplicate billing after plan upgrade"],
+  [
+    "Customer claim snippet",
+    "Customer says they were charged twice after upgrading their plan and asks for a refund before the next billing cycle.",
+  ],
+  ["Order/payment context", "Subscription upgrade processed during active billing cycle"],
+  ["Policy matched", "$50-$500 -> human approval required"],
+  ["Refund amount", "$420.00 USD"],
   ["Stripe mode", "Demo simulation"],
-  ["Current status", "Waiting for review"],
+  ["Live mode", "No"],
+  ["Order ID", "order_demo_420"],
+  ["Payment reference", "pi_test_demo_420"],
+  ["Refundable amount", "$420.00 USD"],
+  ["Previous refunds", "None in last 90 days"],
+  ["Reviewer queue", "Finance reviewer"],
+  ["SLA", "Due in 12 min"],
 ];
 
 const evidenceItems = [
   ["Request ID", "demo-refund-420"],
-  ["Actor", "AI support agent"],
   ["Policy version", "demo-policy-v1"],
-  ["Matched rule", "medium-refund-review"],
-  ["Idempotency", "demo-refund-420-proposal"],
-  ["livemode", "false"],
-  ["Webhook status", "not required for demo simulation"],
+  ["Owner", "Finance reviewer"],
+  ["Priority", "High"],
+  ["Live mode", "No"],
+  ["Idempotency key", "demo-refund-420-proposal"],
+  ["Webhook status", "Not required for demo simulation"],
 ];
 
 const auditTrail = [
-  ["09:00", "Refund proposal received from AI support agent"],
-  ["09:00", "RefundHold evaluated policy"],
-  ["09:00", "Human approval requested"],
-  ["Pending", "Reviewer decision needed"],
+  ["09:03", "AI support agent submitted refund proposal"],
+  ["09:03", "RefundHold evaluated policy demo-policy-v1"],
+  ["09:03", "RefundHold held refund for human approval"],
+  ["Pending", "Finance reviewer decision needed before execution"],
 ];
 
-const integrationSteps = [
-  "Your AI support agent sends the refund proposal to RefundHold.",
-  "RefundHold returns allowed, needs review, or blocked.",
-  "If the refund needs review, the agent tells the customer the refund is waiting for human review.",
-  "A reviewer approves or rejects in RefundHold.",
-  "In demo simulation, no Stripe call is made.",
-  "In Stripe test-mode, only Stripe test objects are used.",
-  "Live refunds are blocked in v1.",
+const approveConsequences = [
+  "RefundHold records the reviewer decision.",
+  "Demo simulation records execution evidence without calling Stripe.",
+  "Stripe test-mode pilots use test objects only.",
+  "Live refunds remain blocked in v1.",
+];
+
+const rejectConsequences = [
+  "RefundHold records the rejection.",
+  "The refund cannot continue automatically.",
+  "The AI support agent should not retry or call Stripe directly.",
 ];
 
 export default function ReviewerDemoPage() {
@@ -156,8 +215,8 @@ export default function ReviewerDemoPage() {
             Reviewer dashboard demo
           </h1>
           <p className="mt-6 max-w-3xl text-lg leading-8 text-zinc-300">
-            See how a human reviews AI-generated Stripe refunds before they
-            continue. Demo data only. No real Stripe money moves.
+            A read-only operational inbox for reviewing AI-generated Stripe
+            refund requests before anything can continue toward Stripe.
           </p>
         </div>
 
@@ -171,14 +230,26 @@ export default function ReviewerDemoPage() {
                 Read-only demo
               </h2>
               <p className="mt-2 text-sm leading-6 text-zinc-200">
-                No login required. No Stripe calls. No real money moves. Live
-                refunds are blocked in v1.
+                No login required. No Stripe calls. No database read. No real
+                money moves. Live refunds are blocked in v1.
               </p>
             </div>
             <p className="w-fit rounded-full border border-emerald-200/40 bg-zinc-950/60 px-3 py-1 text-sm font-semibold text-emerald-100">
-              Public static demo data
+              Static curated fake data
             </p>
           </div>
+        </section>
+
+        <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Operational summary">
+          {summaryCards.map(([label, value]) => (
+            <article
+              className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4"
+              key={label}
+            >
+              <p className="text-sm font-medium text-zinc-300">{label}</p>
+              <p className="mt-2 text-3xl font-semibold text-zinc-50">{value}</p>
+            </article>
+          ))}
         </section>
 
         <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(420px,0.95fr)] xl:items-start">
@@ -194,8 +265,61 @@ export default function ReviewerDemoPage() {
                   </h2>
                 </div>
                 <p className="text-sm font-medium text-zinc-300">
-                  {demoRefunds.length} demo requests
+                  {demoRefunds.length} static demo requests
                 </p>
+              </div>
+
+              <div className="mt-5 rounded-md border border-zinc-800 bg-zinc-950/60 p-4">
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-zinc-300">
+                      Filter
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2" aria-label="Static demo filters">
+                      {filterLabels.map((label) => (
+                        <button
+                          aria-disabled="true"
+                          className="rounded-full border border-zinc-700 px-3 py-1.5 text-sm font-semibold text-zinc-200"
+                          key={label}
+                          type="button"
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
+                    <label className="block">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-zinc-300">
+                        Search
+                      </span>
+                      <input
+                        aria-label="Search customer, refund, or policy"
+                        className="mt-2 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-400"
+                        disabled
+                        placeholder="Search customer, refund, or policy"
+                        type="search"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-zinc-300">
+                        Sort
+                      </span>
+                      <select
+                        aria-label="Sort queue"
+                        className="mt-2 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm font-semibold text-zinc-200"
+                        disabled
+                        value="highest-risk"
+                      >
+                        <option value="highest-risk">Highest risk first</option>
+                      </select>
+                    </label>
+                  </div>
+                  <p className="text-xs leading-5 text-zinc-400">
+                    Demo view: controls are visual only and do not change the
+                    static queue.
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -216,30 +340,50 @@ export default function ReviewerDemoPage() {
                   <h2 className="mt-2 text-2xl font-semibold text-zinc-50">
                     $420.00 refund request
                   </h2>
+                  <p className="mt-2 text-sm font-medium text-zinc-300">
+                    billing-upgrade@example.test · Due in 12 min
+                  </p>
                 </div>
-                <StatusBadge status="Waiting for review" />
+                <StatusBadge status="Needs review" />
               </div>
 
-              <DetailSection title="What the AI agent says">
+              <DetailSection title="Why this needs review">
                 <p className="text-sm leading-6 text-zinc-300">
-                  The customer reports a possible duplicate charge and asks for
-                  a refund. The AI support agent recommends a $420.00 refund,
-                  but the amount falls inside the manual review range.
+                  RefundHold held this refund because the amount falls inside
+                  the manual review range and the AI support agent reported a
+                  possible duplicate billing claim.
                 </p>
               </DetailSection>
 
-              <DetailSection title="Refund summary">
-                <DefinitionGrid items={refundSummary} />
+              <DetailSection title="What the reviewer sees">
+                <DefinitionGrid items={reviewerFields} />
               </DetailSection>
 
-              <DetailSection title="Policy matched">
-                <div className="rounded-md border border-amber-300/30 bg-amber-300/10 p-4">
-                  <p className="text-base font-semibold text-amber-100">
-                    $50-$500 -&gt; human approval required
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-zinc-200">
-                    Result: Refund held for human review
-                  </p>
+              <DetailSection title="What happens next">
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <ConsequenceCard
+                    items={approveConsequences}
+                    title="If approved"
+                  />
+                  <ConsequenceCard items={rejectConsequences} title="If rejected" />
+                </div>
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                  <button
+                    aria-disabled="true"
+                    className="inline-flex cursor-not-allowed items-center justify-center rounded-md border border-emerald-300/40 bg-emerald-300/10 px-4 py-2.5 text-sm font-semibold text-emerald-100"
+                    disabled
+                    type="button"
+                  >
+                    Approve refund (demo)
+                  </button>
+                  <button
+                    aria-disabled="true"
+                    className="inline-flex cursor-not-allowed items-center justify-center rounded-md border border-red-300/40 bg-red-300/10 px-4 py-2.5 text-sm font-semibold text-red-100"
+                    disabled
+                    type="button"
+                  >
+                    Reject refund (demo)
+                  </button>
                 </div>
               </DetailSection>
 
@@ -250,8 +394,11 @@ export default function ReviewerDemoPage() {
               <DetailSection title="Audit trail">
                 <ol className="space-y-3">
                   {auditTrail.map(([time, event]) => (
-                    <li className="flex gap-3 text-sm text-zinc-300" key={event}>
-                      <span className="min-w-16 shrink-0 rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1 text-center text-xs font-semibold text-zinc-100">
+                    <li
+                      className="grid gap-3 text-sm text-zinc-300 sm:grid-cols-[5rem_minmax(0,1fr)]"
+                      key={`${time}-${event}`}
+                    >
+                      <span className="w-fit rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1 text-center text-xs font-semibold text-zinc-100">
                         {time}
                       </span>
                       <span className="pt-1">{event}</span>
@@ -261,48 +408,19 @@ export default function ReviewerDemoPage() {
               </DetailSection>
             </section>
 
-            <section className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-5">
-              <h2 className="text-xl font-semibold text-zinc-50">
-                How this maps to a real integration
-              </h2>
-              <ul className="mt-5 space-y-3">
-                {integrationSteps.map((step) => (
-                  <li className="flex gap-3 text-sm leading-6 text-zinc-300" key={step}>
-                    <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-emerald-300" />
-                    <span>{step}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-
             <nav
               className="grid gap-3 sm:grid-cols-2"
               aria-label="Reviewer demo next steps"
             >
-              <Link
-                className="inline-flex items-center justify-center rounded-md bg-emerald-300 px-4 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200"
-                href="/demo"
-              >
+              <CtaLink href="/demo" primary>
                 Try public demo
-              </Link>
-              <Link
-                className="inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-3 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900"
-                href="/docs/api"
-              >
-                Read API docs
-              </Link>
-              <Link
-                className="inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-3 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900"
-                href="/docs/quickstart"
-              >
-                Read quickstart
-              </Link>
-              <Link
-                className="inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-3 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900"
-                href="/contact"
-              >
-                Contact for test-mode pilot
-              </Link>
+              </CtaLink>
+              <CtaLink href="/docs/api">Read API docs</CtaLink>
+              <CtaLink href="/docs/stripe-test-mode">
+                Read Stripe test-mode setup
+              </CtaLink>
+              <CtaLink href="/docs/prevent-bypass">Read bypass prevention</CtaLink>
+              <CtaLink href="/contact">Contact for pilot</CtaLink>
             </nav>
           </div>
         </div>
@@ -314,7 +432,17 @@ export default function ReviewerDemoPage() {
 function RefundQueueItem({ refund }: { refund: DemoRefund }) {
   return (
     <article className="p-5 transition hover:bg-zinc-900">
-      <div className="grid gap-4 lg:grid-cols-[minmax(9rem,0.7fr)_minmax(0,1fr)_minmax(10rem,0.8fr)] lg:items-start">
+      <div className="grid gap-4 lg:grid-cols-[7rem_minmax(9rem,0.8fr)_minmax(0,1fr)_minmax(12rem,0.9fr)] lg:items-start">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-300">
+            Time
+          </p>
+          <p className="mt-1 text-lg font-semibold text-zinc-50">{refund.time}</p>
+          <p className="mt-2 text-xs font-semibold text-zinc-300">
+            {refund.sla}
+          </p>
+        </div>
+
         <div>
           <p className="text-2xl font-semibold tracking-tight text-zinc-50">
             {refund.amount}
@@ -322,13 +450,16 @@ function RefundQueueItem({ refund }: { refund: DemoRefund }) {
           <p className="mt-2 text-sm font-medium text-zinc-300">
             {refund.customer}
           </p>
+          <p className="mt-2 text-xs font-semibold text-zinc-300">{refund.id}</p>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <QueueField label="Status" value={<StatusBadge status={refund.status} />} />
+          <QueueField label="Main status" value={<StatusBadge status={refund.status} />} />
           <QueueField label="Policy result" value={refund.policy} />
           <QueueField label="Risk" value={`${refund.risk} risk`} />
           <QueueField label="Stripe mode" value={refund.stripeMode} />
+          <QueueField label="Owner" value={refund.owner} />
+          <QueueField label="Priority" value={refund.priority} />
         </div>
 
         <div className="rounded-md border border-zinc-800 bg-zinc-950/70 p-3">
@@ -336,9 +467,9 @@ function RefundQueueItem({ refund }: { refund: DemoRefund }) {
             Next action or outcome
           </p>
           <p className="mt-2 text-sm font-semibold text-zinc-50">
-            {refund.outcome}
+            {refund.nextAction}
           </p>
-          <p className="mt-2 text-xs leading-5 text-zinc-300">{refund.reason}</p>
+          <p className="mt-2 text-xs leading-5 text-zinc-300">{refund.context}</p>
         </div>
       </div>
     </article>
@@ -364,12 +495,11 @@ function QueueField({
 
 function StatusBadge({ status }: { status: RefundStatus }) {
   const styles: Record<RefundStatus, string> = {
-    "Waiting for review": "border-amber-300/40 bg-amber-300/10 text-amber-100",
+    "Needs review": "border-amber-300/40 bg-amber-300/10 text-amber-100",
     Approved: "border-emerald-300/40 bg-emerald-300/10 text-emerald-100",
     Rejected: "border-red-300/40 bg-red-300/10 text-red-100",
     Executed: "border-sky-300/40 bg-sky-300/10 text-sky-100",
     Blocked: "border-red-300/40 bg-red-300/10 text-red-100",
-    "Needs attention": "border-fuchsia-300/40 bg-fuchsia-300/10 text-fuchsia-100",
   };
 
   return (
@@ -400,7 +530,10 @@ function DefinitionGrid({ items }: { items: string[][] }) {
   return (
     <dl className="grid gap-3 sm:grid-cols-2">
       {items.map(([label, value]) => (
-        <div className="rounded-md border border-zinc-800 bg-zinc-950/70 p-3" key={label}>
+        <div
+          className="rounded-md border border-zinc-800 bg-zinc-950/70 p-3"
+          key={label}
+        >
           <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-300">
             {label}
           </dt>
@@ -408,5 +541,41 @@ function DefinitionGrid({ items }: { items: string[][] }) {
         </div>
       ))}
     </dl>
+  );
+}
+
+function ConsequenceCard({ items, title }: { items: string[]; title: string }) {
+  return (
+    <section className="rounded-md border border-zinc-800 bg-zinc-950/70 p-4">
+      <h4 className="text-sm font-semibold text-zinc-50">{title}</h4>
+      <ul className="mt-3 space-y-2">
+        {items.map((item) => (
+          <li className="flex gap-2 text-sm leading-6 text-zinc-300" key={item}>
+            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-300" />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function CtaLink({
+  children,
+  href,
+  primary = false,
+}: {
+  children: React.ReactNode;
+  href: string;
+  primary?: boolean;
+}) {
+  const className = primary
+    ? "inline-flex items-center justify-center rounded-md bg-emerald-300 px-4 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200"
+    : "inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-3 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900";
+
+  return (
+    <Link className={className} href={href}>
+      {children}
+    </Link>
   );
 }

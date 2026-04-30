@@ -38,7 +38,7 @@ const localCommands = [
 const nextSteps = [
   "Onboarding flow for first held refund",
   "Stripe test-mode setup",
-  "Short public API reference",
+  "Pilot-ready API reference",
 ];
 
 const demoKeyItems = [
@@ -213,6 +213,17 @@ export default function QuickstartPage() {
               The public endpoint returns refund_request_id and links reviewers
               to /app/refund-requests.
             </p>
+            <p className="mt-3 text-sm leading-6 text-zinc-400">
+              For full request and response examples, expected errors,
+              idempotency limits, and agent behavior guidance, read the API
+              reference.
+            </p>
+            <Link
+              className="mt-5 inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2.5 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900"
+              href="/docs/api"
+            >
+              Read API reference
+            </Link>
           </QuickstartSection>
 
           <QuickstartSection title="Prepare Stripe test-mode">

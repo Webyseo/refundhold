@@ -21,6 +21,7 @@ describe("Stripe test-mode setup page", () => {
     expect(html).toContain("resource");
     expect(html).toContain("stripe.payment_intent");
     expect(html).toContain("Do not use live Stripe object IDs or live Stripe keys.");
+    expect(html).toContain("For the public API contract and execution model, read the API reference before testing execution paths.");
     expect(html).toContain("Live Stripe key is not configured.");
     expect(html).toContain("href=\"/docs/api\"");
     expect(html).toContain("href=\"/demo/reviewer\"");

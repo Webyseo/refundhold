@@ -8,6 +8,8 @@ describe("quickstart page", () => {
     const html = renderToStaticMarkup(<QuickstartPage />);
 
     expect(html).toContain("5-minute setup");
+    expect(html).toContain("href=\"/docs/api\"");
+    expect(html).toContain("full request and response examples, expected errors, idempotency limits, and agent behavior guidance");
     expect(html).toContain("href=\"/docs/stripe-test-mode\"");
     expect(html).toContain("href=\"/docs/prevent-bypass\"");
     expect(html).toContain("Stripe test-mode setup");

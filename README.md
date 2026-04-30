@@ -84,6 +84,7 @@ Decision endpoints:
 - Stripe test-mode uses test objects only.
 - Live refunds are blocked in v1.
 
+For the pilot-ready API reference, see `/docs/api`.
 For a controlled technical pilot, see `/docs/stripe-test-mode`.
 For bypass-prevention architecture, see `/docs/prevent-bypass`.
 
