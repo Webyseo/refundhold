@@ -27,6 +27,7 @@ describe("pilot acceptance contract page", () => {
     expect(html).toContain("No-go if");
     expect(html).toContain("Evidence required in the pilot");
     expect(html).toContain("live refunds are blocked");
+    expect(html).toContain("href=\"/docs/test-mode-runbook\"");
     expect(html).toContain("href=\"/docs/test-mode-pilot\"");
     expect(html).toContain("href=\"/docs/api\"");
     expect(html).toContain("href=\"/docs/stripe-test-mode\"");

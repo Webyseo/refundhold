@@ -25,6 +25,7 @@ describe("test-mode pilot contract page", () => {
     expect(html).toContain("refund_request.rejected");
     expect(html).toContain("refund_request.executed");
     expect(html).toContain("refund_request.failed");
+    expect(html).toContain("href=\"/docs/test-mode-runbook\"");
     expect(html).toContain("href=\"/docs/api\"");
     expect(html).toContain("href=\"/docs/pilot-acceptance\"");
     expect(html).toContain("href=\"/docs/stripe-test-mode\"");

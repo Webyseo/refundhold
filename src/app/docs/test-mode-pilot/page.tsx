@@ -458,6 +458,9 @@ export default function TestModePilotPage() {
 
             <DocsSection title="Related docs">
               <div className="grid gap-3 sm:grid-cols-2">
+                <CtaLink href="/docs/test-mode-runbook">
+                  Exact test-mode runbook
+                </CtaLink>
                 <CtaLink href="/docs/pilot-acceptance">
                   Pilot acceptance contract
                 </CtaLink>
@@ -480,6 +483,9 @@ export default function TestModePilotPage() {
               Pilot contract
             </h2>
             <div className="mt-5 flex flex-col gap-3">
+              <CtaLink href="/docs/test-mode-runbook">
+                Exact test-mode runbook
+              </CtaLink>
               <CtaLink href="/docs/pilot-acceptance">
                 Pilot acceptance contract
               </CtaLink>

@@ -247,6 +247,12 @@ export default function QuickstartPage() {
             </p>
             <Link
               className="mt-5 inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2.5 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900"
+              href="/docs/test-mode-runbook"
+            >
+              Exact test-mode runbook
+            </Link>
+            <Link
+              className="ml-0 mt-3 inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2.5 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900 sm:ml-3"
               href="/docs/stripe-test-mode"
             >
               Stripe test-mode setup

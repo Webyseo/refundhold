@@ -12,6 +12,7 @@ describe("api docs page", () => {
     expect(html).toContain("allowed, needs_review, or blocked");
     expect(html).toContain("Live refunds are blocked in v1.");
     expect(html).toContain("href=\"/demo/reviewer\"");
+    expect(html).toContain("href=\"/docs/test-mode-runbook\"");
     expect(html).toContain("href=\"/docs/pilot-acceptance\"");
     expect(html).toContain("href=\"/docs/test-mode-pilot\"");
     expect(html).toContain("href=\"/docs/stripe-test-mode\"");
@@ -42,6 +43,7 @@ describe("api docs page", () => {
     expect(html).toContain("POST /api/v1/refund-requests/[id]/reject");
     expect(html).toContain("POST /api/v1/refund-requests/[id]/execute");
     expect(html).toContain("href=\"/docs/quickstart\"");
+    expect(html).toContain("href=\"/docs/test-mode-runbook\"");
     expect(html).toContain("href=\"/docs/test-mode-pilot\"");
     expect(html).toContain("href=\"/contact\"");
   });

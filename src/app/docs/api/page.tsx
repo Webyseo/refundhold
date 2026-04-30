@@ -376,6 +376,9 @@ export default function ApiDocsPage() {
               Related docs
             </h2>
             <div className="mt-5 flex flex-col gap-3">
+              <CtaLink href="/docs/test-mode-runbook">
+                Exact test-mode runbook
+              </CtaLink>
               <CtaLink href="/docs/pilot-acceptance">
                 Pilot acceptance contract
               </CtaLink>

@@ -301,6 +301,9 @@ export default function PilotAcceptancePage() {
 
             <DocsSection title="Related docs">
               <div className="grid gap-3 sm:grid-cols-2">
+                <CtaLink href="/docs/test-mode-runbook">
+                  Exact test-mode runbook
+                </CtaLink>
                 <CtaLink href="/docs/test-mode-pilot">
                   Test-mode pilot contract
                 </CtaLink>
@@ -328,6 +331,9 @@ export default function PilotAcceptancePage() {
               what must remain out of scope.
             </p>
             <div className="mt-5 flex flex-col gap-3">
+              <CtaLink href="/docs/test-mode-runbook">
+                Exact test-mode runbook
+              </CtaLink>
               <CtaLink href="/docs/test-mode-pilot">
                 Test-mode pilot contract
               </CtaLink>
