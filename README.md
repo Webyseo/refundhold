@@ -85,6 +85,7 @@ Decision endpoints:
 - Live refunds are blocked in v1.
 
 For the pilot-ready API reference, see `/docs/api`.
+For the controlled test-mode pilot contract, see `/docs/test-mode-pilot`.
 For a controlled technical pilot, see `/docs/stripe-test-mode`.
 For bypass-prevention architecture, see `/docs/prevent-bypass`.
 

@@ -268,6 +268,9 @@ export default function StripeTestModePage() {
               Next actions
             </h2>
             <div className="mt-5 flex flex-col gap-3">
+              <CtaLink href="/docs/test-mode-pilot">
+                Read test-mode pilot contract
+              </CtaLink>
               <CtaLink href="/docs/api">Read API reference</CtaLink>
               <CtaLink href="/docs/prevent-bypass">
                 Read bypass prevention
