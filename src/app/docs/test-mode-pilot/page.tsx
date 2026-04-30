@@ -1,5 +1,8 @@
 import Link from "next/link";
 
+import { PublicHeader } from "../../public-header";
+import { DocsNavigation } from "../docs-navigation";
+
 const coverageItems = [
   "This contract is for controlled Stripe test-mode pilots.",
   "It covers the pilot flow from refund proposal to review, approval or rejection, execution recording, and audit trail.",
@@ -300,8 +303,9 @@ const notProvenItems = [
 
 export default function TestModePilotPage() {
   return (
-    <main className="min-h-screen bg-zinc-950 px-6 py-12 text-zinc-50">
-      <section className="mx-auto max-w-6xl">
+    <main className="docs-page min-h-screen overflow-x-clip bg-zinc-950 text-zinc-50">
+      <PublicHeader />
+      <section className="mx-auto max-w-6xl px-6 py-12">
         <div className="max-w-4xl">
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">
             RefundHold docs
@@ -327,6 +331,8 @@ export default function TestModePilotPage() {
             refund execution.
           </p>
         </div>
+
+        <DocsNavigation currentPath="/docs/test-mode-pilot" />
 
         <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="space-y-5">

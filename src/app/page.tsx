@@ -4,6 +4,7 @@ import {
   ActivationEventLink,
   ActivationEventView,
 } from "./activation-event-client";
+import { PublicHeader } from "./public-header";
 
 export default function Home() {
   const steps = [
@@ -31,14 +32,15 @@ export default function Home() {
   ];
 
   return (
-    <main className="min-h-screen bg-zinc-950 px-6 py-16 text-zinc-50">
+    <main className="min-h-screen overflow-x-clip bg-zinc-950 text-zinc-50">
       <ActivationEventView
         eventName="landing_viewed"
         metadata={{
           route: "/",
         }}
       />
-      <section className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-5xl flex-col justify-center">
+      <PublicHeader />
+      <section className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-5xl flex-col justify-center px-6 py-16">
         <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">
           RefundHold
         </p>
@@ -64,19 +66,19 @@ export default function Home() {
             Try the refund demo
           </ActivationEventLink>
           <Link
-            className="inline-flex items-center justify-center rounded-md border border-zinc-700 px-5 py-3 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900"
+            className="inline-flex items-center justify-center rounded-md border border-zinc-700 px-5 py-3 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
             href="/docs/quickstart"
           >
             View 5-minute setup
           </Link>
           <Link
-            className="inline-flex items-center justify-center rounded-md border border-zinc-800 px-5 py-3 text-sm font-semibold text-zinc-300 transition hover:border-zinc-600 hover:bg-zinc-900 hover:text-zinc-50"
+            className="inline-flex items-center justify-center rounded-md border border-zinc-800 px-5 py-3 text-sm font-semibold text-zinc-300 transition hover:border-zinc-600 hover:bg-zinc-900 hover:text-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
             href="/contact"
           >
             Contact
           </Link>
           <Link
-            className="inline-flex items-center justify-center rounded-md border border-zinc-800 px-5 py-3 text-sm font-semibold text-zinc-300 transition hover:border-zinc-600 hover:bg-zinc-900 hover:text-zinc-50"
+            className="inline-flex items-center justify-center rounded-md border border-zinc-800 px-5 py-3 text-sm font-semibold text-zinc-300 transition hover:border-zinc-600 hover:bg-zinc-900 hover:text-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
             href="/security"
           >
             Security
@@ -92,10 +94,10 @@ export default function Home() {
           View reviewer dashboard demo
         </Link>
         <nav className="mt-4 flex flex-wrap gap-4 text-sm font-medium text-zinc-500">
-          <Link className="hover:text-zinc-200" href="/privacy">
+          <Link className="text-zinc-400 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950" href="/privacy">
             Privacy
           </Link>
-          <Link className="hover:text-zinc-200" href="/terms">
+          <Link className="text-zinc-400 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950" href="/terms">
             Terms
           </Link>
         </nav>

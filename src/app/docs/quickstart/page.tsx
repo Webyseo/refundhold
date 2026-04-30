@@ -4,6 +4,8 @@ import {
   ActivationEventView,
   CopyCurlButton,
 } from "../../activation-event-client";
+import { PublicHeader } from "../../public-header";
+import { DocsNavigation } from "../docs-navigation";
 
 const testFlow = [
   "AI support agent proposes a refund",
@@ -62,14 +64,15 @@ const refundProposalCurl = `curl -X POST http://localhost:3000/api/v1/refund-req
 
 export default function QuickstartPage() {
   return (
-    <main className="min-h-screen bg-zinc-950 px-6 py-12 text-zinc-50">
+    <main className="docs-page min-h-screen overflow-x-clip bg-zinc-950 text-zinc-50">
       <ActivationEventView
         eventName="quickstart_viewed"
         metadata={{
           route: "/docs/quickstart",
         }}
       />
-      <section className="mx-auto max-w-5xl">
+      <PublicHeader />
+      <section className="mx-auto max-w-5xl px-6 py-12">
         <div className="max-w-3xl">
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">
             RefundHold quickstart
@@ -101,6 +104,8 @@ export default function QuickstartPage() {
             </Link>
           </div>
         </div>
+
+        <DocsNavigation currentPath="/docs/quickstart" />
 
         <div className="mt-14 grid gap-5 lg:grid-cols-2">
           <QuickstartSection title="What you will test">

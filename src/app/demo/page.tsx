@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { trackActivationEvent } from "../activation-event-client";
+import { PublicHeader } from "../public-header";
 
 type DemoStep = "proposal" | "policy" | "review" | "approved" | "rejected";
 
@@ -86,8 +87,9 @@ export default function DemoPage() {
   };
 
   return (
-    <main className="min-h-screen bg-zinc-950 px-6 py-12 text-zinc-50">
-      <section className="mx-auto grid min-h-[calc(100vh-6rem)] max-w-6xl gap-8 lg:grid-cols-[1fr_22rem] lg:items-center">
+    <main className="min-h-screen overflow-x-clip bg-zinc-950 text-zinc-50">
+      <PublicHeader />
+      <section className="mx-auto grid min-h-[calc(100vh-6rem)] max-w-6xl gap-8 px-6 py-12 lg:grid-cols-[1fr_22rem] lg:items-center">
         <div>
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">
             RefundHold demo
@@ -118,7 +120,9 @@ export default function DemoPage() {
               </p>
             </div>
 
-            <div className="mt-6">{renderDemoStep(step, actions)}</div>
+            <div aria-live="polite" className="mt-6" role="status">
+              {renderDemoStep(step, actions)}
+            </div>
           </div>
 
           {isFinalStep ? (

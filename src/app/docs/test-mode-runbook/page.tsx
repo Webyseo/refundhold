@@ -1,5 +1,8 @@
 import Link from "next/link";
 
+import { PublicHeader } from "../../public-header";
+import { DocsNavigation } from "../docs-navigation";
+
 const prerequisites = [
   "RefundHold controlled environment is available.",
   "You have a RefundHold demo agent API key.",
@@ -314,8 +317,9 @@ const errorExamples = [
 
 export default function TestModeRunbookPage() {
   return (
-    <main className="min-h-screen bg-zinc-950 px-6 py-12 text-zinc-50">
-      <section className="mx-auto max-w-6xl">
+    <main className="docs-page min-h-screen overflow-x-clip bg-zinc-950 text-zinc-50">
+      <PublicHeader />
+      <section className="mx-auto max-w-6xl px-6 py-12">
         <div className="max-w-4xl">
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">
             RefundHold runbook
@@ -328,6 +332,8 @@ export default function TestModeRunbookPage() {
             Stripe test objects. Live refunds are blocked in v1.
           </p>
         </div>
+
+        <DocsNavigation currentPath="/docs/test-mode-runbook" />
 
         <div className="mt-10 rounded-lg border border-amber-300/50 bg-amber-300/10 p-5">
           <p className="text-sm font-semibold text-amber-200">

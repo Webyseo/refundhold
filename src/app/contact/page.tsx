@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { PublicHeader } from "../public-header";
+
 const contactEmail = "hello@refundhold.com";
 
 const pilotMailto = createMailto({
@@ -38,8 +40,9 @@ const detailsToSend = [
 
 export default function ContactPage() {
   return (
-    <main className="min-h-screen bg-zinc-950 px-6 py-12 text-zinc-50">
-      <section className="mx-auto max-w-5xl">
+    <main className="min-h-screen overflow-x-clip bg-zinc-950 text-zinc-50">
+      <PublicHeader />
+      <section className="mx-auto max-w-5xl px-6 py-12">
         <div className="max-w-3xl">
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">
             RefundHold contact

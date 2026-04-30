@@ -1,5 +1,8 @@
 import Link from "next/link";
 
+import { PublicHeader } from "../../public-header";
+import { DocsNavigation } from "../docs-navigation";
+
 const provesItems = [
   "An AI support agent can send a refund proposal to RefundHold.",
   "RefundHold can return allowed, needs_review, or blocked.",
@@ -189,8 +192,9 @@ const unclearValueItems = [
 
 export default function PilotAcceptancePage() {
   return (
-    <main className="min-h-screen bg-zinc-950 px-6 py-12 text-zinc-50">
-      <section className="mx-auto max-w-6xl">
+    <main className="docs-page min-h-screen overflow-x-clip bg-zinc-950 text-zinc-50">
+      <PublicHeader />
+      <section className="mx-auto max-w-6xl px-6 py-12">
         <div className="max-w-4xl">
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">
             RefundHold docs
@@ -216,6 +220,8 @@ export default function PilotAcceptancePage() {
             in v1.
           </p>
         </div>
+
+        <DocsNavigation currentPath="/docs/pilot-acceptance" />
 
         <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="space-y-5">

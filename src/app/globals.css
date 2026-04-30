@@ -1,1 +1,58 @@
 @import "tailwindcss";
+
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid rgb(110 231 183);
+  outline-offset: 2px;
+}
+
+.docs-page,
+.docs-page * {
+  box-sizing: border-box;
+}
+
+.docs-page section,
+.docs-page aside,
+.docs-page div,
+.docs-page nav,
+.docs-page article,
+.docs-page dl,
+.docs-page ul,
+.docs-page ol,
+.docs-page li,
+.docs-page p {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.docs-page pre {
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.docs-page pre code {
+  display: block;
+  min-width: max-content;
+}
+
+.docs-page table {
+  max-width: none;
+}
+
+.docs-page td,
+.docs-page th,
+.docs-page code {
+  overflow-wrap: anywhere;
+}
+
+.docs-page a:focus-visible,
+.docs-page button:focus-visible,
+.docs-page summary:focus-visible {
+  outline: 2px solid rgb(110 231 183);
+  outline-offset: 2px;
+}

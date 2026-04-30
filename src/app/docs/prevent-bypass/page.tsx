@@ -1,5 +1,8 @@
 import Link from "next/link";
 
+import { PublicHeader } from "../../public-header";
+import { DocsNavigation } from "../docs-navigation";
+
 const architectureFlow = [
   "Customer asks for refund",
   "AI support agent evaluates the request",
@@ -79,8 +82,9 @@ const productionRequirements = [
 
 export default function PreventBypassPage() {
   return (
-    <main className="min-h-screen bg-zinc-950 px-6 py-12 text-zinc-50">
-      <section className="mx-auto max-w-5xl">
+    <main className="docs-page min-h-screen overflow-x-clip bg-zinc-950 text-zinc-50">
+      <PublicHeader />
+      <section className="mx-auto max-w-5xl px-6 py-12">
         <div className="max-w-3xl">
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">
             RefundHold architecture
@@ -94,6 +98,8 @@ export default function PreventBypassPage() {
             approval before anything can continue.
           </p>
         </div>
+
+        <DocsNavigation currentPath="/docs/prevent-bypass" />
 
         <div className="mt-10 rounded-lg border border-amber-300/50 bg-amber-300/10 p-5">
           <p className="text-sm font-semibold text-amber-200">
