@@ -1,5 +1,7 @@
 import "dotenv/config";
 
+import { pathToFileURL } from "node:url";
+
 import { PrismaPg } from "@prisma/adapter-pg";
 
 import {
@@ -16,7 +18,7 @@ const demoOrganization = {
 const demoAgent = {
   name: "RefundHold Demo AI Support Agent",
   description:
-    "Fictitious support agent used for RefundHold dry_run commercial demos.",
+    "Fictitious support agent used for RefundHold commercial demos.",
 };
 
 const demoApiKeyName = "Demo Support Agent API Key";
@@ -51,10 +53,13 @@ type DemoPrismaClient = {
   agentApiKey: AgentApiKeyDelegate;
   connector: UpsertDelegate;
   policy: UpsertDelegate;
-  actionRequest: UpsertDelegate;
+  actionRequest: UpsertDelegate & {
+    deleteMany: (args: unknown) => Promise<{ count: number }>;
+  };
   approval: UpsertDelegate;
   execution: UpsertDelegate;
   auditEvent: UpsertDelegate;
+  stripePaymentObject: UpsertDelegate;
   $disconnect: () => Promise<void>;
 };
 
@@ -72,14 +77,17 @@ type DemoApproval = {
 };
 
 type DemoExecution = {
-  status: "SUCCEEDED";
+  status: "SUCCEEDED" | "FAILED";
   startedMinutesAfterCreate: number;
   completedMinutesAfterCreate: number;
 };
 
+type DemoRefundMode = "demo_simulation" | "stripe_test_mode";
+
 type DemoRefundRequest = {
   id: string;
   ageMinutes: number;
+  mode: DemoRefundMode;
   policyKey: DemoPolicyKey;
   status:
     | "ALLOWED"
@@ -87,10 +95,16 @@ type DemoRefundRequest = {
     | "APPROVAL_REQUIRED"
     | "APPROVED"
     | "REJECTED"
-    | "EXECUTED";
+    | "EXECUTED"
+    | "FAILED";
   decision: "ALLOW" | "DENY" | "APPROVAL_REQUIRED";
   amount: number;
   currency: string;
+  refundReason: string;
+  riskReason: string;
+  idempotencyKey: string;
+  livemode: false;
+  webhookStatus?: string;
   customer: {
     id: string;
     name: string;
@@ -174,195 +188,298 @@ const policyDefinitions = [
   rules: Record<string, string | number>;
 }[];
 
-const demoRefundRequests = [
+export const demoRefundRequests = [
   {
-    id: "demo-refund-pending-approval",
+    id: "demo-refund-420-review",
     ageMinutes: 18,
-    policyKey: "standardReview",
+    mode: "demo_simulation",
+    policyKey: "highRiskReview",
     status: "APPROVAL_REQUIRED",
     decision: "APPROVAL_REQUIRED",
-    amount: 129.99,
+    amount: 420,
     currency: "usd",
+    refundReason: "possible duplicate billing",
+    riskReason: "Medium risk: customer reports a possible duplicate charge.",
+    idempotencyKey: "demo-refund-420-proposal",
+    livemode: false,
     customer: {
-      id: "cus_demo_maya_chen",
-      name: "Maya Chen",
-      email: "maya.chen@example.test",
+      id: "cus_demo_customer_042",
+      name: "Demo Customer 042",
+      email: "customer-042@example.test",
     },
     order: {
-      id: "RH-DEMO-1007",
-      summary: "Annual analytics add-on renewal",
+      id: "RH-DEMO-420",
+      summary: "Possible duplicate billing on annual support package",
     },
-    paymentIntentId: "pi_demo_refundhold_pending_approval",
-    chargeId: "ch_demo_refundhold_pending_approval",
-    riskScore: 54,
+    paymentIntentId: "pi_demo_refundhold_420_review",
+    chargeId: "ch_demo_refundhold_420_review",
+    riskScore: 62,
     riskLabel: "medium",
     customerMessage:
-      "Customer says the renewal was approved by the wrong teammate.",
+      "Customer reports a duplicate charge and asks for a refund.",
     policyReason:
-      "approval_required: amount is between 50 USD and 250 USD, so human review is required before any refund simulation.",
+      "$50-$500 -> human approval required: possible duplicate billing requires reviewer confirmation.",
     approval: {
       status: "PENDING",
-      reason: "Awaiting demo reviewer decision.",
+      reason: "Awaiting reviewer decision for possible duplicate billing.",
       expiresMinutesAfterCreate: 480,
     },
   },
   {
-    id: "demo-refund-approved-ready-dry-run",
+    id: "demo-refund-100-approved-test",
     ageMinutes: 46,
+    mode: "stripe_test_mode",
     policyKey: "standardReview",
     status: "APPROVED",
     decision: "APPROVAL_REQUIRED",
-    amount: 89.5,
+    amount: 100,
     currency: "usd",
+    refundReason: "damaged item evidence",
+    riskReason: "Medium risk: refund is supported by damaged item evidence.",
+    idempotencyKey: "demo-refund-100-approved-test",
+    livemode: false,
     customer: {
-      id: "cus_demo_sam_rivera",
-      name: "Sam Rivera",
-      email: "sam.rivera@example.test",
+      id: "cus_demo_damaged_item",
+      name: "Damaged Item Customer",
+      email: "damaged-item@example.test",
     },
     order: {
-      id: "RH-DEMO-1011",
-      summary: "Duplicate monthly subscription charge",
+      id: "RH-DEMO-100",
+      summary: "Damaged item replacement order",
     },
-    paymentIntentId: "pi_demo_refundhold_approved_ready",
-    chargeId: "ch_demo_refundhold_approved_ready",
-    riskScore: 41,
+    paymentIntentId: "pi_demo_refundhold_100_approved",
+    chargeId: "ch_demo_refundhold_100_approved",
+    riskScore: 44,
     riskLabel: "medium",
     customerMessage:
-      "AI support detected a duplicate charge after plan migration.",
+      "AI support agent found damaged item evidence and recommended a refund.",
     policyReason:
-      "approval_required: duplicate-charge context is plausible, but the amount requires reviewer approval before dry_run execution.",
+      "$50-$500 -> human approval required: damaged item evidence needs reviewer approval.",
     approval: {
       status: "APPROVED",
-      reason: "Approved for demo dry_run execution; duplicate charge evidence matches policy.",
+      reason: "Approved because the damaged item evidence supports the refund.",
       reviewedMinutesAfterCreate: 9,
     },
   },
   {
-    id: "demo-refund-executed-dry-run",
+    id: "demo-refund-275-rejected",
     ageMinutes: 73,
-    policyKey: "standardReview",
-    status: "EXECUTED",
-    decision: "APPROVAL_REQUIRED",
-    amount: 176.25,
-    currency: "usd",
-    customer: {
-      id: "cus_demo_lena_okafor",
-      name: "Lena Okafor",
-      email: "lena.okafor@example.test",
-    },
-    order: {
-      id: "RH-DEMO-1020",
-      summary: "Service outage credit",
-    },
-    paymentIntentId: "pi_demo_refundhold_executed_dry_run",
-    chargeId: "ch_demo_refundhold_executed_dry_run",
-    riskScore: 37,
-    riskLabel: "medium",
-    customerMessage:
-      "Customer requested outage credit after SLA breach on demo account.",
-    policyReason:
-      "approval_required: reviewer approved the outage credit and RefundHold recorded a dry_run execution only.",
-    approval: {
-      status: "APPROVED",
-      reason: "Approved after confirming the outage-credit evidence.",
-      reviewedMinutesAfterCreate: 11,
-    },
-    execution: {
-      status: "SUCCEEDED",
-      startedMinutesAfterCreate: 14,
-      completedMinutesAfterCreate: 15,
-    },
-  },
-  {
-    id: "demo-refund-rejected-blocked",
-    ageMinutes: 121,
+    mode: "demo_simulation",
     policyKey: "highRiskReview",
     status: "REJECTED",
     decision: "APPROVAL_REQUIRED",
-    amount: 318.4,
+    amount: 275,
     currency: "usd",
+    refundReason: "AI recommendation incomplete",
+    riskReason: "Medium risk: the AI recommendation is incomplete.",
+    idempotencyKey: "demo-refund-275-rejected",
+    livemode: false,
     customer: {
-      id: "cus_demo_noah_patel",
-      name: "Noah Patel",
-      email: "noah.patel@example.test",
+      id: "cus_demo_incomplete_reason",
+      name: "Incomplete Reason Customer",
+      email: "incomplete-reason@example.test",
     },
     order: {
-      id: "RH-DEMO-1033",
-      summary: "Enterprise onboarding package",
+      id: "RH-DEMO-275",
+      summary: "Refund request with incomplete support notes",
     },
-    paymentIntentId: "pi_demo_refundhold_rejected_blocked",
-    chargeId: "ch_demo_refundhold_rejected_blocked",
-    riskScore: 82,
-    riskLabel: "high",
+    paymentIntentId: "pi_demo_refundhold_275_rejected",
+    chargeId: "ch_demo_refundhold_275_rejected",
+    riskScore: 58,
+    riskLabel: "medium",
     customerMessage:
-      "AI support proposed a refund after an unusually short cancellation note.",
+      "AI support agent recommended a refund but did not provide enough evidence.",
     policyReason:
-      "approval_required: high-risk context and elevated amount required review; reviewer rejected and blocked the dry_run refund.",
+      "$50-$500 -> human approval required: reviewer must confirm evidence before refunding.",
     approval: {
       status: "REJECTED",
-      reason:
-        "Rejected in demo because the order context did not support the requested refund.",
-      reviewedMinutesAfterCreate: 16,
+      reason: "Rejected because the AI recommendation was incomplete.",
+      reviewedMinutesAfterCreate: 10,
     },
   },
   {
-    id: "demo-refund-high-risk-pending",
-    ageMinutes: 8,
-    policyKey: "highRiskReview",
-    status: "APPROVAL_REQUIRED",
-    decision: "APPROVAL_REQUIRED",
-    amount: 462,
+    id: "demo-refund-035-executed",
+    ageMinutes: 121,
+    mode: "demo_simulation",
+    policyKey: "lowRiskAllow",
+    status: "EXECUTED",
+    decision: "ALLOW",
+    amount: 35,
     currency: "usd",
+    refundReason: "low-value goodwill refund",
+    riskReason: "Low risk: small goodwill refund is inside policy.",
+    idempotencyKey: "demo-refund-035-executed",
+    livemode: false,
     customer: {
-      id: "cus_demo_amelia_brooks",
-      name: "Amelia Brooks",
-      email: "amelia.brooks@example.test",
+      id: "cus_demo_low_value_refund",
+      name: "Low Value Refund Customer",
+      email: "low-value-refund@example.test",
     },
     order: {
-      id: "RH-DEMO-1045",
-      summary: "Custom implementation deposit",
+      id: "RH-DEMO-035",
+      summary: "Low-value goodwill refund",
     },
-    paymentIntentId: "pi_demo_refundhold_high_risk_pending",
-    chargeId: "ch_demo_refundhold_high_risk_pending",
-    riskScore: 91,
-    riskLabel: "high",
+    paymentIntentId: "pi_demo_refundhold_035_executed",
+    chargeId: "ch_demo_refundhold_035_executed",
+    riskScore: 14,
+    riskLabel: "low",
     customerMessage:
-      "AI support requested a refund for a non-refundable implementation deposit.",
+      "AI support agent recommended a low-value goodwill refund.",
     policyReason:
-      "approval_required: elevated amount and non-refundable order context must be reviewed before any dry_run execution.",
-    approval: {
-      status: "PENDING",
-      reason: "Awaiting high-risk demo review.",
-      expiresMinutesAfterCreate: 480,
+      "under $50 -> allowed by policy: low-value goodwill refund can be recorded as demo execution.",
+    execution: {
+      status: "SUCCEEDED",
+      startedMinutesAfterCreate: 4,
+      completedMinutesAfterCreate: 5,
     },
   },
   {
-    id: "demo-refund-low-risk-auto-allow",
+    id: "demo-refund-850-blocked",
+    ageMinutes: 8,
+    mode: "demo_simulation",
+    policyKey: "policyDeny",
+    status: "DENIED",
+    decision: "DENY",
+    amount: 850,
+    currency: "usd",
+    refundReason: "refund exceeds policy limit",
+    riskReason: "High risk: requested refund is above the policy limit.",
+    idempotencyKey: "demo-refund-850-blocked",
+    livemode: false,
+    customer: {
+      id: "cus_demo_high_value_refund",
+      name: "High Value Refund Customer",
+      email: "high-value-refund@example.test",
+    },
+    order: {
+      id: "RH-DEMO-850",
+      summary: "High-value refund above demo policy limit",
+    },
+    paymentIntentId: "pi_demo_refundhold_850_blocked",
+    chargeId: "ch_demo_refundhold_850_blocked",
+    riskScore: 94,
+    riskLabel: "high",
+    customerMessage:
+      "AI support agent requested a high-value refund that exceeds policy.",
+    policyReason:
+      "over $500 -> blocked by policy: refund exceeds the configured limit.",
+  },
+  {
+    id: "demo-refund-120-needs-attention",
+    ageMinutes: 31,
+    mode: "stripe_test_mode",
+    policyKey: "standardReview",
+    status: "FAILED",
+    decision: "APPROVAL_REQUIRED",
+    amount: 120,
+    currency: "usd",
+    refundReason: "pending Stripe test webhook reconciliation",
+    riskReason:
+      "Medium risk: Stripe test webhook reconciliation is missing or pending.",
+    idempotencyKey: "demo-refund-120-webhook-pending",
+    livemode: false,
+    webhookStatus: "pending Stripe test webhook reconciliation",
+    customer: {
+      id: "cus_demo_webhook_pending",
+      name: "Webhook Pending Customer",
+      email: "webhook-pending@example.test",
+    },
+    order: {
+      id: "RH-DEMO-120",
+      summary: "Stripe test refund waiting for webhook reconciliation",
+    },
+    paymentIntentId: "pi_demo_refundhold_120_attention",
+    chargeId: "ch_demo_refundhold_120_attention",
+    riskScore: 67,
+    riskLabel: "medium",
+    customerMessage:
+      "AI support agent recommended a refund, but the Stripe test webhook is pending.",
+    policyReason:
+      "$50-$500 -> human approval required: test-mode reconciliation needs attention.",
+    approval: {
+      status: "APPROVED",
+      reason: "Approved for Stripe test-mode rehearsal; webhook is still pending.",
+      reviewedMinutesAfterCreate: 7,
+    },
+    execution: {
+      status: "FAILED",
+      startedMinutesAfterCreate: 9,
+      completedMinutesAfterCreate: 11,
+    },
+  },
+  {
+    id: "demo-refund-480-approved-waiting",
+    ageMinutes: 57,
+    mode: "stripe_test_mode",
+    policyKey: "highRiskReview",
+    status: "APPROVED",
+    decision: "APPROVAL_REQUIRED",
+    amount: 480,
+    currency: "usd",
+    refundReason: "duplicate annual plan charge",
+    riskReason:
+      "Medium risk: duplicate annual plan charge needs reviewer approval.",
+    idempotencyKey: "demo-refund-480-approved-waiting",
+    livemode: false,
+    customer: {
+      id: "cus_demo_approved_waiting",
+      name: "Approved Waiting Customer",
+      email: "approved-waiting@example.test",
+    },
+    order: {
+      id: "RH-DEMO-480",
+      summary: "Duplicate annual plan charge",
+    },
+    paymentIntentId: "pi_demo_refundhold_480_waiting",
+    chargeId: "ch_demo_refundhold_480_waiting",
+    riskScore: 63,
+    riskLabel: "medium",
+    customerMessage:
+      "AI support agent found a duplicate annual plan charge and recommended review.",
+    policyReason:
+      "$50-$500 -> human approval required: duplicate annual plan charge approved by reviewer.",
+    approval: {
+      status: "APPROVED",
+      reason: "Approved; waiting for controlled Stripe test-mode execution.",
+      reviewedMinutesAfterCreate: 12,
+    },
+  },
+  {
+    id: "demo-refund-018-allowed",
     ageMinutes: 157,
+    mode: "demo_simulation",
     policyKey: "lowRiskAllow",
     status: "ALLOWED",
     decision: "ALLOW",
-    amount: 24.99,
+    amount: 18,
     currency: "usd",
+    refundReason: "small support credit",
+    riskReason: "Low risk: small support credit is under the policy threshold.",
+    idempotencyKey: "demo-refund-018-allowed",
+    livemode: false,
     customer: {
-      id: "cus_demo_oliver_kim",
-      name: "Oliver Kim",
-      email: "oliver.kim@example.test",
+      id: "cus_demo_small_credit",
+      name: "Small Credit Customer",
+      email: "small-credit@example.test",
     },
     order: {
-      id: "RH-DEMO-1052",
-      summary: "Unused add-on trial fee",
+      id: "RH-DEMO-018",
+      summary: "Small support credit",
     },
-    paymentIntentId: "pi_demo_refundhold_low_risk_allow",
-    chargeId: "ch_demo_refundhold_low_risk_allow",
-    riskScore: 12,
+    paymentIntentId: "pi_demo_refundhold_018_allowed",
+    chargeId: "ch_demo_refundhold_018_allowed",
+    riskScore: 8,
     riskLabel: "low",
     customerMessage:
-      "AI support found a small unused add-on charge within refund policy.",
+      "AI support agent found a small support credit within refund policy.",
     policyReason:
-      "allow: low-risk amount under 50 USD can be allowed automatically in dry_run demo mode.",
+      "under $50 -> allowed by policy: small support credit can continue.",
   },
 ] satisfies DemoRefundRequest[];
+
+export const curatedDemoRefundRequestIds = demoRefundRequests.map(
+  (request) => request.id,
+);
 
 async function main() {
   const databaseUrl = process.env["DATABASE_URL"];
@@ -387,6 +504,11 @@ async function main() {
       organizationId: baseRecords.organization.id,
       connectorId: baseRecords.connector.id,
     });
+    const cleanup = await cleanupLegacySeededDemoRefundRequests(prisma, {
+      organizationId: baseRecords.organization.id,
+      agentId: baseRecords.agent.id,
+      connectorId: baseRecords.connector.id,
+    });
 
     for (const refundRequest of demoRefundRequests) {
       await upsertDemoRefundRequest(prisma, {
@@ -400,7 +522,10 @@ async function main() {
     }
 
     console.log(
-      `RefundHold demo seed complete: ${demoRefundRequests.length} dry_run refund requests are available.`,
+      `RefundHold demo seed complete: ${demoRefundRequests.length} curated fake refund requests are available.`,
+    );
+    console.log(
+      `Scoped demo cleanup removed ${cleanup.count} legacy seeded refund requests.`,
     );
 
     if (demoApiKey.source === "configured") {
@@ -504,7 +629,7 @@ async function upsertBaseDemoRecords(
       type: demoConnector.type,
       status: "ACTIVE",
       configuration: {
-        mode: "dry_run",
+        mode: "demo_controlled",
         stripe_called: false,
       },
       encryptedCredentialsPlaceholder: {
@@ -518,7 +643,7 @@ async function upsertBaseDemoRecords(
       type: demoConnector.type,
       status: "ACTIVE",
       configuration: {
-        mode: "dry_run",
+        mode: "demo_controlled",
         stripe_called: false,
       },
       encryptedCredentialsPlaceholder: {
@@ -710,6 +835,32 @@ async function upsertDemoPolicies(
   return policyIds;
 }
 
+async function cleanupLegacySeededDemoRefundRequests(
+  prisma: DemoPrismaClient,
+  {
+    organizationId,
+    agentId,
+    connectorId,
+  }: {
+    organizationId: string;
+    agentId: string;
+    connectorId: string;
+  },
+) {
+  return prisma.actionRequest.deleteMany({
+    where: {
+      organizationId,
+      agentId,
+      connectorId,
+      operation: "refund.create",
+      id: {
+        startsWith: "demo-refund-",
+        notIn: curatedDemoRefundRequestIds,
+      },
+    },
+  });
+}
+
 async function upsertDemoRefundRequest(
   prisma: DemoPrismaClient,
   {
@@ -780,6 +931,15 @@ async function upsertDemoRefundRequest(
     },
   });
 
+  if (refundRequest.mode === "stripe_test_mode") {
+    await upsertDemoStripePaymentObject(prisma, {
+      refundRequest,
+      organizationId,
+      connectorId,
+      createdAt,
+    });
+  }
+
   const approvalId = refundRequest.approval
     ? await upsertDemoApproval(prisma, {
         refundRequest,
@@ -805,6 +965,56 @@ async function upsertDemoRefundRequest(
     approvalId,
     executionId,
     createdAt,
+  });
+}
+
+async function upsertDemoStripePaymentObject(
+  prisma: DemoPrismaClient,
+  {
+    refundRequest,
+    organizationId,
+    connectorId,
+    createdAt,
+  }: {
+    refundRequest: DemoRefundRequest;
+    organizationId: string;
+    connectorId: string;
+    createdAt: Date;
+  },
+) {
+  const amountMinor = toMinorUnits(refundRequest.amount);
+  const data = {
+    organizationId,
+    connectorId,
+    mode: "TEST",
+    paymentIntentId: refundRequest.paymentIntentId,
+    chargeId: refundRequest.chargeId,
+    amountMinor: Math.max(amountMinor, amountMinor + 5000),
+    amountRefundedMinor: 0,
+    currency: refundRequest.currency.toUpperCase(),
+    status: "succeeded",
+    livemode: false,
+    safeSnapshot: {
+      object: "payment_intent",
+      id: refundRequest.paymentIntentId,
+      charge_id: refundRequest.chargeId,
+      livemode: false,
+      demo_seed: true,
+      fictional_data: true,
+    },
+    lastSyncedAt: createdAt,
+    createdAt,
+  };
+
+  await prisma.stripePaymentObject.upsert({
+    where: {
+      id: `stripe-payment-object-${refundRequest.id}`,
+    },
+    update: data,
+    create: {
+      id: `stripe-payment-object-${refundRequest.id}`,
+      ...data,
+    },
   });
 }
 
@@ -895,16 +1105,29 @@ async function upsertDemoExecution(
     grantTokenHash: null,
     grantExpiresAt: null,
     responsePayload: {
-      dry_run: true,
+      demo_simulation: refundRequest.mode === "demo_simulation",
+      stripe_test_mode: refundRequest.mode === "stripe_test_mode",
       stripe_called: false,
       money_moved: false,
-      message: "Dry-run execution completed for demo evidence only.",
+      livemode: false,
+      message:
+        execution.status === "SUCCEEDED"
+          ? "Demo execution completed for evidence only."
+          : "Demo execution needs attention; no Stripe call was made.",
       refund_amount: refundRequest.amount,
       currency: refundRequest.currency.toUpperCase(),
       customer_id: refundRequest.customer.id,
       order_id: refundRequest.order.id,
     },
-    errorMetadata: null,
+    errorMetadata:
+      execution.status === "FAILED"
+        ? {
+            reason: refundRequest.webhookStatus ?? refundRequest.refundReason,
+            stripe_called: false,
+            money_moved: false,
+            livemode: false,
+          }
+        : null,
     startedAt,
     completedAt,
     createdAt: startedAt,
@@ -947,17 +1170,25 @@ async function upsertDemoAuditEvents(
   const metadataBase = {
     event_source: "refundhold_demo_seed",
     action: "refund.create",
-    dry_run: true,
+    demo_mode: refundRequest.mode,
+    demo_simulation: refundRequest.mode === "demo_simulation",
+    stripe_test_mode: refundRequest.mode === "stripe_test_mode",
     stripe_called: false,
     money_moved: false,
+    livemode: false,
     fictional_data: true,
     amount: refundRequest.amount,
+    amount_minor: toMinorUnits(refundRequest.amount),
     currency: refundRequest.currency.toUpperCase(),
     customer_id: refundRequest.customer.id,
     order_id: refundRequest.order.id,
+    idempotency_key: refundRequest.idempotencyKey,
     policy_decision: refundRequest.decision.toLowerCase(),
     risk_score: refundRequest.riskScore,
     risk_label: refundRequest.riskLabel,
+    risk_reason: refundRequest.riskReason,
+    refund_reason: refundRequest.refundReason,
+    webhook_status: refundRequest.webhookStatus ?? null,
   };
 
   await upsertAuditEvent(prisma, {
@@ -975,6 +1206,24 @@ async function upsertDemoAuditEvents(
     },
     createdAt,
   });
+  if (refundRequest.mode === "stripe_test_mode") {
+    await upsertAuditEvent(prisma, {
+      id: `audit-${refundRequest.id}-stripe-payment-reflected`,
+      organizationId,
+      actionRequestId: refundRequest.id,
+      agentId,
+      actorType: "SYSTEM",
+      type: "STRIPE_PAYMENT_OBJECT_REFLECTED",
+      metadata: {
+        ...metadataBase,
+        event: "stripe_payment_object_reflected",
+        payment_intent_id: refundRequest.paymentIntentId,
+        charge_id: refundRequest.chargeId,
+        requested_amount_minor: toMinorUnits(refundRequest.amount),
+      },
+      createdAt: addMinutes(createdAt, 1),
+    });
+  }
   await upsertAuditEvent(prisma, {
     id: `audit-${refundRequest.id}-policy-evaluated`,
     organizationId,
@@ -987,7 +1236,7 @@ async function upsertDemoAuditEvents(
       event: "policy_evaluated",
       reason: refundRequest.policyReason,
     },
-    createdAt: addMinutes(createdAt, 1),
+    createdAt: addMinutes(createdAt, refundRequest.mode === "stripe_test_mode" ? 2 : 1),
   });
   await upsertAuditEvent(prisma, {
     id: `audit-${refundRequest.id}-decision-created`,
@@ -1002,7 +1251,7 @@ async function upsertDemoAuditEvents(
       status: refundRequest.status,
       reason: refundRequest.policyReason,
     },
-    createdAt: addMinutes(createdAt, 2),
+    createdAt: addMinutes(createdAt, refundRequest.mode === "stripe_test_mode" ? 3 : 2),
   });
 
   if (approvalId && refundRequest.approval) {
@@ -1019,7 +1268,7 @@ async function upsertDemoAuditEvents(
         event: "approval_requested",
         approval_status: refundRequest.approval.status,
       },
-      createdAt: addMinutes(createdAt, 3),
+      createdAt: addMinutes(createdAt, refundRequest.mode === "stripe_test_mode" ? 4 : 3),
     });
 
     if (refundRequest.approval.status === "APPROVED") {
@@ -1079,7 +1328,7 @@ async function upsertDemoAuditEvents(
       metadata: {
         ...metadataBase,
         event: "execution_started",
-        execution_mode: "dry_run",
+        execution_mode: "demo_controlled",
       },
       createdAt: addMinutes(
         createdAt,
@@ -1093,18 +1342,48 @@ async function upsertDemoAuditEvents(
       executionId,
       agentId,
       actorType: "SYSTEM",
-      type: "EXECUTION_SUCCEEDED",
+      type:
+        refundRequest.execution.status === "SUCCEEDED"
+          ? "EXECUTION_SUCCEEDED"
+          : "EXECUTION_FAILED",
       metadata: {
         ...metadataBase,
-        event: "execution_succeeded",
-        execution_mode: "dry_run",
-        result: "simulation_only",
+        event:
+          refundRequest.execution.status === "SUCCEEDED"
+            ? "execution_succeeded"
+            : "execution_failed",
+        execution_mode: "demo_controlled",
+        result:
+          refundRequest.execution.status === "SUCCEEDED"
+            ? "simulation_only"
+            : (refundRequest.webhookStatus ?? "needs_attention"),
       },
       createdAt: addMinutes(
         createdAt,
         refundRequest.execution.completedMinutesAfterCreate,
       ),
     });
+
+    if (refundRequest.webhookStatus) {
+      await upsertAuditEvent(prisma, {
+        id: `audit-${refundRequest.id}-webhook-received`,
+        organizationId,
+        actionRequestId: refundRequest.id,
+        executionId,
+        agentId,
+        actorType: "SYSTEM",
+        type: "STRIPE_WEBHOOK_RECEIVED",
+        metadata: {
+          ...metadataBase,
+          event: "stripe_webhook_received",
+          status: refundRequest.webhookStatus,
+        },
+        createdAt: addMinutes(
+          createdAt,
+          refundRequest.execution.completedMinutesAfterCreate + 1,
+        ),
+      });
+    }
   }
 }
 
@@ -1121,13 +1400,16 @@ async function upsertAuditEvent(
     actorType: "USER" | "AGENT" | "SYSTEM";
     type:
       | "REQUEST_RECEIVED"
+      | "STRIPE_PAYMENT_OBJECT_REFLECTED"
       | "POLICY_EVALUATED"
       | "DECISION_CREATED"
       | "APPROVAL_REQUESTED"
       | "APPROVAL_APPROVED"
       | "APPROVAL_REJECTED"
       | "EXECUTION_STARTED"
-      | "EXECUTION_SUCCEEDED";
+      | "EXECUTION_SUCCEEDED"
+      | "EXECUTION_FAILED"
+      | "STRIPE_WEBHOOK_RECEIVED";
     metadata: Record<string, unknown>;
     createdAt: Date;
   },
@@ -1158,36 +1440,75 @@ async function upsertAuditEvent(
 }
 
 function buildDemoResource(refundRequest: DemoRefundRequest) {
+  if (refundRequest.mode === "stripe_test_mode") {
+    return {
+      type: "stripe.payment_intent",
+      payment_intent_id: refundRequest.paymentIntentId,
+      charge_id: refundRequest.chargeId,
+      customer_id: refundRequest.customer.id,
+      order_id: refundRequest.order.id,
+      livemode: false,
+      fictional: true,
+    };
+  }
+
   return {
     type: "stripe.refund",
     payment_intent_id: refundRequest.paymentIntentId,
     charge_id: refundRequest.chargeId,
     customer_id: refundRequest.customer.id,
     order_id: refundRequest.order.id,
-    dry_run: true,
+    demo_simulation: true,
+    livemode: false,
     fictional: true,
   };
 }
 
 function buildDemoParameters(refundRequest: DemoRefundRequest) {
-  return {
+  const common = {
     amount: refundRequest.amount,
     currency: refundRequest.currency,
     reason: "requested_by_customer",
-    dry_run: true,
+    refund_reason: refundRequest.refundReason,
+    idempotency_key: refundRequest.idempotencyKey,
     stripe_called: false,
     money_moved: false,
+    livemode: false,
+    webhook_status: refundRequest.webhookStatus ?? null,
+  };
+
+  if (refundRequest.mode === "stripe_test_mode") {
+    return {
+      ...common,
+      amount_minor: toMinorUnits(refundRequest.amount),
+      payment_intent_id: refundRequest.paymentIntentId,
+      charge_id: refundRequest.chargeId,
+      stripe_mode: "test",
+    };
+  }
+
+  return {
+    ...common,
+    demo_simulation: true,
   };
 }
 
 function buildDemoContext(refundRequest: DemoRefundRequest) {
   return {
-    dry_run: true,
+    demo_mode: refundRequest.mode,
+    demo_simulation: refundRequest.mode === "demo_simulation",
+    stripe_test_mode: refundRequest.mode === "stripe_test_mode",
     stripe_called: false,
     money_moved: false,
+    livemode: false,
     ai_initiated: true,
     customer: refundRequest.customer,
     order: refundRequest.order,
+    order_summary: refundRequest.order.summary,
+    refund_reason: refundRequest.refundReason,
+    risk_reason: refundRequest.riskReason,
+    idempotency_key: refundRequest.idempotencyKey,
+    webhook_status: refundRequest.webhookStatus ?? null,
     risk: {
       score: refundRequest.riskScore,
       label: refundRequest.riskLabel,
@@ -1198,8 +1519,12 @@ function buildDemoContext(refundRequest: DemoRefundRequest) {
       rationale: refundRequest.customerMessage,
     },
     demo_notice:
-      "Fictitious RefundHold demo data only. No Stripe API call is made.",
+      "Fictitious RefundHold demo data only. No live Stripe money moves.",
   };
+}
+
+function toMinorUnits(amount: number): number {
+  return Math.round(amount * 100);
 }
 
 function getPolicyId(
@@ -1223,7 +1548,17 @@ function addMinutes(date: Date, minutes: number): Date {
   return new Date(date.getTime() + minutes * 60 * 1000);
 }
 
-main().catch((error: unknown) => {
-  console.error(error);
-  process.exit(1);
-});
+function isMainModule() {
+  const entrypoint = process.argv[1];
+
+  return entrypoint
+    ? import.meta.url === pathToFileURL(entrypoint).href
+    : false;
+}
+
+if (isMainModule()) {
+  main().catch((error: unknown) => {
+    console.error(error);
+    process.exit(1);
+  });
+}

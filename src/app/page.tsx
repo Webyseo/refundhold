@@ -85,6 +85,12 @@ export default function Home() {
         <p className="mt-4 text-sm text-zinc-400">
           Demo mode only. No live Stripe money moves.
         </p>
+        <Link
+          className="mt-3 inline-flex text-sm font-medium text-zinc-300 hover:text-zinc-50"
+          href="/demo/reviewer"
+        >
+          View reviewer dashboard demo
+        </Link>
         <nav className="mt-4 flex flex-wrap gap-4 text-sm font-medium text-zinc-500">
           <Link className="hover:text-zinc-200" href="/privacy">
             Privacy

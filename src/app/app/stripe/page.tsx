@@ -133,6 +133,12 @@ export default async function StripeStatusPage() {
             </Link>
             <Link
               className="inline-flex rounded-md border border-zinc-300 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950"
+              href="/docs/stripe-test-mode"
+            >
+              Read test-mode setup
+            </Link>
+            <Link
+              className="inline-flex rounded-md border border-zinc-300 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950"
               href="/docs/quickstart"
             >
               Read quickstart

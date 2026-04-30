@@ -36,7 +36,14 @@ pnpm build
 
 `pnpm db:seed:demo` creates or updates the demo organization, demo reviewer, AI
 support agent, demo API key hash, Stripe test placeholder, refund policies, and
-sample refund requests.
+8 curated fake refund requests.
+
+Seeded customer emails must stay under `example.test`. The curated refund set
+covers waiting for review, approved, rejected, executed demo simulation, blocked
+by policy, Stripe test-mode needs-attention, approved-but-waiting test-mode, and
+small allowed-credit cases. The seed is idempotent and its cleanup is scoped to
+the demo organization, demo agent, demo connector, and `demo-refund-` seeded
+identifiers that are no longer in the curated set.
 
 The demo policy is:
 

@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import {
   filterActionRequestsByDashboardStatus,
+  formatRefundRequestAmount,
   getActionRequestControls,
   getAmountCurrency,
   getDemoReviewerDisplayName,
   getImpactSummary,
   getNextSafeAction,
   getQueueIndicators,
+  getRefundReviewDisplay,
   getRequestFilterCounts,
   getStripeTestRefundViewModel,
   sortDashboardActionRequestsForReview,
@@ -101,6 +103,22 @@ describe("dashboard view model", () => {
         },
       }),
     ).toBe("100 USD Stripe refund");
+  });
+
+  it("formats refund request amounts as human money", () => {
+    expect(
+      formatRefundRequestAmount({
+        amount: 420,
+        currency: "usd",
+      }),
+    ).toBe("$420.00 USD");
+
+    expect(
+      formatRefundRequestAmount({
+        amount_minor: 10000,
+        currency: "usd",
+      }),
+    ).toBe("$100.00 USD");
   });
 
   it("falls back to the operation when no amount is available", () => {
@@ -371,6 +389,149 @@ describe("dashboard view model", () => {
 
     expect(JSON.stringify(model)).not.toContain("AuthRail");
     expect(JSON.stringify(model)).not.toContain("authrail.local");
+  });
+
+  it("builds reviewer-facing evidence for a Stripe test-mode refund", () => {
+    const review = getRefundReviewDisplay({
+      ...makeStripeRequest({
+        parameters: {
+          amount_minor: 10000,
+          currency: "usd",
+          payment_intent_id: "pi_test_123",
+          charge_id: "ch_test_123",
+          reason: "requested_by_customer",
+        },
+        stripePaymentObject: {
+          id: "spo_123",
+          organizationId: "org_123",
+          connectorId: "conn_123",
+          mode: "TEST",
+          paymentIntentId: "pi_test_123",
+          chargeId: "ch_test_123",
+          amountMinor: 50000,
+          amountRefundedMinor: 0,
+          currency: "usd",
+          status: "succeeded",
+          livemode: false,
+          safeSnapshot: {},
+        },
+      }),
+      requestPayload: null,
+      decisionReason: "approval_required policy matched: Medium refund manual review",
+      context: {
+        risk_reason: "Possible duplicate billing on the same invoice.",
+        order: {
+          id: "RH-DEMO-2042",
+          summary: "Duplicate subscription renewal",
+        },
+        customer: {
+          name: "Demo Customer",
+          email: "customer-042@example.test",
+        },
+      },
+      agent: {
+        id: "agent_123",
+        name: "RefundHold Demo AI Support Agent",
+      },
+      approvals: [],
+      executions: [],
+      latestStripeWebhookEvent: null,
+      auditEvents: [
+        {
+          id: "audit_1",
+          actorType: "AGENT",
+          type: "REQUEST_RECEIVED",
+          metadata: {
+            reason: "Customer says they were charged twice.",
+          },
+          createdAt: new Date("2026-01-02T09:00:00.000Z"),
+          agent: {
+            id: "agent_123",
+            name: "RefundHold Demo AI Support Agent",
+          },
+          user: null,
+        },
+        {
+          id: "audit_2",
+          actorType: "SYSTEM",
+          type: "POLICY_EVALUATED",
+          metadata: {
+            reason: "Human approval required for refunds between $50 and $500",
+          },
+          createdAt: new Date("2026-01-02T09:01:00.000Z"),
+          agent: null,
+          user: null,
+        },
+      ],
+    });
+
+    expect(review.aiJustification).toBe(
+      "Possible duplicate billing on the same invoice.",
+    );
+    expect(review.customerContext).toEqual([
+      { label: "Customer", value: "Demo Customer (customer-042@example.test)" },
+      { label: "Order summary", value: "RH-DEMO-2042 - Duplicate subscription renewal" },
+      {
+        label: "Refund reason",
+        value:
+          "Customer requested a refund; reviewer should confirm the support evidence before approving.",
+      },
+      { label: "Requested by", value: "RefundHold Demo AI Support Agent" },
+      { label: "Requested amount", value: "$100.00 USD" },
+    ]);
+    expect(review.modeLabel).toBe("Stripe test-mode");
+    expect(review.statusItems).toEqual([
+      { label: "Current status", value: "Waiting for review" },
+      { label: "Policy result", value: "Human approval required" },
+      { label: "Reviewer decision", value: "Waiting for review" },
+      { label: "Execution outcome", value: "Waiting for review" },
+    ]);
+    expect(review.evidence).toEqual(
+      expect.arrayContaining([
+        { label: "Request ID", value: "ar_stripe" },
+        { label: "Actor", value: "RefundHold Demo AI Support Agent" },
+        { label: "Stripe mode", value: "Stripe test-mode" },
+        { label: "Live mode", value: "No" },
+        {
+          label: "Matched rule",
+          value: "Human approval required: policy matched: Medium refund manual review",
+        },
+        { label: "Idempotency", value: "Not recorded in demo data" },
+        { label: "Webhook status", value: "Not recorded" },
+      ]),
+    );
+    expect(review.auditTrail[0]).toMatchObject({
+      actor: "RefundHold Demo AI Support Agent",
+      label: "Request received from AI support agent",
+    });
+    expect(JSON.stringify(review)).not.toContain("amount_minor");
+    expect(JSON.stringify(review)).not.toContain("APPROVAL_REQUIRED");
+    expect(JSON.stringify(review)).not.toContain("approval_required");
+  });
+
+  it("uses a safe AI justification fallback when structured evidence is missing", () => {
+    const review = getRefundReviewDisplay({
+      ...makeRequest("fallback", "APPROVAL_REQUIRED"),
+      context: {},
+      requestPayload: null,
+      decisionReason: null,
+      agent: {
+        id: "agent_123",
+        name: "Support Agent",
+      },
+      approvals: [],
+      executions: [],
+      stripePaymentObject: null,
+      stripeRefund: null,
+      latestStripeWebhookEvent: null,
+      auditEvents: [],
+    });
+
+    expect(review.aiJustification).toBe(
+      "The AI support agent recommended this refund and RefundHold evaluated it against your refund policy.",
+    );
+    expect(review.amount).toBe("$100.00 USD");
+    expect(review.modeLabel).toBe("Demo simulation");
   });
 });
 

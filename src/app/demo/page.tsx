@@ -132,7 +132,7 @@ export default function DemoPage() {
                 </Link>
                 <Link
                   className="inline-flex items-center justify-center rounded-md border border-zinc-700 px-5 py-3 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900"
-                  href="/app"
+                  href="/demo/reviewer"
                 >
                   Open reviewer dashboard
                 </Link>

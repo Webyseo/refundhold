@@ -6,8 +6,8 @@ import { getAppAccessContext } from "@/lib/auth/app-access";
 import { listDashboardActionRequests } from "@/lib/dashboard/data";
 import {
   filterActionRequestsByDashboardStatus,
+  formatRefundRequestAmount,
   formatDateTime,
-  getAmountCurrency,
   getDecisionLabel,
   getImpactSummary,
   getQueueIndicators,
@@ -154,14 +154,12 @@ export async function RefundRequestsPage({
                     request.status === "APPROVAL_REQUIRED";
                   const indicators = getQueueIndicators(request);
                   const isStripeTest = indicators.includes("Stripe test-mode");
-                  const amountCurrency = getAmountCurrency(request.parameters);
                   const amount =
-                    amountCurrency.amount && amountCurrency.currency
-                      ? `${amountCurrency.amount} ${amountCurrency.currency}`
-                      : getImpactSummary({
-                          operation: request.operation,
-                          parameters: request.parameters,
-                        });
+                    formatRefundRequestAmount(request.parameters) ??
+                    getImpactSummary({
+                      operation: request.operation,
+                      parameters: request.parameters,
+                    });
                   const stripeModeLabel = getStripeModeLabel({
                     connectorType: request.connector?.type,
                     isStripeTest,

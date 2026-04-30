@@ -37,13 +37,12 @@ const localCommands = [
 
 const nextSteps = [
   "Onboarding flow for first held refund",
-  "Stripe test-mode setup page",
+  "Stripe test-mode setup",
   "Short public API reference",
 ];
 
 const demoKeyItems = [
   "Set REFUNDHOLD_DEMO_AGENT_API_KEY in .env before running the demo seed.",
-  "Legacy AUTHRAIL_DEMO_AGENT_API_KEY remains supported during the transition.",
   "Use a private local value in the demo format ar_demo_<prefix>_<secret>.",
   "Run pnpm db:seed:demo after setting or changing the key so RefundHold stores the matching hash.",
   "Use that same value as Bearer <agent_api_key> when calling /api/v1/refund-requests.",
@@ -96,9 +95,9 @@ export default function QuickstartPage() {
             </Link>
             <Link
               className="inline-flex items-center justify-center rounded-md border border-zinc-700 px-5 py-3 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900"
-              href="/app/refund-requests"
+              href="/demo/reviewer"
             >
-              Open reviewer dashboard
+              View reviewer dashboard demo
             </Link>
           </div>
         </div>
@@ -146,12 +145,20 @@ export default function QuickstartPage() {
               The public demo requires no login, no password, no API key, and
               does not move real money.
             </p>
-            <Link
-              className="mt-5 inline-flex items-center justify-center rounded-md bg-emerald-300 px-4 py-2.5 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200"
-              href="/demo"
-            >
-              Open public demo
-            </Link>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <Link
+                className="inline-flex items-center justify-center rounded-md bg-emerald-300 px-4 py-2.5 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200"
+                href="/demo"
+              >
+                Open public demo
+              </Link>
+              <Link
+                className="inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2.5 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900"
+                href="/demo/reviewer"
+              >
+                View reviewer dashboard demo
+              </Link>
+            </div>
           </QuickstartSection>
         </div>
 
@@ -208,10 +215,41 @@ export default function QuickstartPage() {
             </p>
           </QuickstartSection>
 
+          <QuickstartSection title="Prepare Stripe test-mode">
+            <p className="text-sm leading-6 text-zinc-300">
+              The quickstart uses demo simulation. Before a controlled
+              technical pilot, review the Stripe test-mode setup runbook for
+              required settings, restricted test keys, Stripe test objects,
+              webhooks, and live-refunds-blocked checks.
+            </p>
+            <Link
+              className="mt-5 inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2.5 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900"
+              href="/docs/stripe-test-mode"
+            >
+              Stripe test-mode setup
+            </Link>
+          </QuickstartSection>
+
+          <QuickstartSection title="Prevent bypass">
+            <p className="text-sm leading-6 text-zinc-300">
+              Before a technical pilot, confirm the AI support agent does not
+              hold Stripe keys and sends refund proposals to RefundHold instead
+              of calling Stripe directly.
+            </p>
+            <Link
+              className="mt-5 inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2.5 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900"
+              href="/docs/prevent-bypass"
+            >
+              Read bypass prevention
+            </Link>
+          </QuickstartSection>
+
           <QuickstartSection title="Review the held refund">
             <p className="text-sm leading-6 text-zinc-300">
               Refunds that need human approval appear in the reviewer
-              dashboard.
+              dashboard. The public reviewer dashboard demo is read-only. The
+              private app dashboard requires demo access or an authenticated
+              reviewer session.
             </p>
             <div className="mt-4 space-y-2 text-sm leading-6 text-zinc-400">
               <p>Approve: POST /api/v1/refund-requests/[id]/approve</p>
@@ -225,7 +263,7 @@ export default function QuickstartPage() {
               className="mt-5 inline-flex items-center justify-center rounded-md bg-emerald-300 px-4 py-2.5 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200"
               href="/app/refund-requests"
             >
-              Open reviewer dashboard
+              Open private reviewer dashboard
             </Link>
           </QuickstartSection>
 

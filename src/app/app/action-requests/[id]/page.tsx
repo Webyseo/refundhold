@@ -10,9 +10,9 @@ import {
   formatJson,
   getActionRequestControls,
   getImpactSummary,
+  getRefundReviewDisplay,
   getStripeTestRefundViewModel,
-  type DashboardDecision,
-  type DashboardStatus,
+  type DashboardRefundReviewDisplay,
 } from "@/lib/dashboard/view-model";
 
 export const dynamic = "force-dynamic";
@@ -38,7 +38,7 @@ export default async function ActionRequestDetailPage({
   return RefundRequestDetailPage({
     params,
     searchParams,
-    routeBase: "/app/refund-requests",
+    routeBase: "/app/action-requests",
   });
 }
 
@@ -75,6 +75,7 @@ export async function RefundRequestDetailPage({
     status: request.status,
   });
   const stripeTestRefund = getStripeTestRefundViewModel(request);
+  const reviewDisplay = getRefundReviewDisplay(request);
   const impactSummary = getImpactSummary({
     operation: request.operation,
     parameters: request.parameters,
@@ -83,45 +84,26 @@ export async function RefundRequestDetailPage({
     parameters: request.parameters,
     context: request.context,
   });
-  const reviewerEvidence = getReviewerEvidence({
-    auditEvents: request.auditEvents,
-    context: request.context,
-    parameters: request.parameters,
-  });
-  const refundAmount =
-    stripeTestRefund?.paymentObject?.proposedRefundAmount ??
-    stripeTestRefund?.refund?.amount ??
-    demoDetails.refundAmount;
-  const safetyLabel = stripeTestRefund ? "Stripe safety" : "Demo simulation";
-  const safetyValue = stripeTestRefund
-    ? "Test mode only; no live Stripe API calls and no real money movement."
-    : demoDetails.dryRun;
-  const summaryAmount = formatRefundAmountForSentence({
-    parameters: request.parameters,
-    fallback: refundAmount,
-  });
-  const summarySentence = summaryAmount
-    ? `AI support agent proposed a ${summaryAmount} Stripe refund.`
+  const safetyLabel =
+    reviewDisplay.modeLabel === "Stripe test-mode"
+      ? "Stripe safety"
+      : reviewDisplay.modeLabel;
+  const safetyValue =
+    reviewDisplay.modeLabel === "Stripe test-mode"
+      ? "Test mode only; no live Stripe API calls and no real money movement."
+      : reviewDisplay.modeLabel === "Live refunds blocked"
+        ? "Live refunds are blocked in v1."
+        : demoDetails.dryRun;
+  const summarySentence = reviewDisplay.amount
+    ? `AI support agent proposed a ${reviewDisplay.amount} Stripe refund.`
     : "AI support agent proposed a Stripe refund.";
-  const statusLabel = getReviewerStatusLabel({
-    decision: request.decision,
-    status: request.status,
-  });
-  const auditTrail = getReadableAuditTrail({
-    status: request.status,
-    auditEvents: request.auditEvents,
-  });
-  const nextSafeAction = getReviewerStatusDescription({
-    decision: request.decision,
-    status: request.status,
-  });
   const success = getSearchMessage(notices["success"]);
   const error = getSearchMessage(notices["error"]);
 
   return (
     <section className="mx-auto max-w-7xl px-5 py-8 sm:px-8">
       <Link
-        href="/app/refund-requests"
+        href={routeBase}
         className="text-sm font-medium text-emerald-700 hover:text-emerald-900"
       >
         Back to refund requests
@@ -145,34 +127,26 @@ export async function RefundRequestDetailPage({
           <div className="mt-3 space-y-2 text-sm leading-6 text-zinc-700">
             <p>{summarySentence}</p>
             <p>
-              RefundHold held it because your policy requires human approval for
-              refunds between $50 and $500.
+              RefundHold evaluated the refund proposal against your refund
+              policy before it could continue.
             </p>
           </div>
-          <div className="mt-5 rounded-md border border-amber-200/50 bg-amber-50/50 p-4">
-            <h3 className="text-sm font-semibold text-amber-900">
-              AI agent rationale
-            </h3>
-            <p className="mt-2 text-sm leading-6 text-amber-900">
-              {reviewerEvidence.rationale}
-            </p>
-            {reviewerEvidence.riskReason ? (
-              <p className="mt-2 text-sm font-medium text-amber-900">
-                Risk assessment: {reviewerEvidence.riskReason}
-              </p>
-            ) : null}
-            {reviewerEvidence.technicalReason ? (
-              <p className="mt-2 text-xs font-medium uppercase tracking-wide text-amber-800">
-                Stripe reason: {reviewerEvidence.technicalReason}
-              </p>
-            ) : null}
-          </div>
+        </section>
 
-          <dl className="mt-5 grid gap-4 sm:grid-cols-3">
-            <Detail label="AI support agent" value={request.agent.name} />
-            <Detail label="Refund amount" value={refundAmount} />
-            <Detail label="Customer context" value={demoDetails.customer} />
-          </dl>
+        <section className="rounded-lg border border-zinc-200 bg-white p-5">
+          <h2 className="text-base font-semibold text-zinc-950">
+            What the AI agent says
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-zinc-700">
+            {reviewDisplay.aiJustification}
+          </p>
+        </section>
+
+        <section className="rounded-lg border border-zinc-200 bg-white p-5">
+          <h2 className="text-base font-semibold text-zinc-950">
+            Customer and order context
+          </h2>
+          <ReadableDetails items={reviewDisplay.customerContext} />
         </section>
 
         <ActionRequestControlsPanel
@@ -187,43 +161,42 @@ export async function RefundRequestDetailPage({
           <h2 className="text-base font-semibold text-zinc-950">
             Policy matched
           </h2>
-          <p className="mt-3 text-lg font-semibold text-zinc-950">
-            $50–$500 → human approval required
-          </p>
-          <p className="mt-2 text-sm leading-6 text-zinc-600">
-            RefundHold requires a reviewer decision before this refund can
-            continue.
+          <ReadableDetails items={reviewDisplay.statusItems} />
+          {reviewDisplay.policyDescription ? (
+            <p className="mt-5 rounded-md border border-zinc-200 bg-zinc-50 p-3 text-sm leading-6 text-zinc-700">
+              {reviewDisplay.policyDescription}
+            </p>
+          ) : null}
+          <p className="mt-4 text-sm font-medium text-zinc-700">
+            {reviewDisplay.modeLabel} · no real money moved.
           </p>
         </section>
 
         <section className="rounded-lg border border-zinc-200 bg-white p-5">
-          <h2 className="text-base font-semibold text-zinc-950">
-            Current status
-          </h2>
-          <p className="mt-3 w-fit rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-900">
-            {statusLabel}
-          </p>
-          <p className="mt-3 text-sm leading-6 text-zinc-600">
-            {nextSafeAction}
-          </p>
-          <p className="mt-2 text-sm font-medium text-zinc-700">
-            {stripeTestRefund ? "Stripe test-mode" : "Demo simulation"} · No
-            real money moved.
-          </p>
+          <h2 className="text-base font-semibold text-zinc-950">Evidence</h2>
+          <ReadableDetails items={reviewDisplay.evidence} />
         </section>
 
         <section className="rounded-lg border border-zinc-200 bg-white p-5">
           <h2 className="text-base font-semibold text-zinc-950">Audit trail</h2>
           <ol className="mt-4 space-y-3">
-            {auditTrail.map((item, index) => (
+            {reviewDisplay.auditTrail.map((item) => (
               <li
-                className="flex gap-3 text-sm text-zinc-700"
-                key={`${item}-${index}`}
+                className="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700"
+                key={item.id}
               >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-semibold text-emerald-900">
-                  {index + 1}
-                </span>
-                <span className="pt-0.5">{item}</span>
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="font-semibold text-zinc-950">{item.label}</p>
+                  <p className="text-xs font-medium text-zinc-500">
+                    {item.timestamp}
+                  </p>
+                </div>
+                <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  {item.actor}
+                </p>
+                {item.description ? (
+                  <p className="mt-2 leading-6">{item.description}</p>
+                ) : null}
               </li>
             ))}
           </ol>
@@ -239,6 +212,30 @@ export async function RefundRequestDetailPage({
         />
       </div>
     </section>
+  );
+}
+
+function ReadableDetails({
+  items,
+}: {
+  items: DashboardRefundReviewDisplay["customerContext"];
+}) {
+  return (
+    <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {items.map((item) => (
+        <div
+          className="rounded-md border border-zinc-200 bg-zinc-50 p-3"
+          key={item.label}
+        >
+          <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            {item.label}
+          </dt>
+          <dd className="mt-1 text-sm font-semibold text-zinc-950">
+            {item.value}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -532,218 +529,6 @@ function Notice({
 
 function EmptyLine({ children }: { children: React.ReactNode }) {
   return <p className="mt-4 text-sm text-zinc-500">{children}</p>;
-}
-
-function formatRefundAmountForSentence({
-  fallback,
-  parameters,
-}: {
-  fallback: string | null;
-  parameters: unknown;
-}): string | null {
-  const parameterRecord = isRecord(parameters) ? parameters : {};
-  const amount = parameterRecord["amount"];
-  const currency = parameterRecord["currency"];
-
-  if (typeof amount === "number" && typeof currency === "string") {
-    const normalizedCurrency = currency.trim().toUpperCase();
-
-    if (normalizedCurrency === "USD") {
-      return `$${new Intl.NumberFormat("en").format(amount)}`;
-    }
-
-    return `${new Intl.NumberFormat("en").format(amount)} ${normalizedCurrency}`;
-  }
-
-  return fallback;
-}
-
-function getReviewerStatusLabel({
-  decision,
-  status,
-}: {
-  decision: DashboardDecision;
-  status: DashboardStatus;
-}): string {
-  if (decision === "DENY" || status === "DENIED" || status === "CANCELED") {
-    return "Blocked";
-  }
-
-  if (decision === "APPROVAL_REQUIRED" && status === "APPROVAL_REQUIRED") {
-    return "Waiting for human approval";
-  }
-
-  if (status === "APPROVED") {
-    return "Approved";
-  }
-
-  if (status === "REJECTED") {
-    return "Rejected";
-  }
-
-  if (status === "EXECUTED") {
-    return "Executed";
-  }
-
-  if (status === "FAILED") {
-    return "Failed";
-  }
-
-  return "Waiting for human approval";
-}
-
-function getReviewerStatusDescription({
-  decision,
-  status,
-}: {
-  decision: DashboardDecision;
-  status: DashboardStatus;
-}): string {
-  if (decision === "DENY" || status === "DENIED" || status === "CANCELED") {
-    return "RefundHold blocked this refund before it could continue.";
-  }
-
-  if (decision === "APPROVAL_REQUIRED" && status === "APPROVAL_REQUIRED") {
-    return "A human reviewer must approve or reject this refund before it can continue.";
-  }
-
-  if (status === "APPROVED") {
-    return "The human reviewer approved this refund. Demo execution can be recorded separately.";
-  }
-
-  if (status === "REJECTED") {
-    return "The human reviewer rejected this refund, so it cannot continue.";
-  }
-
-  if (status === "EXECUTED") {
-    return "The approved demo execution was recorded for the audit trail.";
-  }
-
-  if (status === "FAILED") {
-    return "RefundHold recorded a failed execution state for review.";
-  }
-
-  return "RefundHold is waiting for the next safe reviewer action.";
-}
-
-function getReadableAuditTrail({
-  auditEvents,
-  status,
-}: {
-  auditEvents: RefundRequestDetail["auditEvents"];
-  status: DashboardStatus;
-}): string[] {
-  const trail = [
-    "Request received from AI agent",
-    "Policy evaluated",
-    "Human approval requested",
-  ];
-
-  if (status === "APPROVED" || status === "EXECUTED" || status === "FAILED") {
-    trail.push("Human reviewer approved the refund");
-  }
-
-  if (status === "REJECTED") {
-    trail.push("Human reviewer rejected the refund");
-  }
-
-  if (status === "EXECUTED") {
-    trail.push("Demo execution recorded");
-  }
-
-  if (status === "FAILED") {
-    trail.push("Execution failed");
-  }
-
-  if (auditEvents.length > trail.length) {
-    trail.push("Additional audit events recorded in Developer details");
-  }
-
-  return trail;
-}
-
-function getReviewerEvidence({
-  auditEvents,
-  context,
-  parameters,
-}: {
-  auditEvents: RefundRequestDetail["auditEvents"];
-  context: unknown;
-  parameters: unknown;
-}): {
-  rationale: string;
-  riskReason: string | null;
-  technicalReason: string | null;
-} {
-  const contextRecord = isRecord(context) ? context : {};
-  const aiAgent = isRecord(contextRecord["ai_agent"])
-    ? contextRecord["ai_agent"]
-    : {};
-  const risk = isRecord(contextRecord["risk"]) ? contextRecord["risk"] : {};
-  const parameterRecord = isRecord(parameters) ? parameters : {};
-  const technicalReason =
-    readString(parameterRecord["reason"]) ??
-    readString(contextRecord["reason"]);
-
-  const rationale =
-    readString(aiAgent["rationale"]) ??
-    readString(contextRecord["ai_agent_reason"]) ??
-    readString(contextRecord["customer_message"]) ??
-    readAuditMetadataString(auditEvents, "customer_message") ??
-    humanizeRefundReason(technicalReason) ??
-    "No customer-facing rationale was provided by the agent.";
-
-  const riskLabel = readString(risk["label"]);
-  const riskScore = typeof risk["score"] === "number" ? risk["score"] : null;
-  const riskReason =
-    readString(contextRecord["risk_reason"]) ??
-    (riskLabel && riskScore !== null
-      ? `${riskLabel} risk; score ${riskScore}`
-      : null);
-
-  return {
-    rationale,
-    riskReason,
-    technicalReason:
-      technicalReason && technicalReason !== rationale
-        ? humanizeRefundReason(technicalReason) ?? technicalReason
-        : null,
-  };
-}
-
-function readAuditMetadataString(
-  auditEvents: RefundRequestDetail["auditEvents"],
-  key: string,
-): string | null {
-  for (const event of auditEvents) {
-    const metadata = isRecord(event.metadata) ? event.metadata : {};
-    const value = readString(metadata[key]);
-
-    if (value) {
-      return value;
-    }
-  }
-
-  return null;
-}
-
-function humanizeRefundReason(reason: string | null): string | null {
-  switch (reason) {
-    case "requested_by_customer":
-      return "Customer requested a refund; reviewer should confirm the support evidence before approving.";
-    case "duplicate":
-      return "The AI agent detected a possible duplicate charge and requested a refund.";
-    case "fraudulent":
-      return "The AI agent flagged the payment as potentially fraudulent and requested a refund review.";
-    default:
-      return reason;
-  }
-}
-
-function readString(value: unknown): string | null {
-  return typeof value === "string" && value.trim().length > 0
-    ? value.trim()
-    : null;
 }
 
 function getSearchMessage(value: string | string[] | undefined): string | null {

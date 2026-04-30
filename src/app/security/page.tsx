@@ -148,6 +148,18 @@ export default function SecurityPage() {
               </Link>
               <Link
                 className="inline-flex w-full items-center justify-center rounded-md border border-zinc-700 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-zinc-500 hover:bg-zinc-900"
+                href="/docs/prevent-bypass"
+              >
+                Read bypass prevention
+              </Link>
+              <Link
+                className="inline-flex w-full items-center justify-center rounded-md border border-zinc-700 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-zinc-500 hover:bg-zinc-900"
+                href="/docs/stripe-test-mode"
+              >
+                Read test-mode setup
+              </Link>
+              <Link
+                className="inline-flex w-full items-center justify-center rounded-md border border-zinc-700 px-4 py-3 text-sm font-semibold text-zinc-100 hover:border-zinc-500 hover:bg-zinc-900"
                 href="/docs/quickstart"
               >
                 Read 5-minute setup
