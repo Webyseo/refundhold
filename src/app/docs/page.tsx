@@ -41,7 +41,7 @@ export default function DocsIndexPage() {
   return (
     <main className="docs-page min-h-screen overflow-x-clip bg-zinc-950 text-zinc-50">
       <PublicHeader />
-      <section className="mx-auto max-w-6xl px-6 py-12">
+      <section className="mx-auto max-w-5xl px-6 py-12">
         <div className="max-w-4xl">
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">
             RefundHold docs

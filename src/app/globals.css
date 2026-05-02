@@ -15,17 +15,18 @@ textarea:focus-visible {
   box-sizing: border-box;
 }
 
-.docs-page section,
-.docs-page aside,
-.docs-page div,
-.docs-page nav,
-.docs-page article,
-.docs-page dl,
-.docs-page ul,
-.docs-page ol,
-.docs-page li,
-.docs-page p {
-  max-width: 100%;
+:where(
+  .docs-page section,
+  .docs-page aside,
+  .docs-page div,
+  .docs-page nav,
+  .docs-page article,
+  .docs-page dl,
+  .docs-page ul,
+  .docs-page ol,
+  .docs-page li,
+  .docs-page p
+) {
   min-width: 0;
 }
 

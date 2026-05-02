@@ -13,8 +13,8 @@ const linkClass =
 
 export function PublicHeader() {
   return (
-    <header className="border-b border-zinc-900 bg-zinc-950 px-6 text-zinc-50">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 py-4">
+    <header className="border-b border-zinc-900 bg-zinc-950 text-zinc-50">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
         <Link
           className="inline-flex min-h-11 items-center rounded-md text-sm font-semibold uppercase tracking-[0.2em] text-emerald-300 transition hover:text-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
           href="/"

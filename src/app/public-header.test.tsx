@@ -15,5 +15,7 @@ describe("PublicHeader", () => {
     expect(html).toContain("href=\"/security\"");
     expect(html).toContain("href=\"/contact\"");
     expect(html).toContain("aria-label=\"Open navigation menu\"");
+    expect(html).toContain("max-w-7xl");
+    expect(html).toContain("px-6");
   });
 });
