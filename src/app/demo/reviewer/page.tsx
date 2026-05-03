@@ -25,13 +25,11 @@ type DemoRefund = {
 };
 
 const summaryCards = [
-  ["Needs review", "2"],
-  ["Approved today", "2"],
-  ["Blocked by policy", "1"],
-  ["Demo/test executions recorded", "2"],
+  ["Needs review", "2", "Waiting for a human decision"],
+  ["Approved today", "2", "Reviewer decisions recorded"],
+  ["Blocked by policy", "1", "Stopped before execution"],
+  ["Demo/test executions recorded", "2", "Evidence captured without live money"],
 ];
-
-const filterLabels = ["Needs review", "Approved", "Rejected", "Executed", "Blocked"];
 
 const demoRefunds: DemoRefund[] = [
   {
@@ -238,24 +236,34 @@ export default function ReviewerDemoPage() {
               </p>
             </div>
             <p className="w-fit rounded-full border border-emerald-200/40 bg-zinc-950/60 px-3 py-1 text-sm font-semibold text-emerald-100">
-              Static curated fake data
+              Read-only sample data
             </p>
           </div>
         </section>
 
-        <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Operational summary">
-          {summaryCards.map(([label, value]) => (
+        <section
+          className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+          aria-label="Operational summary"
+        >
+          {summaryCards.map(([label, value, description]) => (
             <article
-              className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4"
+              className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-5"
               key={label}
             >
-              <p className="text-sm font-medium text-zinc-300">{label}</p>
-              <p className="mt-2 text-3xl font-semibold text-zinc-50">{value}</p>
+              <div className="flex items-start justify-between gap-4">
+                <p className="text-sm font-semibold text-zinc-200">{label}</p>
+                <p className="text-3xl font-semibold leading-none text-zinc-50">
+                  {value}
+                </p>
+              </div>
+              <p className="mt-4 text-sm leading-6 text-zinc-400">
+                {description}
+              </p>
             </article>
           ))}
         </section>
 
-        <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_minmax(420px,0.95fr)] xl:items-start">
+        <div className="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(420px,0.88fr)] xl:items-start">
           <section className="rounded-lg border border-zinc-800 bg-zinc-900/60">
             <div className="border-b border-zinc-800 p-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -268,72 +276,24 @@ export default function ReviewerDemoPage() {
                   </h2>
                 </div>
                 <p className="text-sm font-medium text-zinc-300">
-                  {demoRefunds.length} static demo requests
+                  {demoRefunds.length} read-only sample requests
                 </p>
               </div>
-
-              <div className="mt-5 rounded-md border border-zinc-800 bg-zinc-950/60 p-4">
-                <div className="flex flex-col gap-4">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-zinc-300">
-                      Filter
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-2" aria-label="Static demo filters">
-                      {filterLabels.map((label) => (
-                        <button
-                          aria-disabled="true"
-                          className="rounded-full border border-zinc-700 px-3 py-1.5 text-sm font-semibold text-zinc-200"
-                          key={label}
-                          type="button"
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
-                    <label className="block">
-                      <span className="text-xs font-semibold uppercase tracking-wide text-zinc-300">
-                        Search
-                      </span>
-                      <input
-                        aria-label="Search customer, refund, or policy"
-                        className="mt-2 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-400"
-                        disabled
-                        placeholder="Search customer, refund, or policy"
-                        type="search"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="text-xs font-semibold uppercase tracking-wide text-zinc-300">
-                        Sort
-                      </span>
-                      <select
-                        aria-label="Sort queue"
-                        className="mt-2 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm font-semibold text-zinc-200"
-                        disabled
-                        value="highest-risk"
-                      >
-                        <option value="highest-risk">Highest risk first</option>
-                      </select>
-                    </label>
-                  </div>
-                  <p className="text-xs leading-5 text-zinc-400">
-                    Demo view: controls are visual only and do not change the
-                    static queue.
-                  </p>
-                </div>
-              </div>
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-400">
+                Each card shows the decision signal a reviewer scans first:
+                amount, status, risk, customer context, SLA, owner, and the next
+                action or outcome.
+              </p>
             </div>
 
-            <div className="divide-y divide-zinc-800">
+            <div className="space-y-3 p-4 sm:p-5">
               {demoRefunds.map((refund) => (
                 <RefundQueueItem key={refund.id} refund={refund} />
               ))}
             </div>
           </section>
 
-          <div className="space-y-6">
+          <div className="space-y-6 xl:sticky xl:top-6">
             <section className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
@@ -433,66 +393,49 @@ export default function ReviewerDemoPage() {
 }
 
 function RefundQueueItem({ refund }: { refund: DemoRefund }) {
-  return (
-    <article className="p-5 transition hover:bg-zinc-900">
-      <div className="grid gap-4 lg:grid-cols-[7rem_minmax(9rem,0.8fr)_minmax(0,1fr)_minmax(12rem,0.9fr)] lg:items-start">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-300">
-            Time
-          </p>
-          <p className="mt-1 text-lg font-semibold text-zinc-50">{refund.time}</p>
-          <p className="mt-2 text-xs font-semibold text-zinc-300">
-            {refund.sla}
-          </p>
-        </div>
+  const actionLabel =
+    refund.status === "Needs review" || refund.status === "Blocked"
+      ? "Next:"
+      : "Outcome:";
 
-        <div>
-          <p className="text-2xl font-semibold tracking-tight text-zinc-50">
-            {refund.amount}
-          </p>
-          <p className="mt-2 text-sm font-medium text-zinc-300">
+  return (
+    <article className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4 transition hover:border-zinc-700 hover:bg-zinc-950/80">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_12rem] lg:items-start">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="mr-1 text-2xl font-semibold tracking-tight text-zinc-50">
+              {refund.amount}
+            </p>
+            <StatusBadge status={refund.status} />
+            <RiskBadge risk={refund.risk} />
+          </div>
+          <p className="mt-2 break-all text-sm font-semibold text-zinc-200">
             {refund.customer}
           </p>
-          <p className="mt-2 text-xs font-semibold text-zinc-300">{refund.id}</p>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <QueueField label="Main status" value={<StatusBadge status={refund.status} />} />
-          <QueueField label="Policy result" value={refund.policy} />
-          <QueueField label="Risk" value={`${refund.risk} risk`} />
-          <QueueField label="Stripe mode" value={refund.stripeMode} />
-          <QueueField label="Owner" value={refund.owner} />
-          <QueueField label="Priority" value={refund.priority} />
-        </div>
-
-        <div className="rounded-md border border-zinc-800 bg-zinc-950/70 p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-300">
-            Next action or outcome
+          <p className="mt-1 text-sm leading-6 text-zinc-300">
+            {refund.context}
           </p>
-          <p className="mt-2 text-sm font-semibold text-zinc-50">
+          <div className="mt-3 flex flex-wrap gap-x-3 gap-y-2 text-xs font-semibold text-zinc-400">
+            <span>{refund.time}</span>
+            <span aria-hidden="true">·</span>
+            <span>{refund.sla}</span>
+            <span aria-hidden="true">·</span>
+            <span>{refund.owner}</span>
+            <span aria-hidden="true">·</span>
+            <span>{refund.stripeMode}</span>
+          </div>
+        </div>
+
+        <div className="rounded-md border border-zinc-800 bg-zinc-900/70 px-3 py-2">
+          <p className="text-sm leading-6 text-zinc-200">
+            <span className="font-semibold text-emerald-300">
+              {actionLabel}
+            </span>{" "}
             {refund.nextAction}
           </p>
-          <p className="mt-2 text-xs leading-5 text-zinc-300">{refund.context}</p>
         </div>
       </div>
     </article>
-  );
-}
-
-function QueueField({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) {
-  return (
-    <div>
-      <p className="text-xs font-semibold uppercase tracking-wide text-zinc-300">
-        {label}
-      </p>
-      <div className="mt-1 text-sm font-semibold text-zinc-50">{value}</div>
-    </div>
   );
 }
 
@@ -510,6 +453,22 @@ function StatusBadge({ status }: { status: RefundStatus }) {
       className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-xs font-semibold ${styles[status]}`}
     >
       {status}
+    </span>
+  );
+}
+
+function RiskBadge({ risk }: { risk: RiskLevel }) {
+  const styles: Record<RiskLevel, string> = {
+    Low: "border-sky-300/40 bg-sky-300/10 text-sky-100",
+    Medium: "border-amber-300/40 bg-amber-300/10 text-amber-100",
+    High: "border-red-300/40 bg-red-300/10 text-red-100",
+  };
+
+  return (
+    <span
+      className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-xs font-semibold ${styles[risk]}`}
+    >
+      {risk} risk
     </span>
   );
 }

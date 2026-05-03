@@ -4,26 +4,35 @@ import { describe, expect, it } from "vitest";
 import ReviewerDemoPage from "./page";
 
 describe("public reviewer demo page", () => {
-  it("renders a public read-only reviewer dashboard with curated refund evidence", () => {
+  it("renders a public read-only reviewer dashboard with a cleaner inbox queue", () => {
     const html = renderToStaticMarkup(<ReviewerDemoPage />);
 
     expect(html).toContain("Reviewer dashboard demo");
     expect(html).toContain("Read-only demo");
     expect(html).toContain("No login required. No Stripe calls.");
+    expect(html).toContain("Read-only sample data");
+    expect(html).not.toContain("Static curated fake data");
     expect(html).toContain("billing-upgrade@example.test");
+    expect(html).toContain("Possible duplicate charge after plan upgrade");
     expect(html).toContain("demo-refund-420");
     expect(html).toContain("$50-$500 -&gt; human approval required");
     expect(html).toContain("Demo simulation");
     expect(html).toContain("Stripe test-mode");
     expect(html).toContain("Needs review");
+    expect(html).toContain("Medium risk");
+    expect(html).toContain("Next:");
+    expect(html).toContain("Review duplicate billing claim");
     expect(html).toContain("Approved today");
     expect(html).toContain("Blocked by policy");
     expect(html).toContain("Demo/test executions recorded");
-    expect(html).toContain("Search customer, refund, or policy");
-    expect(html).toContain("Highest risk first");
     expect(html).toContain("Finance reviewer");
     expect(html).toContain("Due in 12 min");
     expect(html).toContain("Priority");
+    expect(html).not.toContain("Main status");
+    expect(html).not.toContain("Policy result");
+    expect(html).not.toContain("Next action or outcome");
+    expect(html).not.toContain("Search customer, refund, or policy");
+    expect(html).not.toContain("Highest risk first");
     expect(html).toContain("Customer says they were charged twice after upgrading their plan and asks for a refund before the next billing cycle.");
     expect(html).toContain("Order ID");
     expect(html).toContain("order_demo_420");
@@ -33,6 +42,8 @@ describe("public reviewer demo page", () => {
     expect(html).toContain("$420.00 USD");
     expect(html).toContain("Previous refunds");
     expect(html).toContain("None in last 90 days");
+    expect(html).toContain("Evidence");
+    expect(html).toContain("Audit trail");
     expect(html).toContain("What happens next");
     expect(html).toContain("RefundHold records the reviewer decision.");
     expect(html).toContain("The refund cannot continue automatically.");
