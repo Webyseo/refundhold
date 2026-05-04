@@ -6,12 +6,22 @@ const navLinks = [
   ["Docs", "/docs"],
   ["Security", "/security"],
   ["Contact", "/contact"],
-];
+] as const;
 
 const linkClass =
   "inline-flex min-h-11 items-center rounded-md px-3 py-2 text-sm font-semibold text-zinc-300 transition hover:bg-zinc-900 hover:text-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950";
 
-export function PublicHeader() {
+const activeLinkClass =
+  "bg-zinc-900 text-zinc-50 ring-1 ring-zinc-800";
+
+const footerLinks = [
+  ["Contact", "/contact"],
+  ["Security", "/security"],
+  ["Privacy", "/privacy"],
+  ["Terms", "/terms"],
+] as const;
+
+export function PublicHeader({ currentPath }: { currentPath?: string }) {
   return (
     <header className="border-b border-zinc-900 bg-zinc-950 text-zinc-50">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
@@ -23,11 +33,20 @@ export function PublicHeader() {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
-          {navLinks.map(([label, href]) => (
-            <Link className={linkClass} href={href} key={href}>
-              {label}
-            </Link>
-          ))}
+          {navLinks.map(([label, href]) => {
+            const active = isActivePublicPath(currentPath, href);
+
+            return (
+              <Link
+                aria-current={active ? "page" : undefined}
+                className={`${linkClass} ${active ? activeLinkClass : ""}`}
+                href={href}
+                key={href}
+              >
+                {label}
+              </Link>
+            );
+          })}
         </nav>
 
         <details className="group relative md:hidden">
@@ -46,18 +65,64 @@ export function PublicHeader() {
             aria-label="Mobile primary"
             className="absolute right-0 z-20 mt-3 w-[min(18rem,calc(100vw-3rem))] rounded-lg border border-zinc-800 bg-zinc-950 p-2 shadow-2xl shadow-black/40"
           >
-            {navLinks.map(([label, href]) => (
-              <Link
-                className={`${linkClass} w-full justify-start`}
-                href={href}
-                key={href}
-              >
-                {label}
-              </Link>
-            ))}
+            {navLinks.map(([label, href]) => {
+              const active = isActivePublicPath(currentPath, href);
+
+              return (
+                <Link
+                  aria-current={active ? "page" : undefined}
+                  className={`${linkClass} w-full justify-start ${
+                    active ? activeLinkClass : ""
+                  }`}
+                  href={href}
+                  key={href}
+                >
+                  {label}
+                </Link>
+              );
+            })}
           </nav>
         </details>
       </div>
     </header>
   );
+}
+
+export function PublicFooter() {
+  return (
+    <footer className="border-t border-zinc-900 bg-zinc-950 text-zinc-400">
+      <div className="mx-auto grid max-w-7xl gap-5 px-6 py-8 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-start">
+        <nav
+          aria-label="Footer"
+          className="flex flex-wrap items-center gap-x-5 gap-y-3 text-sm font-semibold"
+        >
+          {footerLinks.map(([label, href]) => (
+            <Link
+              className="rounded-md transition hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+              href={href}
+              key={href}
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
+        <p className="text-sm leading-6 text-zinc-400 lg:text-right xl:whitespace-nowrap">
+          RefundHold is not affiliated with, endorsed by, or sponsored by
+          Stripe. Stripe is a trademark of Stripe, Inc.
+        </p>
+      </div>
+    </footer>
+  );
+}
+
+function isActivePublicPath(currentPath: string | undefined, href: string) {
+  if (!currentPath) {
+    return false;
+  }
+
+  if (href === "/docs") {
+    return currentPath === "/docs" || currentPath.startsWith("/docs/");
+  }
+
+  return currentPath === href;
 }

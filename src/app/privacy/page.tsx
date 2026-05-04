@@ -1,6 +1,12 @@
 import Link from "next/link";
 
-import { PublicHeader } from "../public-header";
+import { PublicFooter, PublicHeader } from "../public-header";
+import { JsonLd } from "@/components/JsonLd";
+import { createPublicPageMetadata, getPublicSeoPage, webPageJsonLd } from "@/lib/seo";
+
+export const metadata = createPublicPageMetadata("/privacy");
+
+const privacySeo = getPublicSeoPage("/privacy");
 
 const processedData = [
   "refund proposal details",
@@ -24,7 +30,15 @@ const demoLimits = [
 export default function PrivacyPage() {
   return (
     <main className="min-h-screen overflow-x-clip bg-zinc-950 text-zinc-50">
-      <PublicHeader />
+      <JsonLd
+        data={webPageJsonLd({
+          title: privacySeo.title,
+          description: privacySeo.description,
+          path: privacySeo.path,
+          type: "Article",
+        })}
+      />
+      <PublicHeader currentPath="/privacy" />
       <section className="mx-auto max-w-5xl px-6 py-12">
         <div className="max-w-3xl">
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">
@@ -110,6 +124,7 @@ export default function PrivacyPage() {
           </aside>
         </div>
       </section>
+      <PublicFooter />
     </main>
   );
 }

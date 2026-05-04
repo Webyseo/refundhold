@@ -1,7 +1,13 @@
 import Link from "next/link";
 
-import { PublicHeader } from "../../public-header";
+import { PublicFooter, PublicHeader } from "../../public-header";
+import { JsonLd } from "@/components/JsonLd";
+import { createPublicPageMetadata, getPublicSeoPage, webPageJsonLd } from "@/lib/seo";
 import { DocsNavigation } from "../docs-navigation";
+
+export const metadata = createPublicPageMetadata("/docs/prevent-bypass");
+
+const preventBypassSeo = getPublicSeoPage("/docs/prevent-bypass");
 
 const architectureFlow = [
   "Customer asks for refund",
@@ -83,7 +89,15 @@ const productionRequirements = [
 export default function PreventBypassPage() {
   return (
     <main className="docs-page min-h-screen overflow-x-clip bg-zinc-950 text-zinc-50">
-      <PublicHeader />
+      <JsonLd
+        data={webPageJsonLd({
+          title: preventBypassSeo.title,
+          description: preventBypassSeo.description,
+          path: preventBypassSeo.path,
+          type: "TechArticle",
+        })}
+      />
+      <PublicHeader currentPath="/docs/prevent-bypass" />
       <section className="mx-auto max-w-5xl px-6 py-12">
         <div className="max-w-3xl">
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">
@@ -267,6 +281,7 @@ export default function PreventBypassPage() {
           </aside>
         </div>
       </section>
+      <PublicFooter />
     </main>
   );
 }

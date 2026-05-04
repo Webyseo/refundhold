@@ -19,6 +19,10 @@ export default async function DashboardHomePage() {
     return <AppAccessNotice message={access.message} />;
   }
 
+  return <DashboardHomeContent />;
+}
+
+export function DashboardHomeContent() {
   const summaries = [
     { label: "Pending review", value: "3" },
     { label: "Approved", value: "2" },
@@ -70,7 +74,7 @@ export default async function DashboardHomePage() {
 
             <Link
               href="/app/refund-requests?status=pending"
-              className="mt-6 inline-flex rounded-md bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800"
+              className="mt-6 inline-flex rounded-md bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2"
             >
               Review refund
             </Link>
@@ -85,7 +89,7 @@ export default async function DashboardHomePage() {
           </p>
           <Link
             href="/app/onboarding"
-            className="mt-5 inline-flex rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950"
+            className="mt-5 inline-flex rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2"
           >
             Start onboarding
           </Link>

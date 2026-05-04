@@ -1,6 +1,12 @@
 import Link from "next/link";
 
-import { PublicHeader } from "../public-header";
+import { PublicFooter, PublicHeader } from "../public-header";
+import { JsonLd } from "@/components/JsonLd";
+import { createPublicPageMetadata, getPublicSeoPage, webPageJsonLd } from "@/lib/seo";
+
+export const metadata = createPublicPageMetadata("/docs");
+
+const docsSeo = getPublicSeoPage("/docs");
 
 const groups = [
   {
@@ -40,7 +46,15 @@ const groups = [
 export default function DocsIndexPage() {
   return (
     <main className="docs-page min-h-screen overflow-x-clip bg-zinc-950 text-zinc-50">
-      <PublicHeader />
+      <JsonLd
+        data={webPageJsonLd({
+          title: docsSeo.title,
+          description: docsSeo.description,
+          path: docsSeo.path,
+          type: "CollectionPage",
+        })}
+      />
+      <PublicHeader currentPath="/docs" />
       <section className="mx-auto max-w-5xl px-6 py-12">
         <div className="max-w-4xl">
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">
@@ -82,6 +96,7 @@ export default function DocsIndexPage() {
           ))}
         </div>
       </section>
+      <PublicFooter />
     </main>
   );
 }

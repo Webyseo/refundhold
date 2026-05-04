@@ -1,6 +1,12 @@
 import Link from "next/link";
 
-import { PublicHeader } from "../public-header";
+import { PublicFooter, PublicHeader } from "../public-header";
+import { JsonLd } from "@/components/JsonLd";
+import { createPublicPageMetadata, getPublicSeoPage, webPageJsonLd } from "@/lib/seo";
+
+export const metadata = createPublicPageMetadata("/contact");
+
+const contactSeo = getPublicSeoPage("/contact");
 
 const contactEmail = "hello@refundhold.com";
 
@@ -41,7 +47,18 @@ const detailsToSend = [
 export default function ContactPage() {
   return (
     <main className="min-h-screen overflow-x-clip bg-zinc-950 text-zinc-50">
-      <PublicHeader />
+      <JsonLd
+        data={{
+          ...webPageJsonLd({
+            title: contactSeo.title,
+            description: contactSeo.description,
+            path: contactSeo.path,
+            type: "ContactPage",
+          }),
+          email: contactEmail,
+        }}
+      />
+      <PublicHeader currentPath="/contact" />
       <section className="mx-auto max-w-5xl px-6 py-12">
         <div className="max-w-3xl">
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">
@@ -171,6 +188,7 @@ export default function ContactPage() {
           </aside>
         </div>
       </section>
+      <PublicFooter />
     </main>
   );
 }

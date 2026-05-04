@@ -7,11 +7,16 @@ describe("public reviewer demo page", () => {
   it("renders a public read-only reviewer dashboard with a cleaner inbox queue", () => {
     const html = renderToStaticMarkup(<ReviewerDemoPage />);
 
-    expect(html).toContain("Reviewer dashboard demo");
+    expect(html).toContain("Review AI-proposed refunds before they reach Stripe");
     expect(html).toContain("Read-only demo");
     expect(html).toContain("No login required. No Stripe calls.");
     expect(html).toContain("Read-only sample data");
     expect(html).not.toContain("Static curated fake data");
+    expect(html).toContain("Refund request");
+    expect(html).toContain("Review refund");
+    expect(html).toContain("Customer says they were double charged");
+    expect(html).toContain("Requested by");
+    expect(html).toContain("AI support agent");
     expect(html).toContain("billing-upgrade@example.test");
     expect(html).toContain("Possible duplicate charge after plan upgrade");
     expect(html).toContain("demo-refund-420");
@@ -22,9 +27,9 @@ describe("public reviewer demo page", () => {
     expect(html).toContain("Medium risk");
     expect(html).toContain("Next:");
     expect(html).toContain("Review duplicate billing claim");
-    expect(html).toContain("Approved today");
-    expect(html).toContain("Blocked by policy");
-    expect(html).toContain("Demo/test executions recorded");
+    expect(html).toContain("Approved");
+    expect(html).toContain("Rejected");
+    expect(html).toContain("Audit recorded");
     expect(html).toContain("Finance reviewer");
     expect(html).toContain("Due in 12 min");
     expect(html).toContain("Priority");

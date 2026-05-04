@@ -35,6 +35,8 @@ export async function listDashboardActionRequests({
       operation: true,
       resource: true,
       parameters: true,
+      context: true,
+      requestPayload: true,
       decision: true,
       status: true,
       createdAt: true,

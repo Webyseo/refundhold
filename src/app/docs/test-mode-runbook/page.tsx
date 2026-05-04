@@ -1,7 +1,13 @@
 import Link from "next/link";
 
-import { PublicHeader } from "../../public-header";
+import { PublicFooter, PublicHeader } from "../../public-header";
+import { JsonLd } from "@/components/JsonLd";
+import { createPublicPageMetadata, getPublicSeoPage, webPageJsonLd } from "@/lib/seo";
 import { DocsNavigation } from "../docs-navigation";
+
+export const metadata = createPublicPageMetadata("/docs/test-mode-runbook");
+
+const testModeRunbookSeo = getPublicSeoPage("/docs/test-mode-runbook");
 
 const prerequisites = [
   "RefundHold controlled environment is available.",
@@ -25,22 +31,22 @@ const safetyRules = [
 const environmentRows = [
   [
     "RefundHold demo agent API key",
-    "Preferred where supported: REFUNDHOLD_DEMO_AGENT_API_KEY. Legacy fallback during the naming transition: AUTHRAIL_DEMO_AGENT_API_KEY.",
+    "Use the private demo agent API key provided for the controlled environment.",
     "Use a private pilot value. Do not use a Stripe key as the agent key.",
   ],
   [
     "Stripe test-mode enablement",
-    "Current controlled Stripe settings still use legacy environment names such as AUTHRAIL_STRIPE_TEST_MODE_ENABLED and AUTHRAIL_STRIPE_TEST_REFUNDS_ENABLED.",
-    "Use true only in the controlled test-mode environment. Do not enable live refunds.",
+    "Enable Stripe test-mode only in the controlled pilot environment.",
+    "Do not enable live refunds.",
   ],
   [
     "Stripe test secret key",
-    "Current setting: AUTHRAIL_STRIPE_TEST_SECRET_KEY.",
+    "Use a Stripe test-mode secret or restricted test key.",
     "Use a Stripe test-mode secret or restricted test key only. Do not document or paste the value.",
   ],
   [
     "Stripe webhook test secret",
-    "If webhook testing is explicitly in scope: AUTHRAIL_STRIPE_WEBHOOKS_ENABLED and AUTHRAIL_STRIPE_WEBHOOK_TEST_SECRET.",
+    "Configure only the Stripe test webhook signing secret when webhook testing is in scope.",
     "Webhook callbacks are not a stable public pilot dependency.",
   ],
   [
@@ -138,31 +144,10 @@ const demoSimulationCurl = `curl -X POST <base_url>/api/v1/refund-requests \\
 const stripeTestModeCurl = `curl -X POST <base_url>/api/v1/refund-requests \\
   -H "Authorization: Bearer <agent_api_key>" \\
   -H "Content-Type: application/json" \\
-  -d '{
-    "connector": "stripe_test",
-    "action": "refund.create",
-    "resource": "stripe.payment_intent",
-    "parameters": {
-      "payment_intent_id": "pi_test_...",
-      "amount_minor": 10000,
-      "reason": "requested_by_customer"
-    },
-    "context": {
-      "source": "controlled_stripe_pilot",
-      "ai_agent_reason": "Controlled Stripe test-mode refund validation.",
-      "order_summary": "Test order for controlled pilot"
-    }
-  }'`;
+  -d '<controlled Stripe test-mode payload from the pilot handoff>'`;
 
-const chargePayloadNote = `For Charge-based pilots, use the same current controlled pilot shape with:
-{
-  "resource": "stripe.charge",
-  "parameters": {
-    "charge_id": "ch_test_...",
-    "amount_minor": 10000,
-    "reason": "requested_by_customer"
-  }
-}`;
+const chargePayloadNote =
+  "For Charge-based pilots, use only Stripe test-mode Charge IDs supplied in the controlled pilot handoff.";
 
 const createResponse = `{
   "refund_request_id": "ar_123",
@@ -318,7 +303,15 @@ const errorExamples = [
 export default function TestModeRunbookPage() {
   return (
     <main className="docs-page min-h-screen overflow-x-clip bg-zinc-950 text-zinc-50">
-      <PublicHeader />
+      <JsonLd
+        data={webPageJsonLd({
+          title: testModeRunbookSeo.title,
+          description: testModeRunbookSeo.description,
+          path: testModeRunbookSeo.path,
+          type: "TechArticle",
+        })}
+      />
+      <PublicHeader currentPath="/docs/test-mode-runbook" />
       <section className="mx-auto max-w-6xl px-6 py-12">
         <div className="max-w-4xl">
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">
@@ -392,11 +385,9 @@ export default function TestModeRunbookPage() {
                 </p>
                 <p>
                   Keep the test object ID available for the refund proposal.
-                  The current controlled Stripe test-mode payload uses
-                  connector: stripe_test with resource stripe.payment_intent or
-                  stripe.charge. Do not send stripe_mode: stripe_test because
-                  the public shortcut currently supports stripe_mode:
-                  demo_simulation only.
+                  Use the exact controlled Stripe test-mode payload provided in
+                  the pilot handoff. The public shortcut currently supports the
+                  demo simulation request shape only.
                 </p>
               </div>
             </RunbookSection>
@@ -409,7 +400,7 @@ export default function TestModeRunbookPage() {
                   value={demoSimulationCurl}
                 />
                 <PathBlock
-                  body="This path is the current controlled pilot shape for Stripe test-mode. It uses the compatibility payload honestly because stripe_mode: stripe_test is not the implemented public shortcut."
+                  body="This path uses the controlled Stripe test-mode payload provided in the pilot handoff. Do not use live Stripe keys or live object IDs."
                   title="Controlled Stripe test-mode path"
                   value={stripeTestModeCurl}
                 />
@@ -616,6 +607,7 @@ export default function TestModeRunbookPage() {
           </aside>
         </div>
       </section>
+      <PublicFooter />
     </main>
   );
 }

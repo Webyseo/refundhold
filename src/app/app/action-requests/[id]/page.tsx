@@ -38,7 +38,7 @@ export default async function ActionRequestDetailPage({
   return RefundRequestDetailPage({
     params,
     searchParams,
-    routeBase: "/app/action-requests",
+    routeBase: "/app/refund-requests",
   });
 }
 
@@ -97,6 +97,15 @@ export async function RefundRequestDetailPage({
   const summarySentence = reviewDisplay.amount
     ? `AI support agent proposed a ${reviewDisplay.amount} Stripe refund.`
     : "AI support agent proposed a Stripe refund.";
+  const policySummary =
+    reviewDisplay.policyDescription ??
+    "RefundHold held it because your policy requires human approval for refunds between $50 and $500.";
+  const currentStatus =
+    getReadableDetailValue(reviewDisplay.statusItems, "Current status") ??
+    "Waiting for human approval";
+  const policyResult =
+    getReadableDetailValue(reviewDisplay.statusItems, "Policy result") ??
+    "Human approval required";
   const success = getSearchMessage(notices["success"]);
   const error = getSearchMessage(notices["error"]);
 
@@ -126,27 +135,16 @@ export async function RefundRequestDetailPage({
           <h2 className="text-base font-semibold text-zinc-950">Summary</h2>
           <div className="mt-3 space-y-2 text-sm leading-6 text-zinc-700">
             <p>{summarySentence}</p>
-            <p>
-              RefundHold evaluated the refund proposal against your refund
-              policy before it could continue.
+            <p>{policySummary}</p>
+          </div>
+          <div className="mt-5 rounded-md border border-zinc-200 bg-zinc-50 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              Reason
+            </p>
+            <p className="mt-1 text-sm leading-6 text-zinc-700">
+              {reviewDisplay.aiJustification}
             </p>
           </div>
-        </section>
-
-        <section className="rounded-lg border border-zinc-200 bg-white p-5">
-          <h2 className="text-base font-semibold text-zinc-950">
-            What the AI agent says
-          </h2>
-          <p className="mt-3 text-sm leading-6 text-zinc-700">
-            {reviewDisplay.aiJustification}
-          </p>
-        </section>
-
-        <section className="rounded-lg border border-zinc-200 bg-white p-5">
-          <h2 className="text-base font-semibold text-zinc-950">
-            Customer and order context
-          </h2>
-          <ReadableDetails items={reviewDisplay.customerContext} />
         </section>
 
         <ActionRequestControlsPanel
@@ -161,20 +159,24 @@ export async function RefundRequestDetailPage({
           <h2 className="text-base font-semibold text-zinc-950">
             Policy matched
           </h2>
-          <ReadableDetails items={reviewDisplay.statusItems} />
-          {reviewDisplay.policyDescription ? (
-            <p className="mt-5 rounded-md border border-zinc-200 bg-zinc-50 p-3 text-sm leading-6 text-zinc-700">
-              {reviewDisplay.policyDescription}
-            </p>
-          ) : null}
-          <p className="mt-4 text-sm font-medium text-zinc-700">
-            {reviewDisplay.modeLabel} · no real money moved.
+          <p className="mt-3 text-sm leading-6 text-zinc-700">
+            {policySummary}
+          </p>
+          <p className="mt-4 w-fit rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900">
+            {policyResult}
           </p>
         </section>
 
         <section className="rounded-lg border border-zinc-200 bg-white p-5">
-          <h2 className="text-base font-semibold text-zinc-950">Evidence</h2>
-          <ReadableDetails items={reviewDisplay.evidence} />
+          <h2 className="text-base font-semibold text-zinc-950">
+            Current status
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-zinc-700">
+            {currentStatus}
+          </p>
+          <p className="mt-4 text-sm font-medium text-zinc-700">
+            {reviewDisplay.modeLabel} · no real money moved.
+          </p>
         </section>
 
         <section className="rounded-lg border border-zinc-200 bg-white p-5">
@@ -206,6 +208,7 @@ export async function RefundRequestDetailPage({
           demoDetails={demoDetails}
           impactSummary={impactSummary}
           request={request}
+          reviewDisplay={reviewDisplay}
           safetyLabel={safetyLabel}
           safetyValue={safetyValue}
           stripeTestRefund={stripeTestRefund}
@@ -213,6 +216,13 @@ export async function RefundRequestDetailPage({
       </div>
     </section>
   );
+}
+
+function getReadableDetailValue(
+  items: Array<{ label: string; value: string }>,
+  label: string,
+): string | null {
+  return items.find((item) => item.label === label)?.value ?? null;
 }
 
 function ReadableDetails({
@@ -254,6 +264,7 @@ function DeveloperDetails({
   demoDetails,
   impactSummary,
   request,
+  reviewDisplay,
   safetyLabel,
   safetyValue,
   stripeTestRefund,
@@ -261,6 +272,7 @@ function DeveloperDetails({
   demoDetails: DemoRefundDetails;
   impactSummary: string;
   request: RefundRequestDetail;
+  reviewDisplay: DashboardRefundReviewDisplay;
   safetyLabel: string;
   safetyValue: string | null;
   stripeTestRefund: StripeTestRefundDetails;
@@ -276,6 +288,23 @@ function DeveloperDetails({
       </p>
 
       <div className="mt-5 space-y-6">
+        <section>
+          <h3 className="text-sm font-semibold text-zinc-950">
+            Reviewer context
+          </h3>
+          <p className="mt-3 text-sm leading-6 text-zinc-700">
+            {reviewDisplay.aiJustification}
+          </p>
+          <ReadableDetails items={reviewDisplay.customerContext} />
+        </section>
+
+        <section>
+          <h3 className="text-sm font-semibold text-zinc-950">
+            Evidence shown to reviewers
+          </h3>
+          <ReadableDetails items={reviewDisplay.evidence} />
+        </section>
+
         <section>
           <h3 className="text-sm font-semibold text-zinc-950">
             Request metadata

@@ -28,7 +28,8 @@ export type DashboardRequestFilter =
   | "pending"
   | "approved"
   | "rejected"
-  | "executed";
+  | "executed"
+  | "failed";
 
 export type DashboardRequestFilterCounts = Record<DashboardRequestFilter, number>;
 
@@ -37,6 +38,8 @@ export type DashboardActionRequestSummary = DashboardActionRequestState & {
   operation: string;
   parameters: unknown;
   resource?: unknown;
+  context?: unknown;
+  requestPayload?: unknown;
   createdAt: Date;
   connector?: DashboardConnectorDisplay | null;
   stripeRefund?: DashboardStripeRefundQueueSource | null;
@@ -680,7 +683,7 @@ function getReviewerCurrentStatusLabel(status: DashboardStatus): string {
   switch (status) {
     case "APPROVAL_REQUIRED":
     case "PROPOSED":
-      return "Waiting for review";
+      return "Waiting for human approval";
     case "APPROVED":
       return "Approved";
     case "REJECTED":
@@ -1047,6 +1050,7 @@ export function getRequestFilterCounts<
     approved: 0,
     rejected: 0,
     executed: 0,
+    failed: 0,
   };
 
   for (const request of requests) {
@@ -1182,6 +1186,10 @@ function getDashboardRequestFilter(
 
   if (request.status === "EXECUTED") {
     return "executed";
+  }
+
+  if (request.status === "FAILED") {
+    return "failed";
   }
 
   return "all";

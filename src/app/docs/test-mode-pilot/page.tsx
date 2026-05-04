@@ -1,7 +1,13 @@
 import Link from "next/link";
 
-import { PublicHeader } from "../../public-header";
+import { PublicFooter, PublicHeader } from "../../public-header";
+import { JsonLd } from "@/components/JsonLd";
+import { createPublicPageMetadata, getPublicSeoPage, webPageJsonLd } from "@/lib/seo";
 import { DocsNavigation } from "../docs-navigation";
+
+export const metadata = createPublicPageMetadata("/docs/test-mode-pilot");
+
+const testModePilotSeo = getPublicSeoPage("/docs/test-mode-pilot");
 
 const coverageItems = [
   "This contract is for controlled Stripe test-mode pilots.",
@@ -304,7 +310,15 @@ const notProvenItems = [
 export default function TestModePilotPage() {
   return (
     <main className="docs-page min-h-screen overflow-x-clip bg-zinc-950 text-zinc-50">
-      <PublicHeader />
+      <JsonLd
+        data={webPageJsonLd({
+          title: testModePilotSeo.title,
+          description: testModePilotSeo.description,
+          path: testModePilotSeo.path,
+          type: "Article",
+        })}
+      />
+      <PublicHeader currentPath="/docs/test-mode-pilot" />
       <section className="mx-auto max-w-6xl px-6 py-12">
         <div className="max-w-4xl">
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">
@@ -523,6 +537,7 @@ export default function TestModePilotPage() {
           </aside>
         </div>
       </section>
+      <PublicFooter />
     </main>
   );
 }

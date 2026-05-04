@@ -1,6 +1,10 @@
 import Link from "next/link";
 
-import { PublicHeader } from "../../public-header";
+import { PublicFooter, PublicHeader } from "../../public-header";
+import { JsonLd } from "@/components/JsonLd";
+import { createPublicPageMetadata, faqPageJsonLd } from "@/lib/seo";
+
+export const metadata = createPublicPageMetadata("/demo/reviewer");
 
 type RefundStatus = "Needs review" | "Approved" | "Rejected" | "Executed" | "Blocked";
 type PolicyResult = "Allowed by policy" | "Human approval required" | "Blocked by policy";
@@ -26,9 +30,9 @@ type DemoRefund = {
 
 const summaryCards = [
   ["Needs review", "2", "Waiting for a human decision"],
-  ["Approved today", "2", "Reviewer decisions recorded"],
-  ["Blocked by policy", "1", "Stopped before execution"],
-  ["Demo/test executions recorded", "2", "Evidence captured without live money"],
+  ["Approved", "2", "Reviewer decisions recorded"],
+  ["Rejected", "1", "AI recommendation stopped"],
+  ["Audit recorded", "8", "Every sample request has a trail"],
 ];
 
 const demoRefunds: DemoRefund[] = [
@@ -203,21 +207,40 @@ const rejectConsequences = [
   "The AI support agent should not retry or call Stripe directly.",
 ];
 
+const reviewerFaqItems = [
+  {
+    question: "Does the reviewer demo move real money?",
+    answer: "No. It uses sample data only and does not make Stripe calls.",
+  },
+  {
+    question: "What does a reviewer decide?",
+    answer:
+      "The reviewer approves or rejects AI-proposed Stripe refunds that require human review.",
+  },
+  {
+    question: "What is recorded?",
+    answer:
+      "RefundHold records the AI proposal, policy result, reviewer decision, and outcome.",
+  },
+];
+
 export default function ReviewerDemoPage() {
   return (
     <main className="min-h-screen overflow-x-clip bg-zinc-950 text-zinc-50">
-      <PublicHeader />
+      <JsonLd data={faqPageJsonLd({ items: reviewerFaqItems })} />
+      <PublicHeader currentPath="/demo/reviewer" />
       <section className="mx-auto max-w-7xl px-6 py-12">
         <div className="max-w-4xl">
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">
             RefundHold
           </p>
           <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-6xl">
-            Reviewer dashboard demo
+            Review AI-proposed refunds before they reach Stripe
           </h1>
           <p className="mt-6 max-w-3xl text-lg leading-8 text-zinc-300">
-            A read-only operational inbox for reviewing AI-generated Stripe
-            refund requests before anything can continue toward Stripe.
+            This demo shows how a human reviewer approves or rejects risky
+            Stripe refunds proposed by an AI support agent. No real money
+            moves.
           </p>
         </div>
 
@@ -238,6 +261,40 @@ export default function ReviewerDemoPage() {
             <p className="w-fit rounded-full border border-emerald-200/40 bg-zinc-950/60 px-3 py-1 text-sm font-semibold text-emerald-100">
               Read-only sample data
             </p>
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-lg border border-zinc-800 bg-zinc-900/60 p-5">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <p className="text-sm font-medium uppercase tracking-[0.16em] text-emerald-300">
+                Refund request
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <h2 className="text-3xl font-semibold tracking-tight text-zinc-50">
+                  $420
+                </h2>
+                <StatusBadge status="Needs review" />
+              </div>
+              <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                <MainCardDetail label="Policy" value="Human approval required" />
+                <MainCardDetail
+                  label="Reason"
+                  value="Customer says they were double charged"
+                />
+                <MainCardDetail
+                  label="Requested by"
+                  value="AI support agent"
+                />
+                <MainCardDetail label="Risk" value="Medium" />
+              </dl>
+            </div>
+            <Link
+              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-md bg-emerald-300 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+              href="#refund-detail"
+            >
+              Review refund
+            </Link>
           </div>
         </section>
 
@@ -294,7 +351,10 @@ export default function ReviewerDemoPage() {
           </section>
 
           <div className="space-y-6 xl:sticky xl:top-6">
-            <section className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-5">
+            <section
+              className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-5"
+              id="refund-detail"
+            >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="text-sm font-medium uppercase tracking-[0.16em] text-emerald-300">
@@ -387,8 +447,43 @@ export default function ReviewerDemoPage() {
             </nav>
           </div>
         </div>
+
+        <section className="mt-8 rounded-lg border border-zinc-800 bg-zinc-900/60 p-5">
+          <h2 className="text-xl font-semibold text-zinc-50">
+            Reviewer demo FAQ
+          </h2>
+          <div className="mt-5 grid gap-4 md:grid-cols-3">
+            {reviewerFaqItems.map((item) => (
+              <section
+                className="rounded-md border border-zinc-800 bg-zinc-950/60 p-4"
+                key={item.question}
+              >
+                <h3 className="text-sm font-semibold text-zinc-50">
+                  {item.question}
+                </h3>
+                <p className="mt-3 text-sm leading-6 text-zinc-300">
+                  {item.answer}
+                </p>
+              </section>
+            ))}
+          </div>
+        </section>
       </section>
+      <PublicFooter />
     </main>
+  );
+}
+
+function MainCardDetail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 rounded-md border border-zinc-800 bg-zinc-950/60 p-3">
+      <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+        {label}
+      </dt>
+      <dd className="mt-1 break-words text-sm font-semibold text-zinc-50">
+        {value}
+      </dd>
+    </div>
   );
 }
 
@@ -532,8 +627,8 @@ function CtaLink({
   primary?: boolean;
 }) {
   const className = primary
-    ? "inline-flex items-center justify-center rounded-md bg-emerald-300 px-4 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200"
-    : "inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-3 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900";
+    ? "inline-flex items-center justify-center rounded-md bg-emerald-300 px-4 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+    : "inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-3 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950";
 
   return (
     <Link className={className} href={href}>

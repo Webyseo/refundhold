@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { trackActivationEvent } from "../activation-event-client";
-import { PublicHeader } from "../public-header";
+import { PublicFooter, PublicHeader } from "../public-header";
+import { JsonLd } from "@/components/JsonLd";
+import { getPublicSeoPage, howToJsonLd } from "@/lib/seo";
 
 type DemoStep = "proposal" | "policy" | "review" | "approved" | "rejected";
 
@@ -28,6 +30,20 @@ const rejectedAuditTrail = [
   "Human reviewer rejected the request",
   "Stripe execution was blocked",
 ];
+
+const demoSeo = getPublicSeoPage("/demo");
+const demoHowToJsonLd = howToJsonLd({
+  title: demoSeo.title,
+  description: demoSeo.description,
+  path: demoSeo.path,
+  steps: [
+    "AI support agent proposes a $420 refund",
+    "RefundHold checks the refund policy",
+    "The refund is held for human review",
+    "A human reviewer approves or rejects the request",
+    "RefundHold records the audit trail",
+  ],
+});
 
 export default function DemoPage() {
   const [step, setStep] = useState<DemoStep>("proposal");
@@ -88,7 +104,8 @@ export default function DemoPage() {
 
   return (
     <main className="min-h-screen overflow-x-clip bg-zinc-950 text-zinc-50">
-      <PublicHeader />
+      <JsonLd data={demoHowToJsonLd} />
+      <PublicHeader currentPath="/demo" />
       <section className="mx-auto grid min-h-[calc(100vh-6rem)] max-w-6xl gap-8 px-6 py-12 lg:grid-cols-[1fr_22rem] lg:items-center">
         <div>
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">
@@ -129,24 +146,18 @@ export default function DemoPage() {
             <div className="mt-8">
               <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap">
                 <Link
-                  className="inline-flex items-center justify-center rounded-md bg-emerald-300 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200"
+                  className="inline-flex items-center justify-center rounded-md bg-emerald-300 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
                   href="/docs/quickstart"
                 >
                   See 5-minute setup
                 </Link>
                 <Link
-                  className="inline-flex items-center justify-center rounded-md border border-zinc-700 px-5 py-3 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900"
+                  className="inline-flex items-center justify-center rounded-md border border-zinc-700 px-5 py-3 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
                   href="/demo/reviewer"
                 >
                   Open reviewer dashboard
                 </Link>
               </div>
-              <Link
-                className="mt-4 inline-flex text-sm font-medium text-zinc-400 hover:text-zinc-100"
-                href="/contact"
-              >
-                Was this clear?
-              </Link>
             </div>
           ) : null}
         </div>
@@ -163,6 +174,7 @@ export default function DemoPage() {
           </div>
         </aside>
       </section>
+      <PublicFooter />
     </main>
   );
 }
@@ -188,7 +200,7 @@ function renderDemoStep(
           <Detail label="Destination" value="Stripe refund" />
         </dl>
         <button
-          className="mt-8 inline-flex items-center justify-center rounded-md bg-emerald-300 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200"
+          className="mt-8 inline-flex items-center justify-center rounded-md bg-emerald-300 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
           onClick={actions.startDemo}
           type="button"
         >
@@ -214,7 +226,7 @@ function renderDemoStep(
           This refund is held for review.
         </p>
         <button
-          className="mt-8 inline-flex items-center justify-center rounded-md bg-emerald-300 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200"
+          className="mt-8 inline-flex items-center justify-center rounded-md bg-emerald-300 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
           onClick={actions.reviewRefund}
           type="button"
         >
@@ -242,14 +254,14 @@ function renderDemoStep(
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <button
-            className="inline-flex items-center justify-center rounded-md bg-emerald-300 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200"
+            className="inline-flex items-center justify-center rounded-md bg-emerald-300 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
             onClick={actions.approveRefund}
             type="button"
           >
             Approve refund
           </button>
           <button
-            className="inline-flex items-center justify-center rounded-md border border-zinc-700 px-5 py-3 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900"
+            className="inline-flex items-center justify-center rounded-md border border-zinc-700 px-5 py-3 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
             onClick={actions.rejectRefund}
             type="button"
           >

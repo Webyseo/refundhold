@@ -1,7 +1,13 @@
 import Link from "next/link";
 
-import { PublicHeader } from "../../public-header";
+import { PublicFooter, PublicHeader } from "../../public-header";
+import { JsonLd } from "@/components/JsonLd";
+import { createPublicPageMetadata, getPublicSeoPage, webPageJsonLd } from "@/lib/seo";
 import { DocsNavigation } from "../docs-navigation";
+
+export const metadata = createPublicPageMetadata("/docs/stripe-test-mode");
+
+const stripeTestModeSeo = getPublicSeoPage("/docs/stripe-test-mode");
 
 const beforeYouStart = [
   "You have access to a Stripe test account.",
@@ -15,27 +21,27 @@ const beforeYouStart = [
 const refundHoldSettings = [
   [
     "Demo agent API key",
-    "Preferred: REFUNDHOLD_DEMO_AGENT_API_KEY. Legacy fallback: AUTHRAIL_DEMO_AGENT_API_KEY. Use a private local value and rerun pnpm db:seed:demo after changing it.",
+    "Use the private demo agent API key provided for the controlled environment. Do not commit real keys.",
   ],
   [
     "Enable Stripe test-mode",
-    "Current supported setting: AUTHRAIL_STRIPE_TEST_MODE_ENABLED=true.",
+    "Enable Stripe test-mode only in the controlled pilot environment.",
   ],
   [
     "Enable Stripe test refunds",
-    "Current supported setting: AUTHRAIL_STRIPE_TEST_REFUNDS_ENABLED=true when the controlled pilot should execute Stripe test refunds.",
+    "Allow Stripe test refunds only when the controlled pilot explicitly includes test execution.",
   ],
   [
     "Stripe test secret key",
-    "Current supported setting: AUTHRAIL_STRIPE_TEST_SECRET_KEY=<stripe_test_or_restricted_test_key>. Use a test-mode secret or restricted test key only.",
+    "Use a Stripe test-mode secret or restricted test key only.",
   ],
   [
     "Stripe test webhooks",
-    "If webhooks are used, set AUTHRAIL_STRIPE_WEBHOOKS_ENABLED=true and AUTHRAIL_STRIPE_WEBHOOK_TEST_SECRET=<stripe_test_webhook_signing_secret>.",
+    "If webhooks are used, configure only the Stripe test webhook signing secret.",
   ],
   [
     "Live refunds",
-    "AUTHRAIL_STRIPE_LIVE_REFUNDS_ENABLED must remain false. The current config rejects this flag when it is enabled.",
+    "Live refunds remain blocked in v1. Stop if any live-money path appears enabled.",
   ],
 ];
 
@@ -91,26 +97,20 @@ const notProvenYet = [
 const testModeCurl = `curl -X POST http://localhost:3000/api/v1/refund-requests \\
   -H "Authorization: Bearer <agent_api_key>" \\
   -H "Content-Type: application/json" \\
-  -d '{
-    "connector": "stripe_test",
-    "action": "refund.create",
-    "resource": "stripe.payment_intent",
-    "parameters": {
-      "payment_intent_id": "pi_test_...",
-      "amount_minor": 10000,
-      "reason": "requested_by_customer"
-    },
-    "context": {
-      "source": "controlled_stripe_pilot",
-      "ai_agent_reason": "Controlled Stripe test-mode refund validation.",
-      "order_summary": "Test order for controlled pilot"
-    }
-  }'`;
+  -d '<controlled Stripe test-mode payload from the pilot handoff>'`;
 
 export default function StripeTestModePage() {
   return (
     <main className="docs-page min-h-screen overflow-x-clip bg-zinc-950 text-zinc-50">
-      <PublicHeader />
+      <JsonLd
+        data={webPageJsonLd({
+          title: stripeTestModeSeo.title,
+          description: stripeTestModeSeo.description,
+          path: stripeTestModeSeo.path,
+          type: "TechArticle",
+        })}
+      />
+      <PublicHeader currentPath="/docs/stripe-test-mode" />
       <section className="mx-auto max-w-5xl px-6 py-12">
         <div className="max-w-3xl">
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">
@@ -157,16 +157,10 @@ export default function StripeTestModePage() {
 
             <RunbookSection title="Required RefundHold settings">
               <p className="text-sm leading-6 text-zinc-300">
-                These are the safe setting names currently visible in the repo.
-                Use placeholders in docs and private values in the controlled
-                environment. Do not commit real keys.
+                Use private values in the controlled environment. Do not
+                publish, paste, or commit real keys.
               </p>
               <DefinitionList items={refundHoldSettings} />
-              <p className="mt-5 text-sm leading-6 text-zinc-300">
-                REFUNDHOLD_* is preferred where supported. The Stripe settings
-                currently use legacy AUTHRAIL_* names in code and environment
-                examples.
-              </p>
             </RunbookSection>
 
             <RunbookSection title="Stripe restricted test key">
@@ -210,13 +204,13 @@ export default function StripeTestModePage() {
                 <p>
                   The current public shortcut supports amount, currency,
                   reason, and stripe_mode: demo_simulation for demo simulation.
-                  For Stripe test-mode, the supported pilot selector is
-                  connector: stripe_test in the compatibility payload. Do not
-                  send unsupported alternate values.
+                  For Stripe test-mode, use the controlled pilot payload
+                  provided by the RefundHold team. Do not send unsupported
+                  alternate values.
                 </p>
                 <p>
                   In the Stripe test-mode payload, RefundHold expects a
-                  PaymentIntent ID or Charge ID, amount_minor, and reason. The
+                  PaymentIntent ID or Charge ID, amount, and reason. The
                   current reflection path reads currency from the Stripe test
                   object.
                 </p>
@@ -301,6 +295,7 @@ export default function StripeTestModePage() {
           </aside>
         </div>
       </section>
+      <PublicFooter />
     </main>
   );
 }

@@ -1,0 +1,28 @@
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it } from "vitest";
+
+import { DashboardHomeContent } from "./page";
+
+describe("app dashboard home content", () => {
+  it("starts with the next refund review action instead of abstract metrics", () => {
+    const html = renderToStaticMarkup(<DashboardHomeContent />);
+
+    expect(html).toContain("3 refunds need your review");
+    expect(html).toContain("These AI-proposed Stripe refunds are waiting");
+    expect(html).toContain("before they can continue.");
+    expect(html).toContain("Refund request");
+    expect(html).toContain("Amount: $420");
+    expect(html).toContain("Policy: Human approval required");
+    expect(html).toContain(
+      "Reason: AI support agent detected possible duplicate billing",
+    );
+    expect(html).toContain("href=\"/app/refund-requests?status=pending\"");
+    expect(html).toContain("Review refund");
+    expect(html).toContain("Pending review");
+    expect(html).toContain("Approved");
+    expect(html).toContain("Rejected");
+    expect(html).toContain("Executed");
+    expect(html).not.toContain("ActionRequest");
+    expect(html).not.toContain("/app/action-requests");
+  });
+});

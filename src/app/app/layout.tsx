@@ -1,4 +1,11 @@
 import { AppHeader } from "./app-header";
+import { createNoindexMetadata } from "@/lib/seo";
+
+export const metadata = createNoindexMetadata({
+  title: "RefundHold App",
+  description: "Private RefundHold app dashboard.",
+  path: "/app",
+});
 
 export default function DashboardLayout({
   children,

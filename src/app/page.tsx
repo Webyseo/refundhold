@@ -4,7 +4,17 @@ import {
   ActivationEventLink,
   ActivationEventView,
 } from "./activation-event-client";
-import { PublicHeader } from "./public-header";
+import { PublicFooter, PublicHeader } from "./public-header";
+import { JsonLd } from "@/components/JsonLd";
+import {
+  createPublicPageMetadata,
+  graphJsonLd,
+  organizationJsonLd,
+  softwareApplicationJsonLd,
+  websiteJsonLd,
+} from "@/lib/seo";
+
+export const metadata = createPublicPageMetadata("/");
 
 export default function Home() {
   const steps = [
@@ -39,7 +49,14 @@ export default function Home() {
           route: "/",
         }}
       />
-      <PublicHeader />
+      <JsonLd
+        data={graphJsonLd([
+          organizationJsonLd(),
+          websiteJsonLd(),
+          softwareApplicationJsonLd(),
+        ])}
+      />
+      <PublicHeader currentPath="/" />
       <section className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-5xl flex-col justify-center px-6 py-16">
         <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">
           RefundHold
@@ -55,7 +72,7 @@ export default function Home() {
 
         <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:flex-wrap">
           <ActivationEventLink
-            className="inline-flex items-center justify-center rounded-md bg-emerald-300 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200"
+            className="inline-flex items-center justify-center rounded-md bg-emerald-300 px-5 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
             eventName="landing_demo_cta_clicked"
             href="/demo"
             metadata={{
@@ -71,36 +88,10 @@ export default function Home() {
           >
             View 5-minute setup
           </Link>
-          <Link
-            className="inline-flex items-center justify-center rounded-md border border-zinc-800 px-5 py-3 text-sm font-semibold text-zinc-300 transition hover:border-zinc-600 hover:bg-zinc-900 hover:text-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
-            href="/contact"
-          >
-            Contact
-          </Link>
-          <Link
-            className="inline-flex items-center justify-center rounded-md border border-zinc-800 px-5 py-3 text-sm font-semibold text-zinc-300 transition hover:border-zinc-600 hover:bg-zinc-900 hover:text-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
-            href="/security"
-          >
-            Security
-          </Link>
         </div>
         <p className="mt-4 text-sm text-zinc-400">
           Demo mode only. No live Stripe money moves.
         </p>
-        <Link
-          className="mt-3 inline-flex text-sm font-medium text-zinc-300 hover:text-zinc-50"
-          href="/demo/reviewer"
-        >
-          View reviewer dashboard demo
-        </Link>
-        <nav className="mt-4 flex flex-wrap gap-4 text-sm font-medium text-zinc-500">
-          <Link className="text-zinc-400 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950" href="/privacy">
-            Privacy
-          </Link>
-          <Link className="text-zinc-400 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950" href="/terms">
-            Terms
-          </Link>
-        </nav>
 
         <div className="mt-14 grid gap-4 lg:grid-cols-5">
           {steps.map((step, index) => (
@@ -132,6 +123,7 @@ export default function Home() {
           ))}
         </div>
       </section>
+      <PublicFooter />
     </main>
   );
 }

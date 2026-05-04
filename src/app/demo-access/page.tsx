@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import {
@@ -10,6 +11,15 @@ import {
   getSafeDemoAccessNextPath,
   isDemoAccessPasswordValid,
 } from "@/lib/demo-access";
+import { createNoindexMetadata } from "@/lib/seo";
+import { PublicFooter, PublicHeader } from "../public-header";
+
+export const metadata = createNoindexMetadata({
+  title: "Private Demo Access | RefundHold",
+  description:
+    "Enter the password provided by the RefundHold team to access the private demo, or use the public no-login refund demo instead.",
+  path: "/demo-access",
+});
 
 export default async function DemoAccessPage({
   searchParams,
@@ -22,8 +32,9 @@ export default async function DemoAccessPage({
   const demoAccess = getDemoAccessStatus(process.env);
 
   return (
-    <main className="min-h-screen bg-zinc-950 px-6 py-16 text-zinc-50">
-      <section className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-xl flex-col justify-center">
+    <main className="min-h-screen bg-zinc-950 text-zinc-50">
+      <PublicHeader />
+      <section className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-xl flex-col justify-center px-6 py-16">
         <p className="text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">
           RefundHold
         </p>
@@ -83,13 +94,14 @@ export default async function DemoAccessPage({
 
             {error === "invalid" ? (
               <p className="mt-4 rounded-md border border-red-300/30 bg-red-300/10 px-3 py-2 text-sm text-red-100">
-                The password did not work. Please try again.
+                Invalid password. Please check the password provided by the
+                RefundHold team.
               </p>
             ) : null}
 
             <button
               type="submit"
-              className="mt-5 w-full rounded-md bg-emerald-300 px-4 py-2.5 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200"
+              className="mt-5 w-full rounded-md bg-emerald-300 px-4 py-2.5 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
             >
               Continue
             </button>
@@ -103,14 +115,15 @@ export default async function DemoAccessPage({
           <p className="mt-2 text-sm leading-6 text-zinc-400">
             Public demo mode does not move real Stripe money.
           </p>
-          <a
-            className="mt-4 inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2.5 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900"
+          <Link
+            className="mt-4 inline-flex items-center justify-center rounded-md border border-zinc-700 px-4 py-2.5 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
             href="/demo"
           >
             Open public demo
-          </a>
+          </Link>
         </div>
       </section>
+      <PublicFooter />
     </main>
   );
 }

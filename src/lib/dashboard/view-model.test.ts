@@ -136,14 +136,16 @@ describe("dashboard view model", () => {
       makeRequest("approved", "APPROVED"),
       makeRequest("rejected", "REJECTED"),
       makeRequest("executed", "EXECUTED"),
+      makeRequest("failed", "FAILED"),
     ];
 
     expect(getRequestFilterCounts(requests)).toEqual({
-      all: 4,
+      all: 5,
       pending: 1,
       approved: 1,
       rejected: 1,
       executed: 1,
+      failed: 1,
     });
   });
 
@@ -152,6 +154,7 @@ describe("dashboard view model", () => {
       makeRequest("pending", "APPROVAL_REQUIRED"),
       makeRequest("approved", "APPROVED"),
       makeRequest("denied", "DENIED"),
+      makeRequest("failed", "FAILED"),
     ];
 
     expect(
@@ -164,7 +167,13 @@ describe("dashboard view model", () => {
       filterActionRequestsByDashboardStatus(requests, "all").map(
         (request) => request.id,
       ),
-    ).toEqual(["pending", "approved", "denied"]);
+    ).toEqual(["pending", "approved", "denied", "failed"]);
+
+    expect(
+      filterActionRequestsByDashboardStatus(requests, "failed").map(
+        (request) => request.id,
+      ),
+    ).toEqual(["failed"]);
   });
 
   it("sorts pending review requests before terminal requests and keeps newest first", () => {
@@ -481,7 +490,7 @@ describe("dashboard view model", () => {
     ]);
     expect(review.modeLabel).toBe("Stripe test-mode");
     expect(review.statusItems).toEqual([
-      { label: "Current status", value: "Waiting for review" },
+      { label: "Current status", value: "Waiting for human approval" },
       { label: "Policy result", value: "Human approval required" },
       { label: "Reviewer decision", value: "Waiting for review" },
       { label: "Execution outcome", value: "Waiting for review" },

@@ -1,6 +1,10 @@
 import Link from "next/link";
 
-import { PublicHeader } from "../public-header";
+import { PublicFooter, PublicHeader } from "../public-header";
+import { JsonLd } from "@/components/JsonLd";
+import { createPublicPageMetadata, faqPageJsonLd } from "@/lib/seo";
+
+export const metadata = createPublicPageMetadata("/security");
 
 const controlledFlow = [
   "AI support agent proposes a refund",
@@ -45,10 +49,28 @@ const futureRequirements = [
   "explicit live-mode review before any live refunds",
 ];
 
+const securityFaqItems = [
+  {
+    question: "Can RefundHold move live Stripe money?",
+    answer: "No. Live refunds are blocked in v1.",
+  },
+  {
+    question: "What modes does RefundHold support?",
+    answer:
+      "RefundHold supports demo simulations and Stripe test-mode flows.",
+  },
+  {
+    question: "Is RefundHold affiliated with Stripe?",
+    answer:
+      "No. RefundHold is not affiliated with, endorsed by, or sponsored by Stripe.",
+  },
+];
+
 export default function SecurityPage() {
   return (
     <main className="min-h-screen overflow-x-clip bg-zinc-950 text-zinc-50">
-      <PublicHeader />
+      <JsonLd data={faqPageJsonLd({ items: securityFaqItems })} />
+      <PublicHeader currentPath="/security" />
       <section className="mx-auto max-w-5xl px-6 py-12">
         <div className="max-w-3xl">
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">
@@ -136,6 +158,21 @@ export default function SecurityPage() {
                 ))}
               </ul>
             </SecuritySection>
+
+            <SecuritySection title="Security FAQ">
+              <div className="space-y-4">
+                {securityFaqItems.map((item) => (
+                  <section key={item.question}>
+                    <h3 className="text-sm font-semibold text-zinc-50">
+                      {item.question}
+                    </h3>
+                    <p className="mt-2 text-sm leading-6 text-zinc-300">
+                      {item.answer}
+                    </p>
+                  </section>
+                ))}
+              </div>
+            </SecuritySection>
           </div>
 
           <aside className="h-fit rounded-lg border border-zinc-800 bg-zinc-900/60 p-5">
@@ -190,6 +227,7 @@ export default function SecurityPage() {
           </aside>
         </div>
       </section>
+      <PublicFooter />
     </main>
   );
 }

@@ -1,7 +1,13 @@
 import Link from "next/link";
 
-import { PublicHeader } from "../../public-header";
+import { PublicFooter, PublicHeader } from "../../public-header";
+import { JsonLd } from "@/components/JsonLd";
+import { createPublicPageMetadata, getPublicSeoPage, webPageJsonLd } from "@/lib/seo";
 import { DocsNavigation } from "../docs-navigation";
+
+export const metadata = createPublicPageMetadata("/docs/api");
+
+const apiSeo = getPublicSeoPage("/docs/api");
 
 const createRefundCurl = `curl -X POST http://localhost:3000/api/v1/refund-requests \\
   -H "Authorization: Bearer <agent_api_key>" \\
@@ -65,19 +71,10 @@ const notExecutableError = `{
 }`;
 
 const stripeTestPayload = `{
-  "connector": "stripe_test",
-  "action": "refund.create",
-  "resource": "stripe.payment_intent",
-  "parameters": {
-    "payment_intent_id": "pi_test_...",
-    "amount_minor": 10000,
-    "reason": "requested_by_customer"
-  },
-  "context": {
-    "source": "controlled_stripe_pilot",
-    "ai_agent_reason": "Controlled Stripe test-mode refund validation.",
-    "order_summary": "Test order for controlled pilot"
-  }
+  "stripe_mode": "demo_simulation",
+  "amount": 42000,
+  "currency": "usd",
+  "reason": "AI support agent recommends refund"
 }`;
 
 const agentPrompt = `You are allowed to recommend refunds, but you must not call Stripe directly.
@@ -217,7 +214,15 @@ const waitingItems = [
 export default function ApiDocsPage() {
   return (
     <main className="docs-page min-h-screen overflow-x-clip bg-zinc-950 text-zinc-50">
-      <PublicHeader />
+      <JsonLd
+        data={webPageJsonLd({
+          title: apiSeo.title,
+          description: apiSeo.description,
+          path: apiSeo.path,
+          type: "TechArticle",
+        })}
+      />
+      <PublicHeader currentPath="/docs/api" />
       <section className="mx-auto max-w-6xl px-6 py-12">
         <div className="max-w-4xl">
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">
@@ -363,10 +368,9 @@ export default function ApiDocsPage() {
                   current compatibility shape.
                 </p>
                 <p>
-                  The current Stripe test-mode pilot shape uses connector:
-                  stripe_test, action: refund.create, resource:
-                  stripe.payment_intent or stripe.charge, and parameters with
-                  payment_intent_id or charge_id plus amount_minor.
+                  Controlled Stripe test-mode pilots use the payload provided
+                  during pilot setup. Keep test-mode object IDs and test keys
+                  out of the AI support agent.
                 </p>
                 <p>
                   Do not send alternate stripe_mode values. The public shortcut
@@ -411,6 +415,7 @@ export default function ApiDocsPage() {
           </aside>
         </div>
       </section>
+      <PublicFooter />
     </main>
   );
 }

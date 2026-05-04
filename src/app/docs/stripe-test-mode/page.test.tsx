@@ -14,12 +14,11 @@ describe("Stripe test-mode setup page", () => {
     expect(html).toContain("Demo simulation does not call Stripe.");
     expect(html).toContain("Stripe test-mode uses Stripe test objects only.");
     expect(html).toContain("controlled test-mode pilots");
-    expect(html).toContain("REFUNDHOLD_DEMO_AGENT_API_KEY");
-    expect(html).toContain("AUTHRAIL_STRIPE_TEST_MODE_ENABLED");
-    expect(html).toContain("connector");
-    expect(html).toContain("stripe_test");
-    expect(html).toContain("resource");
-    expect(html).toContain("stripe.payment_intent");
+    expect(html).toContain("Use the private demo agent API key");
+    expect(html).toContain(
+      "Enable Stripe test-mode only in the controlled pilot environment.",
+    );
+    expect(html).toContain("controlled Stripe test-mode payload");
     expect(html).toContain("Do not use live Stripe object IDs or live Stripe keys.");
     expect(html).toContain("For the public API contract and execution model, read the API reference before testing execution paths.");
     expect(html).toContain("Live Stripe key is not configured.");
@@ -35,5 +34,8 @@ describe("Stripe test-mode setup page", () => {
     expect(html).not.toContain("Stripe-approved");
     expect(html).not.toContain("fully GDPR compliant");
     expect(html).not.toContain("production-ready live refunds");
+    expect(html).not.toContain("AUTHRAIL_");
+    expect(html).not.toContain("connector");
+    expect(html).not.toContain("stripe_test");
   });
 });

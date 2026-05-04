@@ -1,7 +1,13 @@
 import Link from "next/link";
 
-import { PublicHeader } from "../../public-header";
+import { PublicFooter, PublicHeader } from "../../public-header";
+import { JsonLd } from "@/components/JsonLd";
+import { createPublicPageMetadata, getPublicSeoPage, webPageJsonLd } from "@/lib/seo";
 import { DocsNavigation } from "../docs-navigation";
+
+export const metadata = createPublicPageMetadata("/docs/pilot-acceptance");
+
+const pilotAcceptanceSeo = getPublicSeoPage("/docs/pilot-acceptance");
 
 const provesItems = [
   "An AI support agent can send a refund proposal to RefundHold.",
@@ -193,7 +199,15 @@ const unclearValueItems = [
 export default function PilotAcceptancePage() {
   return (
     <main className="docs-page min-h-screen overflow-x-clip bg-zinc-950 text-zinc-50">
-      <PublicHeader />
+      <JsonLd
+        data={webPageJsonLd({
+          title: pilotAcceptanceSeo.title,
+          description: pilotAcceptanceSeo.description,
+          path: pilotAcceptanceSeo.path,
+          type: "Article",
+        })}
+      />
+      <PublicHeader currentPath="/docs/pilot-acceptance" />
       <section className="mx-auto max-w-6xl px-6 py-12">
         <div className="max-w-4xl">
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-emerald-300">
@@ -360,6 +374,7 @@ export default function PilotAcceptancePage() {
           </aside>
         </div>
       </section>
+      <PublicFooter />
     </main>
   );
 }

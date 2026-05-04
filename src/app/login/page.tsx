@@ -1,7 +1,13 @@
 import { getAuthConfig } from "../../lib/auth/config";
 import { LoginForm } from "./login-form";
+import { createNoindexMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+export const metadata = createNoindexMetadata({
+  title: "RefundHold Login",
+  description: "Private RefundHold login page.",
+  path: "/login",
+});
 
 export default async function LoginPage({
   searchParams,

@@ -18,10 +18,8 @@ describe("exact test-mode runbook page", () => {
     expect(html).toContain("Create a Stripe test object");
     expect(html).toContain("Demo simulation path");
     expect(html).toContain("Controlled Stripe test-mode path");
-    expect(html).toContain("connector");
-    expect(html).toContain("stripe_test");
-    expect(html).toContain("stripe.payment_intent");
-    expect(html).toContain("stripe.charge");
+    expect(html).toContain("controlled Stripe test-mode payload");
+    expect(html).toContain("Stripe test-mode Charge IDs");
     expect(html).toContain("Expected create response");
     expect(html).toContain("refund_request_id");
     expect(html).toContain("needs_review");
@@ -52,5 +50,8 @@ describe("exact test-mode runbook page", () => {
     expect(html).not.toContain("fully GDPR compliant");
     expect(html).not.toContain("production-ready live refunds");
     expect(html).not.toContain("stable webhook support");
+    expect(html).not.toContain("AUTHRAIL_");
+    expect(html).not.toContain("connector");
+    expect(html).not.toContain("stripe_test");
   });
 });
