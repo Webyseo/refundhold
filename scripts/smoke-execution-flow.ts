@@ -10,31 +10,32 @@ import { readConfiguredDemoAgentApiKey } from "../src/lib/security/api-keys";
 const defaultBaseUrl = "http://localhost:3000";
 const defaultDemoReviewerEmail = "demo.reviewer@refundhold.com";
 
-const actionRequestResponseSchema = z
+const refundRequestResponseSchema = z
   .object({
-    decision: z.enum(["allow", "deny", "approval_required"]),
-    action_request_id: z.string().min(1),
+    refund_request_id: z.string().min(1),
+    decision: z.enum(["allowed", "needs_review", "blocked"]),
     reason: z.string().min(1),
-    approval_url: z.string().min(1).optional(),
+    review_url: z.string().min(1).optional(),
   })
   .passthrough();
 
 const approvalResponseSchema = z
   .object({
-    action_request_id: z.string().min(1),
-    approval_id: z.string().min(1),
-    status: z.enum(["APPROVED", "REJECTED"]),
-    decision: z.enum(["approved", "rejected"]),
-    reason: z.string().min(1),
+    refund_request_id: z.string().min(1),
+    status: z.enum(["approved"]),
+    decision: z.enum(["approved"]),
+    outcome: z.enum(["approved"]),
+    review_url: z.string().min(1),
+    message: z.string().min(1),
   })
   .passthrough();
 
 const executionResponseSchema = z
   .object({
-    action_request_id: z.string().min(1),
-    execution_id: z.string().min(1),
-    status: z.enum(["EXECUTED", "SUCCEEDED"]),
-    execution_mode: z.literal("dry_run"),
+    refund_request_id: z.string().min(1),
+    status: z.enum(["executed", "failed"]),
+    outcome: z.enum(["executed", "failed"]),
+    review_url: z.string().min(1).optional(),
     message: z.string().min(1),
   })
   .passthrough();
@@ -54,22 +55,16 @@ export type ExecutionFlowSmokeConfig = {
 
 export function buildExecutionFlowRefundRequest(label: string) {
   return {
-    connector: "stripe_test",
-    action: "refund.create",
-    resource: {
-      refund_id: `execution_flow_refund_${label}`,
-    },
-    parameters: {
-      amount: 100,
-      currency: "USD",
-    },
-    context: {
-      source: "local_e2e_execution_flow",
-    },
+    stripe_mode: "demo_simulation",
+    amount: 10000,
+    currency: "usd",
+    reason: `AI support agent recommends a test refund for execution flow ${label}.`,
   };
 }
 
-export function buildDryRunExecutionRequest(metadata: Record<string, unknown>) {
+export function buildDemoSimulationExecutionRequest(
+  metadata: Record<string, unknown>,
+) {
   return {
     method: "POST",
     headers: {
@@ -86,14 +81,17 @@ export function readExecutionFlowSmokeConfig(): ExecutionFlowSmokeConfig {
 
   if (!configuredApiKey) {
     throw new Error(
-      "REFUNDHOLD_DEMO_AGENT_API_KEY is required. Copy .env.example to .env, set a local demo key, run pnpm db:seed:demo, then run this smoke test. AUTHRAIL_DEMO_AGENT_API_KEY remains supported as a legacy fallback.",
+      "REFUNDHOLD_DEMO_AGENT_API_KEY is required. Copy .env.example to .env, set a local demo key, run pnpm db:seed:demo, then run this smoke test.",
     );
   }
 
   return {
     baseUrl:
-      process.env["AUTHRAIL_ACTION_REQUEST_BASE_URL"]?.trim() ??
-      defaultBaseUrl,
+      readOptionalEnvWithLegacy(
+        process.env,
+        "REFUNDHOLD_SMOKE_BASE_URL",
+        "AUTHRAIL_ACTION_REQUEST_BASE_URL",
+      ) ?? defaultBaseUrl,
     apiKey: configuredApiKey.apiKey,
     reviewerEmail:
       readOptionalEnvWithLegacy(
@@ -109,55 +107,58 @@ export async function runExecutionFlowSmokeTest(
   config: ExecutionFlowSmokeConfig = readExecutionFlowSmokeConfig(),
 ) {
   const baseUrl = config.baseUrl.replace(/\/$/, "");
-  const actionRequestId = await createReviewableActionRequest({
+  logSmokeSafetyBoundary();
+
+  const refundRequestId = await createReviewableRefundRequest({
     baseUrl,
     apiKey: config.apiKey,
     label: `execute_${Date.now()}`,
   });
-  const approved = await approveActionRequest({
+  const approved = await approveRefundRequest({
     baseUrl,
-    actionRequestId,
+    refundRequestId,
     reviewerEmail: config.reviewerEmail,
   });
 
-  if (approved.status !== "APPROVED" || !approved.approval_id) {
+  if (
+    approved.status !== "approved" ||
+    approved.decision !== "approved" ||
+    approved.outcome !== "approved"
+  ) {
     throw new Error(
-      `Expected approve response to return APPROVED with approval_id, received ${JSON.stringify(approved)}.`,
+      `Expected approve response to return approved, received ${JSON.stringify(approved)}.`,
     );
   }
 
   console.log(
-    `approve ${actionRequestId} -> ${approved.status} (${approved.approval_id})`,
+    `approve refund request ${refundRequestId} -> ${approved.status}: ${approved.message}`,
   );
 
-  const executed = await executeActionRequest({
+  const executed = await executeRefundRequest({
     baseUrl,
-    actionRequestId,
+    refundRequestId,
     expectedStatus: 200,
   });
 
-  if (
-    executed.status !== "SUCCEEDED" &&
-    executed.status !== "EXECUTED"
-  ) {
+  if (executed.status !== "executed" || executed.outcome !== "executed") {
     throw new Error(
-      `Expected execute response to return SUCCEEDED or EXECUTED, received ${JSON.stringify(executed)}.`,
+      `Expected execute response to return executed, received ${JSON.stringify(executed)}.`,
     );
   }
 
   console.log(
-    `execute ${actionRequestId} -> ${executed.status} (${executed.execution_id}, ${executed.execution_mode})`,
+    `execute refund request ${refundRequestId} -> ${executed.status}: ${executed.message}`,
   );
 
   await assertSecondExecutionRejected({
     baseUrl,
-    actionRequestId,
+    refundRequestId,
   });
 
-  console.log(`execute ${actionRequestId} again -> rejected`);
+  console.log(`execute refund request ${refundRequestId} again -> rejected`);
 }
 
-async function createReviewableActionRequest({
+async function createReviewableRefundRequest({
   baseUrl,
   apiKey,
   label,
@@ -166,7 +167,7 @@ async function createReviewableActionRequest({
   apiKey: string;
   label: string;
 }) {
-  const response = await fetch(`${baseUrl}/api/v1/action-requests`, {
+  const response = await fetch(`${baseUrl}/api/v1/refund-requests`, {
     method: "POST",
     headers: {
       authorization: `Bearer ${apiKey}`,
@@ -178,32 +179,32 @@ async function createReviewableActionRequest({
 
   if (response.status !== 201) {
     throw new Error(
-      `Expected action request creation to return 201, received ${response.status}: ${JSON.stringify(responseBody)}`,
+      `Expected refund request creation to return 201, received ${response.status}: ${JSON.stringify(responseBody)}`,
     );
   }
 
-  const parsed = actionRequestResponseSchema.parse(responseBody);
+  const parsed = refundRequestResponseSchema.parse(responseBody);
 
-  if (parsed.decision !== "approval_required") {
+  if (parsed.decision !== "needs_review") {
     throw new Error(
       `Expected 100 USD refund to require approval, received ${parsed.decision}.`,
     );
   }
 
-  return parsed.action_request_id;
+  return parsed.refund_request_id;
 }
 
-async function approveActionRequest({
+async function approveRefundRequest({
   baseUrl,
-  actionRequestId,
+  refundRequestId,
   reviewerEmail,
 }: {
   baseUrl: string;
-  actionRequestId: string;
+  refundRequestId: string;
   reviewerEmail: string;
 }) {
   const response = await fetch(
-    `${baseUrl}/api/v1/action-requests/${actionRequestId}/approve`,
+    `${baseUrl}/api/v1/refund-requests/${refundRequestId}/approve`,
     {
       method: "POST",
       headers: {
@@ -226,18 +227,18 @@ async function approveActionRequest({
   return approvalResponseSchema.parse(responseBody);
 }
 
-async function executeActionRequest({
+async function executeRefundRequest({
   baseUrl,
-  actionRequestId,
+  refundRequestId,
   expectedStatus,
 }: {
   baseUrl: string;
-  actionRequestId: string;
+  refundRequestId: string;
   expectedStatus: number;
 }) {
   const response = await fetch(
-    `${baseUrl}/api/v1/action-requests/${actionRequestId}/execute`,
-    buildDryRunExecutionRequest({
+    `${baseUrl}/api/v1/refund-requests/${refundRequestId}/execute`,
+    buildDemoSimulationExecutionRequest({
       source: "local_e2e_execution_flow",
     }),
   );
@@ -254,14 +255,14 @@ async function executeActionRequest({
 
 async function assertSecondExecutionRejected({
   baseUrl,
-  actionRequestId,
+  refundRequestId,
 }: {
   baseUrl: string;
-  actionRequestId: string;
+  refundRequestId: string;
 }) {
   const response = await fetch(
-    `${baseUrl}/api/v1/action-requests/${actionRequestId}/execute`,
-    buildDryRunExecutionRequest({
+    `${baseUrl}/api/v1/refund-requests/${refundRequestId}/execute`,
+    buildDemoSimulationExecutionRequest({
       source: "local_e2e_execution_flow_duplicate",
     }),
   );
@@ -280,6 +281,12 @@ async function assertSecondExecutionRejected({
       `Expected duplicate execute to fail as already_executed, received ${JSON.stringify(parsed)}.`,
     );
   }
+}
+
+function logSmokeSafetyBoundary() {
+  console.log(
+    "Safety: Demo simulation does not move money. Stripe test-mode uses test objects only. Live refunds are blocked in v1. The AI agent must not receive Stripe secret keys.",
+  );
 }
 
 function isMainModule() {

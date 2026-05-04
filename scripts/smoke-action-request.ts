@@ -4,27 +4,28 @@ import { pathToFileURL } from "node:url";
 
 import { z } from "zod";
 
+import { readOptionalEnvWithLegacy } from "../src/lib/env";
 import { readConfiguredDemoAgentApiKey } from "../src/lib/security/api-keys";
 
 const defaultBaseUrl = "http://localhost:3000";
-const apiPath = "/api/v1/action-requests";
+const apiPath = "/api/v1/refund-requests";
 
-const actionRequestResponseSchema = z
+const refundRequestResponseSchema = z
   .object({
-    decision: z.enum(["allow", "deny", "approval_required"]),
-    action_request_id: z.string().min(1),
+    refund_request_id: z.string().min(1),
+    decision: z.enum(["allowed", "needs_review", "blocked"]),
     reason: z.string().min(1),
-    approval_url: z.string().min(1).optional(),
+    review_url: z.string().min(1).optional(),
   })
   .passthrough();
 
-type ActionRequestDecision = z.infer<
-  typeof actionRequestResponseSchema
+type RefundRequestDecision = z.infer<
+  typeof refundRequestResponseSchema
 >["decision"];
 
 export type RefundSmokeCase = {
-  amount: number;
-  expectedDecision: ActionRequestDecision;
+  amountUsd: number;
+  expectedDecision: RefundRequestDecision;
 };
 
 export type SmokeConfig = {
@@ -34,33 +35,25 @@ export type SmokeConfig = {
 
 export const refundSmokeCases = [
   {
-    amount: 25,
-    expectedDecision: "allow",
+    amountUsd: 25,
+    expectedDecision: "allowed",
   },
   {
-    amount: 100,
-    expectedDecision: "approval_required",
+    amountUsd: 100,
+    expectedDecision: "needs_review",
   },
   {
-    amount: 750,
-    expectedDecision: "deny",
+    amountUsd: 750,
+    expectedDecision: "blocked",
   },
 ] satisfies RefundSmokeCase[];
 
-export function buildRefundActionRequestPayload(amount: number) {
+export function buildRefundRequestPayload(amountUsd: number) {
   return {
-    connector: "stripe_test",
-    action: "refund.create",
-    resource: {
-      refund_id: `smoke_refund_${amount}`,
-    },
-    parameters: {
-      amount,
-      currency: "USD",
-    },
-    context: {
-      source: "local_e2e_smoke",
-    },
+    stripe_mode: "demo_simulation",
+    amount: amountUsd * 100,
+    currency: "usd",
+    reason: `AI support agent recommends a $${amountUsd.toFixed(2)} refund.`,
   };
 }
 
@@ -69,58 +62,63 @@ export function readSmokeConfig(): SmokeConfig {
 
   if (!configuredApiKey) {
     throw new Error(
-      "REFUNDHOLD_DEMO_AGENT_API_KEY is required. Copy .env.example to .env, set a local demo key, run pnpm db:seed:demo, then run this smoke test. AUTHRAIL_DEMO_AGENT_API_KEY remains supported as a legacy fallback.",
+      "REFUNDHOLD_DEMO_AGENT_API_KEY is required. Copy .env.example to .env, set a local demo key, run pnpm db:seed:demo, then run this smoke test.",
     );
   }
 
   return {
     baseUrl:
-      process.env["AUTHRAIL_ACTION_REQUEST_BASE_URL"]?.trim() ?? defaultBaseUrl,
+      readOptionalEnvWithLegacy(
+        process.env,
+        "REFUNDHOLD_SMOKE_BASE_URL",
+        "AUTHRAIL_ACTION_REQUEST_BASE_URL",
+      ) ?? defaultBaseUrl,
     apiKey: configuredApiKey.apiKey,
   };
 }
 
-export async function runActionRequestSmokeTest(
+export async function runRefundRequestSmokeTest(
   config: SmokeConfig = readSmokeConfig(),
 ) {
   const baseUrl = config.baseUrl.replace(/\/$/, "");
+  logSmokeSafetyBoundary();
 
   for (const smokeCase of refundSmokeCases) {
-    const response = await postActionRequest({
+    const response = await postRefundRequest({
       url: `${baseUrl}${apiPath}`,
       apiKey: config.apiKey,
-      amount: smokeCase.amount,
+      amountUsd: smokeCase.amountUsd,
     });
 
     if (response.decision !== smokeCase.expectedDecision) {
       throw new Error(
-        `Expected ${smokeCase.expectedDecision} for ${smokeCase.amount} USD refund, received ${response.decision}.`,
+        `Expected ${smokeCase.expectedDecision} for ${smokeCase.amountUsd} USD refund request, received ${response.decision}.`,
       );
     }
 
     if (
-      smokeCase.expectedDecision === "approval_required" &&
-      !response.approval_url
+      smokeCase.expectedDecision === "needs_review" &&
+      !response.review_url
     ) {
       throw new Error(
-        "Expected approval_required response to include approval_url.",
+        "Expected needs_review response to include review_url.",
       );
     }
 
     console.log(
-      `${smokeCase.amount} USD refund -> ${response.decision} (${response.action_request_id})`,
+      `${smokeCase.amountUsd} USD refund request -> ${response.decision} (${response.refund_request_id})`,
     );
   }
 }
 
-async function postActionRequest({
+async function postRefundRequest({
   url,
   apiKey,
-  amount,
+  amountUsd,
 }: {
   url: string;
   apiKey: string;
-  amount: number;
+  amountUsd: number;
 }) {
   const response = await fetch(url, {
     method: "POST",
@@ -128,17 +126,23 @@ async function postActionRequest({
       authorization: `Bearer ${apiKey}`,
       "content-type": "application/json",
     },
-    body: JSON.stringify(buildRefundActionRequestPayload(amount)),
+    body: JSON.stringify(buildRefundRequestPayload(amountUsd)),
   });
   const responseBody: unknown = await response.json().catch(() => null);
 
   if (response.status !== 201) {
     throw new Error(
-      `Expected ${url} to return 201 for ${amount} USD refund, received ${response.status}: ${JSON.stringify(responseBody)}`,
+      `Expected ${url} to return 201 for ${amountUsd} USD refund request, received ${response.status}: ${JSON.stringify(responseBody)}`,
     );
   }
 
-  return actionRequestResponseSchema.parse(responseBody);
+  return refundRequestResponseSchema.parse(responseBody);
+}
+
+function logSmokeSafetyBoundary() {
+  console.log(
+    "Safety: Demo simulation does not move money. Stripe test-mode uses test objects only. Live refunds are blocked in v1. The AI agent must not receive Stripe secret keys.",
+  );
 }
 
 function isMainModule() {
@@ -150,7 +154,7 @@ function isMainModule() {
 }
 
 if (isMainModule()) {
-  runActionRequestSmokeTest().catch((error: unknown) => {
+  runRefundRequestSmokeTest().catch((error: unknown) => {
     console.error(error);
     process.exit(1);
   });
