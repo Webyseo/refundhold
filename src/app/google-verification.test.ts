@@ -14,4 +14,10 @@ describe("Google Search Console verification file", () => {
       "google-site-verification: googlecc1eb2acf298ed2a.html",
     );
   });
+
+  it("is included in the production Docker runner image assets", () => {
+    const dockerfile = readFileSync(path.join(process.cwd(), "Dockerfile"), "utf8");
+
+    expect(dockerfile).toContain("public ./public");
+  });
 });

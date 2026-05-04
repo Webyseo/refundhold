@@ -45,6 +45,7 @@ RUN addgroup --system --gid 1001 nodejs \
 
 COPY --from=prod-deps --chown=refundhold:nodejs /app/node_modules ./node_modules
 COPY --from=build --chown=refundhold:nodejs /app/.next ./.next
+COPY --from=build --chown=refundhold:nodejs /app/public ./public
 COPY --from=build --chown=refundhold:nodejs /app/src/generated ./src/generated
 COPY --chown=refundhold:nodejs package.json ./
 COPY --chown=refundhold:nodejs next.config.ts ./next.config.ts
