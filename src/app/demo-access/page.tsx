@@ -29,6 +29,7 @@ export default async function DemoAccessPage({
   const params = await searchParams;
   const nextPath = getSafeDemoAccessNextPath(getSearchValue(params["next"]));
   const error = getSearchValue(params["error"]);
+  const exited = getSearchValue(params["exited"]) === "1";
   const demoAccess = getDemoAccessStatus(process.env);
 
   return (
@@ -44,6 +45,41 @@ export default async function DemoAccessPage({
         <p className="mt-5 text-base leading-7 text-zinc-300">
           Enter the password provided by the RefundHold team.
         </p>
+
+        {exited ? (
+          <div className="mt-8 rounded-lg border border-emerald-300/30 bg-emerald-300/10 p-5">
+            <p className="text-sm font-semibold text-emerald-100">
+              You have exited the private demo.
+            </p>
+            <p className="mt-2 text-sm leading-6 text-emerald-50/80">
+              You can re-enter with your password or open the public demo.
+            </p>
+          </div>
+        ) : null}
+
+        <div className="mt-8 rounded-lg border border-zinc-800 bg-zinc-900/60 p-5">
+          <h2 className="text-base font-semibold text-zinc-100">
+            What this demo includes
+          </h2>
+          <ul className="mt-4 space-y-2 text-sm leading-6 text-zinc-300">
+            {[
+              "A reviewer dashboard with sample refund requests",
+              "AI-proposed Stripe refunds",
+              "Policy checks",
+              "Human approve/reject decisions",
+              "Audit trail records",
+              "No real Stripe money moves",
+            ].map((item) => (
+              <li className="flex gap-3" key={item}>
+                <span
+                  aria-hidden="true"
+                  className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-300"
+                />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
 
         {!demoAccess.enabled ? (
           <div className="mt-8 rounded-lg border border-zinc-800 bg-zinc-900/70 p-5">

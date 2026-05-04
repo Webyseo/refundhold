@@ -20,7 +20,7 @@ export function SessionSignOutButton({ redirectTo }: { redirectTo: string }) {
       type="button"
       onClick={signOut}
       disabled={isSigningOut}
-      className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 disabled:cursor-not-allowed disabled:opacity-60"
+      className="inline-flex min-h-11 items-center rounded-md border border-zinc-700 px-3 py-2 text-zinc-300 transition hover:border-zinc-500 hover:bg-zinc-900 hover:text-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 disabled:cursor-not-allowed disabled:opacity-60"
     >
       {isSigningOut ? "Signing out..." : "Sign out"}
     </button>

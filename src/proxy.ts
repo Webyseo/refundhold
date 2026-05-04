@@ -8,11 +8,17 @@ import {
 } from "./lib/demo-access";
 
 export default async function proxy(request: NextRequest) {
+  const headers = new Headers(request.headers);
+  headers.set(
+    "x-refundhold-current-path",
+    `${request.nextUrl.pathname}${request.nextUrl.search}`,
+  );
+
   try {
     const authConfig = getAuthConfig(process.env);
 
     if (authConfig.authRequired) {
-      return NextResponse.next();
+      return NextResponse.next({ request: { headers } });
     }
   } catch {
     return NextResponse.json(
@@ -27,7 +33,7 @@ export default async function proxy(request: NextRequest) {
   const demoAccess = getDemoAccessConfig(process.env);
 
   if (!demoAccess.enabled) {
-    return NextResponse.next();
+    return NextResponse.next({ request: { headers } });
   }
 
   if (demoAccess.password) {
@@ -35,7 +41,7 @@ export default async function proxy(request: NextRequest) {
       request.cookies.get(DEMO_ACCESS_COOKIE_NAME)?.value ?? null;
 
     if (await isValidDemoAccessCookieValue(cookieValue, demoAccess.password)) {
-      return NextResponse.next();
+      return NextResponse.next({ request: { headers } });
     }
   }
 

@@ -93,7 +93,7 @@ export async function RefundRequestDetailPage({
       ? "Test mode only; no live Stripe API calls and no real money movement."
       : reviewDisplay.modeLabel === "Live refunds blocked"
         ? "Live refunds are blocked in v1."
-        : demoDetails.dryRun;
+        : demoDetails.demoSimulation;
   const summarySentence = reviewDisplay.amount
     ? `AI support agent proposed a ${reviewDisplay.amount} Stripe refund.`
     : "AI support agent proposed a Stripe refund.";
@@ -113,16 +113,16 @@ export async function RefundRequestDetailPage({
     <section className="mx-auto max-w-7xl px-5 py-8 sm:px-8">
       <Link
         href={routeBase}
-        className="text-sm font-medium text-emerald-700 hover:text-emerald-900"
+        className="text-sm font-medium text-emerald-300 hover:text-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
       >
         Back to refund requests
       </Link>
 
       <div className="mt-5">
-        <p className="text-sm font-medium uppercase tracking-[0.16em] text-emerald-700">
+        <p className="text-sm font-medium uppercase tracking-[0.16em] text-emerald-300">
           Refund review
         </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-950">
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-50">
           Refund request
         </h1>
       </div>
@@ -131,17 +131,17 @@ export async function RefundRequestDetailPage({
       {error ? <Notice tone="error">{error}</Notice> : null}
 
       <div className="mt-6 space-y-6">
-        <section className="rounded-lg border border-zinc-200 bg-white p-5">
-          <h2 className="text-base font-semibold text-zinc-950">Summary</h2>
-          <div className="mt-3 space-y-2 text-sm leading-6 text-zinc-700">
+        <section className="rounded-lg border border-zinc-800 bg-zinc-900 p-5">
+          <h2 className="text-base font-semibold text-zinc-50">Summary</h2>
+          <div className="mt-3 space-y-2 text-sm leading-6 text-zinc-300">
             <p>{summarySentence}</p>
             <p>{policySummary}</p>
           </div>
-          <div className="mt-5 rounded-md border border-zinc-200 bg-zinc-50 p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          <div className="mt-5 rounded-md border border-zinc-800 bg-zinc-950 p-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
               Reason
             </p>
-            <p className="mt-1 text-sm leading-6 text-zinc-700">
+            <p className="mt-1 text-sm leading-6 text-zinc-300">
               {reviewDisplay.aiJustification}
             </p>
           </div>
@@ -152,48 +152,49 @@ export async function RefundRequestDetailPage({
           controls={controls}
           permissions={access.context.permissions}
           returnPath={`${routeBase}/${request.id}`}
+          status={request.status}
           stripeTestRefund={stripeTestRefund}
         />
 
-        <section className="rounded-lg border border-zinc-200 bg-white p-5">
-          <h2 className="text-base font-semibold text-zinc-950">
+        <section className="rounded-lg border border-zinc-800 bg-zinc-900 p-5">
+          <h2 className="text-base font-semibold text-zinc-50">
             Policy matched
           </h2>
-          <p className="mt-3 text-sm leading-6 text-zinc-700">
+          <p className="mt-3 text-sm leading-6 text-zinc-300">
             {policySummary}
           </p>
-          <p className="mt-4 w-fit rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900">
+          <p className="mt-4 w-fit rounded-full border border-amber-300/50 bg-amber-300/15 px-3 py-1 text-xs font-semibold text-amber-100">
             {policyResult}
           </p>
         </section>
 
-        <section className="rounded-lg border border-zinc-200 bg-white p-5">
-          <h2 className="text-base font-semibold text-zinc-950">
+        <section className="rounded-lg border border-zinc-800 bg-zinc-900 p-5">
+          <h2 className="text-base font-semibold text-zinc-50">
             Current status
           </h2>
-          <p className="mt-3 text-sm leading-6 text-zinc-700">
+          <p className="mt-3 text-sm leading-6 text-zinc-300">
             {currentStatus}
           </p>
-          <p className="mt-4 text-sm font-medium text-zinc-700">
+          <p className="mt-4 text-sm font-medium text-zinc-300">
             {reviewDisplay.modeLabel} · no real money moved.
           </p>
         </section>
 
-        <section className="rounded-lg border border-zinc-200 bg-white p-5">
-          <h2 className="text-base font-semibold text-zinc-950">Audit trail</h2>
+        <section className="rounded-lg border border-zinc-800 bg-zinc-900 p-5">
+          <h2 className="text-base font-semibold text-zinc-50">Audit trail</h2>
           <ol className="mt-4 space-y-3">
             {reviewDisplay.auditTrail.map((item) => (
               <li
-                className="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700"
+                className="rounded-md border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-300"
                 key={item.id}
               >
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="font-semibold text-zinc-950">{item.label}</p>
-                  <p className="text-xs font-medium text-zinc-500">
+                  <p className="font-semibold text-zinc-50">{item.label}</p>
+                  <p className="text-xs font-medium text-zinc-400">
                     {item.timestamp}
                   </p>
                 </div>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-zinc-400">
                   {item.actor}
                 </p>
                 {item.description ? (
@@ -234,13 +235,13 @@ function ReadableDetails({
     <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {items.map((item) => (
         <div
-          className="rounded-md border border-zinc-200 bg-zinc-50 p-3"
+          className="rounded-md border border-zinc-800 bg-zinc-950 p-3"
           key={item.label}
         >
-          <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
             {item.label}
           </dt>
-          <dd className="mt-1 text-sm font-semibold text-zinc-950">
+          <dd className="mt-1 text-sm font-semibold text-zinc-50">
             {item.value}
           </dd>
         </div>
@@ -252,10 +253,10 @@ function ReadableDetails({
 function Detail({ label, value }: { label: string; value: string | null }) {
   return (
     <div>
-      <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+      <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
         {label}
       </dt>
-      <dd className="mt-1 text-sm text-zinc-900">{value ?? "none"}</dd>
+      <dd className="mt-1 text-sm text-zinc-200">{value ?? "none"}</dd>
     </div>
   );
 }
@@ -278,35 +279,34 @@ function DeveloperDetails({
   stripeTestRefund: StripeTestRefundDetails;
 }) {
   return (
-    <details className="rounded-lg border border-zinc-200 bg-white p-5">
-      <summary className="cursor-pointer text-base font-semibold text-zinc-950">
+    <details className="rounded-lg border border-zinc-800 bg-zinc-900 p-5">
+      <summary className="cursor-pointer text-base font-semibold text-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">
         Developer details
       </summary>
-      <p className="mt-2 text-sm text-zinc-500">
-        Raw request, policy, execution, Stripe test-mode and audit data for
-        debugging.
+      <p className="mt-2 text-sm text-zinc-400">
+        Technical request and policy data for developers.
       </p>
 
       <div className="mt-5 space-y-6">
         <section>
-          <h3 className="text-sm font-semibold text-zinc-950">
+          <h3 className="text-sm font-semibold text-zinc-50">
             Reviewer context
           </h3>
-          <p className="mt-3 text-sm leading-6 text-zinc-700">
+          <p className="mt-3 text-sm leading-6 text-zinc-300">
             {reviewDisplay.aiJustification}
           </p>
           <ReadableDetails items={reviewDisplay.customerContext} />
         </section>
 
         <section>
-          <h3 className="text-sm font-semibold text-zinc-950">
+          <h3 className="text-sm font-semibold text-zinc-50">
             Evidence shown to reviewers
           </h3>
           <ReadableDetails items={reviewDisplay.evidence} />
         </section>
 
         <section>
-          <h3 className="text-sm font-semibold text-zinc-950">
+          <h3 className="text-sm font-semibold text-zinc-50">
             Request metadata
           </h3>
           <dl className="mt-3 grid gap-4 sm:grid-cols-2">
@@ -329,7 +329,7 @@ function DeveloperDetails({
 
         {stripeTestRefund?.paymentObject ? (
           <section>
-            <h3 className="text-sm font-semibold text-zinc-950">
+            <h3 className="text-sm font-semibold text-zinc-50">
               Stripe test-mode payment metadata
             </h3>
             <dl className="mt-3 grid gap-4 sm:grid-cols-2">
@@ -373,7 +373,7 @@ function DeveloperDetails({
 
         {stripeTestRefund?.refund ? (
           <section>
-            <h3 className="text-sm font-semibold text-zinc-950">
+            <h3 className="text-sm font-semibold text-zinc-50">
               Stripe test-mode refund metadata
             </h3>
             <dl className="mt-3 grid gap-4 sm:grid-cols-2">
@@ -406,7 +406,7 @@ function DeveloperDetails({
 
         {stripeTestRefund?.webhook ? (
           <section>
-            <h3 className="text-sm font-semibold text-zinc-950">
+            <h3 className="text-sm font-semibold text-zinc-50">
               Webhook reconciliation
             </h3>
             <dl className="mt-3 grid gap-4 sm:grid-cols-2">
@@ -454,7 +454,7 @@ function DeveloperDetails({
           empty="No executions recorded."
           items={request.executions.map((execution) => ({
             id: execution.id,
-            title: `${execution.status} / ${execution.mode}`,
+            title: `${execution.status} / ${getExecutionModeLabel(execution.mode)}`,
             body: [
               `Started: ${
                 execution.startedAt
@@ -483,9 +483,30 @@ function DeveloperDetails({
 
         <JsonBlock title="Refund resource" value={request.resource} />
         <JsonBlock title="Parameters" value={request.parameters} />
-        <JsonBlock title="Context" value={request.context} />
+        <JsonBlock title="Context" value={sanitizeDeveloperJson(request.context)} />
       </div>
     </details>
+  );
+}
+
+function getExecutionModeLabel(value: string): string {
+  return value.toLowerCase() === "dry_run" ? "Demo simulation" : value;
+}
+
+function sanitizeDeveloperJson(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(sanitizeDeveloperJson);
+  }
+
+  if (!isRecord(value)) {
+    return value === "dry_run" ? "demo_simulation" : value;
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [
+      key === "dry_run" ? "demo_simulation" : key,
+      sanitizeDeveloperJson(entry),
+    ]),
   );
 }
 
@@ -500,21 +521,21 @@ function DeveloperList({
 }) {
   return (
     <section>
-      <h3 className="text-sm font-semibold text-zinc-950">{title}</h3>
+      <h3 className="text-sm font-semibold text-zinc-50">{title}</h3>
       {items.length === 0 ? (
         <EmptyLine>{empty}</EmptyLine>
       ) : (
         <div className="mt-3 space-y-3">
           {items.map((item) => (
             <div
-              className="rounded-md border border-zinc-200 bg-zinc-50 p-3"
+              className="rounded-md border border-zinc-800 bg-zinc-950 p-3"
               key={item.id}
             >
-              <p className="text-sm font-semibold text-zinc-950">
+              <p className="text-sm font-semibold text-zinc-50">
                 {item.title}
               </p>
               {item.body.map((line) => (
-                <p className="mt-1 text-xs leading-5 text-zinc-600" key={line}>
+                <p className="mt-1 text-xs leading-5 text-zinc-400" key={line}>
                   {line}
                 </p>
               ))}
@@ -529,8 +550,8 @@ function DeveloperList({
 function JsonBlock({ title, value }: { title: string; value: unknown }) {
   return (
     <section>
-      <h3 className="text-sm font-semibold text-zinc-950">{title}</h3>
-      <pre className="mt-3 overflow-auto rounded-md bg-zinc-950 p-4 text-xs leading-5 text-zinc-100">
+      <h3 className="text-sm font-semibold text-zinc-50">{title}</h3>
+      <pre className="mt-3 max-w-full overflow-auto rounded-md border border-zinc-800 bg-zinc-950 p-4 text-xs leading-5 text-zinc-100">
         {formatJson(value)}
       </pre>
     </section>
@@ -546,8 +567,8 @@ function Notice({
 }) {
   const styles =
     tone === "success"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-      : "border-red-200 bg-red-50 text-red-900";
+      ? "border-emerald-300/40 bg-emerald-300/10 text-emerald-100"
+      : "border-red-300/40 bg-red-300/10 text-red-100";
 
   return (
     <div className={`mt-5 rounded-md border px-4 py-3 text-sm ${styles}`}>
@@ -557,7 +578,7 @@ function Notice({
 }
 
 function EmptyLine({ children }: { children: React.ReactNode }) {
-  return <p className="mt-4 text-sm text-zinc-500">{children}</p>;
+  return <p className="mt-4 text-sm text-zinc-400">{children}</p>;
 }
 
 function getSearchMessage(value: string | string[] | undefined): string | null {
@@ -578,7 +599,7 @@ function getDemoRefundDetails({
   refundAmount: string | null;
   customer: string | null;
   order: string | null;
-  dryRun: string | null;
+  demoSimulation: string | null;
   riskReason: string | null;
 } {
   const parameterRecord = isRecord(parameters) ? parameters : {};
@@ -606,7 +627,7 @@ function getDemoRefundDetails({
       name: order["id"],
       detail: order["summary"],
     }),
-    dryRun:
+    demoSimulation:
       contextRecord["dry_run"] === true
         ? "Demo simulation only; Stripe is not called and no money moves."
         : null,

@@ -81,12 +81,86 @@ describe("refund request detail UI", () => {
     expect(html).toContain("Waiting for human approval");
     expect(html).toContain("<details");
     expect(html).not.toContain("<details open");
+    expect(html).not.toContain("dry_run");
+    expect(html).not.toContain("dry-run");
     expect(html).not.toContain("ActionRequest");
     expect(html).not.toContain("AuthRail");
   });
+
+  it("uses human decision result copy for approved, rejected, and executed requests", async () => {
+    vi.mocked(getDashboardActionRequest).mockResolvedValue(
+      makeRequest({
+        decision: "APPROVAL_REQUIRED",
+        status: "APPROVED",
+      }),
+    );
+
+    const approvedHtml = renderToStaticMarkup(
+      await RefundRequestDetailPage({
+        params: Promise.resolve({ id: "demo-refund-approved" }),
+        searchParams: Promise.resolve({}),
+        routeBase: "/app/refund-requests",
+      }),
+    );
+
+    expect(approvedHtml).toContain("Decision result");
+    expect(approvedHtml).toContain(
+      "The reviewer approved this refund for demo simulation.",
+    );
+    expect(approvedHtml).toContain("Record demo execution");
+
+    vi.mocked(getDashboardActionRequest).mockResolvedValue(
+      makeRequest({
+        decision: "DENY",
+        status: "REJECTED",
+      }),
+    );
+
+    const rejectedHtml = renderToStaticMarkup(
+      await RefundRequestDetailPage({
+        params: Promise.resolve({ id: "demo-refund-rejected" }),
+        searchParams: Promise.resolve({}),
+        routeBase: "/app/refund-requests",
+      }),
+    );
+
+    expect(rejectedHtml).toContain("Rejected");
+    expect(rejectedHtml).toContain("Stripe execution was blocked.");
+    expect(rejectedHtml).not.toContain("Record demo execution");
+
+    vi.mocked(getDashboardActionRequest).mockResolvedValue(
+      makeRequest({
+        decision: "APPROVAL_REQUIRED",
+        status: "EXECUTED",
+        executions: [
+          {
+            id: "exec_demo",
+            status: "SUCCEEDED",
+            mode: "dry_run",
+            startedAt: new Date("2026-01-01T09:05:00.000Z"),
+            completedAt: new Date("2026-01-01T09:05:01.000Z"),
+          },
+        ],
+      }),
+    );
+
+    const executedHtml = renderToStaticMarkup(
+      await RefundRequestDetailPage({
+        params: Promise.resolve({ id: "demo-refund-executed" }),
+        searchParams: Promise.resolve({}),
+        routeBase: "/app/refund-requests",
+      }),
+    );
+
+    expect(executedHtml).toContain("Executed");
+    expect(executedHtml).toContain("Demo execution was recorded.");
+    expect(executedHtml).toContain("Demo simulation");
+    expect(executedHtml).not.toContain("dry_run");
+    expect(executedHtml).not.toContain("dry-run");
+  });
 });
 
-function makeRequest() {
+function makeRequest(overrides: Record<string, unknown> = {}) {
   const createdAt = new Date("2026-01-01T09:00:00.000Z");
 
   return {
@@ -104,6 +178,7 @@ function makeRequest() {
       reason: "duplicate charge",
     },
     context: {
+      dry_run: true,
       customer: {
         email: "billing-upgrade@example.test",
         name: "Billing Upgrade",
@@ -155,5 +230,6 @@ function makeRequest() {
         user: null,
       },
     ],
+    ...overrides,
   };
 }

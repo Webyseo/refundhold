@@ -7,16 +7,6 @@ import { getStripeSafetyConfig } from "@/lib/stripe/config";
 
 export const dynamic = "force-dynamic";
 
-const checklist = [
-  "Create or use a Stripe test account.",
-  "Use restricted test keys only.",
-  "Configure the existing Stripe test-mode settings.",
-  "Confirm webhook test settings if webhooks are enabled.",
-  "Send a demo or test refund request.",
-  "Review the held refund in RefundHold.",
-  "Approve or reject before execution.",
-];
-
 export default async function StripeStatusPage() {
   const access = await getAppAccessContext({
     nextPath: "/app/stripe",
@@ -30,8 +20,14 @@ export default async function StripeStatusPage() {
     return <AppAccessNotice message={access.message} />;
   }
 
-  const stripeTestStatus = getStripeTestStatus();
+  return <StripeStatusContent stripeTestStatus={getStripeTestStatus()} />;
+}
 
+export function StripeStatusContent({
+  stripeTestStatus = "Setup required",
+}: {
+  stripeTestStatus?: "Ready" | "Setup required";
+}) {
   const modes = [
     {
       title: "Demo simulation",
@@ -49,26 +45,35 @@ export default async function StripeStatusPage() {
       title: "Live refunds",
       description: "Blocked in v1. Not available yet.",
       status: "Blocked",
-      tone: "zinc",
+      tone: "red",
     },
-  ];
+  ] as const;
 
   return (
     <section className="mx-auto max-w-7xl px-5 py-8 sm:px-8">
       <div className="max-w-3xl">
-        <p className="text-sm font-medium uppercase tracking-[0.16em] text-emerald-700">
+        <p className="text-sm font-medium uppercase tracking-[0.16em] text-emerald-300">
           RefundHold Stripe status
         </p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-tight text-zinc-950">
+        <h1 className="mt-3 text-4xl font-semibold tracking-tight text-zinc-50">
           Stripe test-mode
         </h1>
-        <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-600">
+        <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-300">
           Check whether RefundHold is ready to test refund flows with Stripe
           test objects. Live refunds are blocked in v1.
         </p>
       </div>
 
-      <div className="mt-8 grid gap-5 lg:grid-cols-3">
+      <div className="mt-8 rounded-lg border border-emerald-300/30 bg-emerald-300/10 p-5">
+        <p className="text-sm font-semibold text-emerald-100">
+          You are using demo simulation.
+        </p>
+        <p className="mt-2 text-sm leading-6 text-emerald-50/90">
+          RefundHold does not call Stripe or move money in this private demo.
+        </p>
+      </div>
+
+      <div className="mt-5 grid gap-5 lg:grid-cols-3">
         {modes.map((mode) => (
           <ModeCard
             description={mode.description}
@@ -81,70 +86,30 @@ export default async function StripeStatusPage() {
       </div>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="space-y-5">
-          <StatusSection title="What Stripe test-mode means">
-            <div className="space-y-3 text-sm leading-6 text-zinc-600">
-              <p>
-                Stripe test-mode lets you verify RefundHold with Stripe test
-                objects before any production use.
-              </p>
-              <p>It must not be confused with live refunds.</p>
-              <p>
-                Use test keys, test charges, and test webhook settings only.
-              </p>
-            </div>
-          </StatusSection>
+        <StatusSection title="Safety boundary">
+          <p className="text-sm leading-6 text-zinc-300">
+            Live Stripe refunds are blocked in this version. RefundHold can run
+            demo simulations and Stripe test-mode flows, but it cannot move
+            live money unless production live mode is explicitly built,
+            reviewed, and enabled.
+          </p>
+        </StatusSection>
 
-          <StatusSection title="Setup checklist">
-            <ul className="space-y-3">
-              {checklist.map((item) => (
-                <li className="flex gap-3 text-sm text-zinc-600" key={item}>
-                  <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </StatusSection>
-
-          <StatusSection title="Safety boundary">
-            <p className="text-sm leading-6 text-zinc-600">
-              Live Stripe refunds are blocked in this version. RefundHold can
-              run demo simulations and Stripe test-mode flows, but it cannot
-              move live money unless production live mode is explicitly built,
-              reviewed and enabled.
-            </p>
-          </StatusSection>
-        </div>
-
-        <aside className="h-fit rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-zinc-950">Next actions</p>
+        <aside className="h-fit rounded-lg border border-zinc-800 bg-zinc-900 p-5 shadow-sm">
+          <p className="text-sm font-semibold text-zinc-50">Next actions</p>
           <div className="mt-5 flex flex-col gap-3">
-            <Link
-              className="inline-flex rounded-md bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800"
-              href="/app/onboarding"
-            >
-              Open onboarding
-            </Link>
-            <Link
-              className="inline-flex rounded-md border border-zinc-300 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950"
-              href="/app/refund-requests"
-            >
+            <AppActionLink href="/app/onboarding">Open onboarding</AppActionLink>
+            <AppActionLink href="/app/refund-requests">
               Review refund requests
-            </Link>
-            <Link
-              className="inline-flex rounded-md border border-zinc-300 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950"
-              href="/docs/stripe-test-mode"
-            >
+            </AppActionLink>
+            <AppActionLink href="/docs/stripe-test-mode">
               Read test-mode setup
-            </Link>
-            <Link
-              className="inline-flex rounded-md border border-zinc-300 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950"
-              href="/docs/quickstart"
-            >
+            </AppActionLink>
+            <AppActionLink href="/docs/quickstart">
               Read quickstart
-            </Link>
+            </AppActionLink>
           </div>
-          <p className="mt-6 border-t border-zinc-200 pt-4 text-xs leading-5 text-zinc-500">
+          <p className="mt-6 border-t border-zinc-800 pt-4 text-xs leading-5 text-zinc-400">
             RefundHold is not affiliated with, endorsed by, or sponsored by
             Stripe. Stripe is a trademark of Stripe, Inc.
           </p>
@@ -166,6 +131,23 @@ function getStripeTestStatus(): "Ready" | "Setup required" {
   }
 }
 
+function AppActionLink({
+  children,
+  href,
+}: {
+  children: React.ReactNode;
+  href: string;
+}) {
+  return (
+    <Link
+      className="inline-flex min-h-11 items-center justify-center rounded-md border border-zinc-700 bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-zinc-200 hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+      href={href}
+    >
+      {children}
+    </Link>
+  );
+}
+
 function ModeCard({
   description,
   status,
@@ -175,26 +157,26 @@ function ModeCard({
   description: string;
   status: string;
   title: string;
-  tone: string;
+  tone: "amber" | "emerald" | "red";
 }) {
   const statusClass =
     tone === "emerald"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+      ? "border-emerald-300/50 bg-emerald-300/15 text-emerald-100"
       : tone === "amber"
-        ? "border-amber-200 bg-amber-50 text-amber-900"
-        : "border-zinc-200 bg-zinc-100 text-zinc-700";
+        ? "border-amber-300/50 bg-amber-300/15 text-amber-100"
+        : "border-red-300/50 bg-red-300/15 text-red-100";
 
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+    <section className="rounded-lg border border-zinc-800 bg-zinc-900 p-5 shadow-sm">
       <div className="flex items-start justify-between gap-4">
-        <h2 className="text-lg font-semibold text-zinc-950">{title}</h2>
+        <h2 className="text-lg font-semibold text-zinc-50">{title}</h2>
         <span
           className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${statusClass}`}
         >
           Status: {status}
         </span>
       </div>
-      <p className="mt-3 text-sm leading-6 text-zinc-600">{description}</p>
+      <p className="mt-3 text-sm leading-6 text-zinc-300">{description}</p>
     </section>
   );
 }
@@ -207,8 +189,8 @@ function StatusSection({
   title: string;
 }) {
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-      <h2 className="text-xl font-semibold tracking-tight text-zinc-950">
+    <section className="rounded-lg border border-zinc-800 bg-zinc-900 p-5 shadow-sm">
+      <h2 className="text-xl font-semibold tracking-tight text-zinc-50">
         {title}
       </h2>
       <div className="mt-5">{children}</div>

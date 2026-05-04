@@ -70,7 +70,7 @@ export async function clearDemoAccessFromDashboard() {
     maxAge: 0,
   });
 
-  redirect("/demo-access?next=%2Fapp");
+  redirect("/demo-access?exited=1");
 }
 
 async function reviewActionRequestFromDashboard(
@@ -149,7 +149,7 @@ function getDashboardReturnPath(
   const legacyPath = `/app/action-requests/${actionRequestId}`;
   const refundPath = `/app/refund-requests/${actionRequestId}`;
 
-  return value === refundPath || value === legacyPath ? value : legacyPath;
+  return value === refundPath || value === legacyPath ? value : refundPath;
 }
 
 function getDemoReviewerEmail(): string {

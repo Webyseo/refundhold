@@ -6,6 +6,10 @@ import { getAppAccessContext } from "@/lib/auth/app-access";
 
 export const dynamic = "force-dynamic";
 
+type OnboardingPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
 const modes = [
   {
     title: "Demo simulation",
@@ -18,22 +22,23 @@ const modes = [
 ];
 
 const rules = [
-  "Under $50 → allowed",
-  "$50–$500 → needs review",
-  "Over $500 → blocked",
+  "Under $50 -> allowed",
+  "$50-$500 -> needs review",
+  "Over $500 -> blocked",
 ];
 
-const refundRequestCurl = `curl -X POST http://localhost:3000/api/v1/refund-requests \\
+const refundRequestCurl = `curl -X POST https://refundhold.com/api/v1/refund-requests \\
   -H "Authorization: Bearer <agent_api_key>" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "stripe_mode": "demo_simulation",
     "amount": 42000,
     "currency": "usd",
     "reason": "AI support agent recommends refund"
   }'`;
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage({
+  searchParams,
+}: OnboardingPageProps) {
   const access = await getAppAccessContext({
     nextPath: "/app/onboarding",
   });
@@ -46,18 +51,29 @@ export default async function OnboardingPage() {
     return <AppAccessNotice message={access.message} />;
   }
 
+  const query = await searchParams;
+  const rulesSelected = getSearchValue(query.rules) === "selected";
+
+  return <OnboardingContent rulesSelected={rulesSelected} />;
+}
+
+export function OnboardingContent({
+  rulesSelected = false,
+}: {
+  rulesSelected?: boolean;
+}) {
   return (
     <section className="mx-auto max-w-7xl px-5 py-8 sm:px-8">
       <div className="max-w-3xl">
-        <p className="text-sm font-medium uppercase tracking-[0.16em] text-emerald-700">
+        <p className="text-sm font-medium uppercase tracking-[0.16em] text-emerald-300">
           RefundHold onboarding
         </p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-tight text-zinc-950">
+        <h1 className="mt-3 text-4xl font-semibold tracking-tight text-zinc-50">
           Start safely
         </h1>
-        <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-600">
-          Create your first held refund request without moving live Stripe
-          money.
+        <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-300">
+          Walk through the demo setup rules and review flow without moving live
+          Stripe money.
         </p>
       </div>
 
@@ -67,19 +83,19 @@ export default async function OnboardingPage() {
             <div className="grid gap-3 sm:grid-cols-2">
               {modes.map((mode) => (
                 <div
-                  className="rounded-lg border border-zinc-200 bg-zinc-50 p-4"
+                  className="rounded-lg border border-zinc-800 bg-zinc-950 p-4"
                   key={mode.title}
                 >
-                  <p className="text-sm font-semibold text-zinc-950">
+                  <p className="text-sm font-semibold text-zinc-50">
                     {mode.title}
                   </p>
-                  <p className="mt-2 text-sm leading-6 text-zinc-600">
+                  <p className="mt-2 text-sm leading-6 text-zinc-300">
                     {mode.description}
                   </p>
                 </div>
               ))}
             </div>
-            <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+            <p className="mt-4 rounded-md border border-amber-300/40 bg-amber-300/10 px-4 py-3 text-sm font-semibold text-amber-100">
               Live refunds are blocked in v1.
             </p>
           </OnboardingSection>
@@ -88,37 +104,70 @@ export default async function OnboardingPage() {
             <div className="grid gap-3 sm:grid-cols-3">
               {rules.map((rule) => (
                 <p
-                  className="rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-950"
+                  className="rounded-md border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm font-semibold text-zinc-50"
                   key={rule}
                 >
                   {rule}
                 </p>
               ))}
             </div>
-            <p className="mt-4 inline-flex rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-900">
-              Use these rules
-            </p>
+            <form action="/app/onboarding" className="mt-4" method="get">
+              <button
+                className="inline-flex min-h-11 items-center justify-center rounded-md bg-emerald-400 px-4 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+                name="rules"
+                type="submit"
+                value="selected"
+              >
+                Use these rules
+              </button>
+            </form>
+            {rulesSelected ? (
+              <div
+                aria-live="polite"
+                className="mt-4 rounded-md border border-emerald-300/40 bg-emerald-300/10 px-4 py-3 text-sm leading-6 text-emerald-100"
+              >
+                <p className="font-semibold">Demo rules selected.</p>
+                <p>
+                  Under $50 is allowed, $50-$500 needs review, and over $500 is
+                  blocked.
+                </p>
+              </div>
+            ) : null}
           </OnboardingSection>
 
           <OnboardingSection step="3" title="Send first refund request">
-            <CommandBlock value={refundRequestCurl} />
-            <p className="mt-4 text-sm leading-6 text-zinc-600">
-              This creates a $420 demo refund proposal. RefundHold should hold
-              it for human review.
+            <p className="text-sm leading-6 text-zinc-300">
+              In this private demo, sample refund requests are already
+              available in the reviewer queue. Use the queue to review, approve,
+              reject, and inspect the audit trail.
             </p>
-            <p className="mt-3 text-sm leading-6 text-zinc-500">
-              Use the demo agent API key configured for your controlled demo
-              environment. Do not use Stripe secrets here.
-            </p>
+            <Link
+              className="mt-5 inline-flex min-h-11 items-center justify-center rounded-md bg-emerald-400 px-4 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+              href="/app/refund-requests"
+            >
+              Open refund requests
+            </Link>
+            <details className="mt-5 rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+              <summary className="cursor-pointer text-sm font-semibold text-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">
+                Developer API example
+              </summary>
+              <p className="mt-4 text-sm leading-6 text-zinc-300">
+                Use this when integrating your own AI support agent.
+              </p>
+              <CommandBlock value={refundRequestCurl} />
+              <p className="mt-3 text-sm leading-6 text-zinc-400">
+                Do not use Stripe secrets here.
+              </p>
+            </details>
           </OnboardingSection>
 
           <OnboardingSection step="4" title="Review held refund">
-            <p className="text-sm leading-6 text-zinc-600">
+            <p className="text-sm leading-6 text-zinc-300">
               Refunds that need human approval appear in the reviewer dashboard
               before they can continue.
             </p>
             <Link
-              className="mt-5 inline-flex rounded-md bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800"
+              className="mt-5 inline-flex min-h-11 items-center justify-center rounded-md bg-emerald-400 px-4 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
               href="/app/refund-requests"
             >
               Open refund requests
@@ -126,28 +175,28 @@ export default async function OnboardingPage() {
           </OnboardingSection>
 
           <OnboardingSection step="5" title="View audit trail">
-            <p className="text-sm leading-6 text-zinc-600">
+            <p className="text-sm leading-6 text-zinc-300">
               After approval or rejection, RefundHold records the AI proposal,
-              policy result, reviewer decision, and execution outcome.
+              policy result, reviewer decision, and outcome.
             </p>
             <Link
-              className="mt-5 inline-flex rounded-md border border-zinc-300 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950"
-              href="/demo"
+              className="mt-5 inline-flex min-h-11 items-center justify-center rounded-md border border-zinc-700 bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-zinc-200 hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+              href="/app/refund-requests"
             >
-              Try public demo
+              Open refund requests
             </Link>
           </OnboardingSection>
         </div>
 
-        <aside className="h-fit rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-zinc-950">Safe start</p>
-          <div className="mt-4 space-y-3 text-sm leading-6 text-zinc-600">
+        <aside className="h-fit rounded-lg border border-zinc-800 bg-zinc-900 p-5 shadow-sm">
+          <p className="text-sm font-semibold text-zinc-50">Safe start</p>
+          <div className="mt-4 space-y-3 text-sm leading-6 text-zinc-300">
             <p>Use demo simulation first.</p>
             <p>Keep Stripe test-mode separate from demo simulation.</p>
             <p>Review the held refund before any execution step.</p>
           </div>
           <Link
-            className="mt-5 inline-flex rounded-md bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800"
+            className="mt-5 inline-flex min-h-11 items-center justify-center rounded-md bg-emerald-400 px-4 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
             href="/app/refund-requests"
           >
             Open refund requests
@@ -168,12 +217,12 @@ function OnboardingSection({
   title: string;
 }) {
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+    <section className="rounded-lg border border-zinc-800 bg-zinc-900 p-5 shadow-sm">
       <div className="flex items-center gap-3">
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-sm font-semibold text-emerald-900">
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-400 text-sm font-semibold text-zinc-950">
           {step}
         </span>
-        <h2 className="text-xl font-semibold tracking-tight text-zinc-950">
+        <h2 className="text-xl font-semibold tracking-tight text-zinc-50">
           {title}
         </h2>
       </div>
@@ -184,8 +233,12 @@ function OnboardingSection({
 
 function CommandBlock({ value }: { value: string }) {
   return (
-    <pre className="overflow-x-auto rounded-lg border border-zinc-200 bg-zinc-950 p-4 text-sm leading-6 text-zinc-100">
+    <pre className="mt-4 max-w-full overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-950 p-4 text-sm leading-6 text-zinc-100">
       <code>{value}</code>
     </pre>
   );
+}
+
+function getSearchValue(value: string | string[] | undefined): string | null {
+  return Array.isArray(value) ? (value[0] ?? null) : (value ?? null);
 }

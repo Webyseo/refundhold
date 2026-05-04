@@ -20,6 +20,7 @@ describe("ActionRequestControlsPanel", () => {
           reviewActionRequests: false,
           executeRefunds: false,
         })}
+        status="APPROVAL_REQUIRED"
         stripeTestRefund={null}
       />,
     );
@@ -37,6 +38,7 @@ describe("ActionRequestControlsPanel", () => {
         actionRequestId="ar_123"
         controls={{ canApprove: true, canReject: true, canExecute: false }}
         permissions={createPermissions()}
+        status="APPROVAL_REQUIRED"
         stripeTestRefund={null}
       />,
     );
@@ -56,10 +58,12 @@ describe("ActionRequestControlsPanel", () => {
         actionRequestId="ar_123"
         controls={{ canApprove: false, canReject: false, canExecute: true }}
         permissions={createPermissions()}
+        status="APPROVED"
         stripeTestRefund={null}
       />,
     );
 
+    expect(html).toContain("The reviewer approved this refund for demo simulation.");
     expect(html).toContain("Record demo execution");
     expect(html).not.toContain("Reviewer permission required.");
   });

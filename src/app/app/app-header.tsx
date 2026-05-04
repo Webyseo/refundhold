@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 
 import { clearDemoAccessFromDashboard } from "./actions";
 import {
@@ -11,17 +12,26 @@ export async function AppHeader() {
   const access = await getAppAccessContext({
     nextPath: "/app",
   });
+  const headerList = await headers();
+  const currentPath =
+    headerList.get("x-refundhold-current-path")?.split("?")[0] ?? "/app";
 
-  return <AppHeaderContent context={access.ok ? access.context : null} />;
+  return (
+    <AppHeaderContent
+      context={access.ok ? access.context : null}
+      currentPath={currentPath}
+    />
+  );
 }
 
 export function AppHeaderContent({
   context,
+  currentPath = "/app/refund-requests",
 }: {
   context: AppAccessContext | null;
+  currentPath?: string;
 }) {
   const isSession = context?.source === "session";
-  const identityLabel = isSession ? "Authenticated session" : "Demo mode";
   const displayName = context?.displayName ?? "Demo Reviewer";
   const role = context ? formatRole(context.role) : "Reviewer";
   const organization = context?.organizationName ?? "RefundHold Demo";
@@ -30,85 +40,70 @@ export function AppHeaderContent({
     : ["Can review", "Can execute"];
 
   return (
-    <header className="border-b border-zinc-200 bg-white">
-      <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-5 lg:flex-row lg:items-center lg:justify-between sm:px-8">
+    <header className="border-b border-zinc-800 bg-zinc-950">
+      <div className="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-5 sm:px-8">
         <div>
           <Link
             href="/app"
-            className="text-lg font-semibold tracking-tight text-zinc-950"
+            className="inline-flex min-h-11 items-center rounded-md text-lg font-semibold tracking-tight text-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
           >
             RefundHold
           </Link>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-semibold">
-            <span
-              className={
-                isSession
-                  ? "rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-900"
-                  : "rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-amber-900"
-              }
-            >
-              {identityLabel}
+            <span className="rounded-full border border-emerald-300/40 bg-emerald-300/10 px-2.5 py-1 text-emerald-100">
+              Demo simulation
             </span>
             {!isSession ? (
-              <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-zinc-700">
-                Controlled demo access
+              <span className="rounded-full border border-zinc-700 bg-zinc-900 px-2.5 py-1 text-zinc-200">
+                Private demo
               </span>
             ) : null}
-            <span className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-zinc-700">
+            <span className="rounded-full border border-zinc-700 bg-zinc-900 px-2.5 py-1 text-zinc-200">
               {role}
             </span>
           </div>
-          <p className="mt-2 text-sm text-zinc-600">
-            <span className="font-semibold text-zinc-900">{displayName}</span>
+          <p className="mt-2 text-sm text-zinc-300">
+            <span className="font-semibold text-zinc-50">{displayName}</span>
             {isSession && context?.email ? (
-              <span className="text-zinc-500"> · {context.email}</span>
+              <span className="text-zinc-400"> · {context.email}</span>
             ) : null}
-            <span className="text-zinc-500"> · {organization}</span>
+            <span className="text-zinc-400"> · {organization}</span>
           </p>
-          <p className="mt-1 text-xs text-zinc-500">
+          <p className="mt-1 text-xs text-zinc-400">
             {permissionLabels.join(" · ")}
           </p>
+          <p className="mt-3 rounded-lg border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-sm font-medium text-emerald-100">
+            No live Stripe money moves in this demo.
+          </p>
         </div>
-        <nav className="flex flex-wrap items-center gap-2 text-sm font-medium">
-          <Link
-            href="/app"
-            className="rounded-md px-3 py-2 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
-          >
-            Overview
-          </Link>
-          <Link
-            href="/app/refund-requests"
-            className="rounded-md bg-zinc-950 px-3 py-2 text-white hover:bg-zinc-800"
-          >
-            Refund requests
-          </Link>
-          <Link
-            href="/app/onboarding"
-            className="rounded-md px-3 py-2 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
-          >
-            Onboarding
-          </Link>
-          <Link
-            href="/app/stripe"
-            className="rounded-md px-3 py-2 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
-          >
-            Stripe
-          </Link>
-          <Link
-            href="/contact"
-            className="rounded-md px-3 py-2 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
-          >
-            Send feedback
-          </Link>
+        <nav className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+          {appNavLinks.map((link) => {
+            const active = isActiveAppPath(currentPath, link.href);
+
+            return (
+              <Link
+                aria-current={active ? "page" : undefined}
+                className={`inline-flex min-h-11 items-center rounded-md px-3 py-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
+                  active
+                    ? "bg-emerald-300 text-zinc-950"
+                    : "border border-zinc-800 text-zinc-300 hover:border-zinc-600 hover:bg-zinc-900 hover:text-zinc-50"
+                }`}
+                href={link.href}
+                key={link.href}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
           {isSession ? (
             <SessionSignOutButton
-              redirectTo={context.authRequired ? "/login" : "/demo-access"}
+              redirectTo={context.authRequired ? "/login" : "/demo-access?exited=1"}
             />
           ) : (
             <form action={clearDemoAccessFromDashboard}>
               <button
                 type="submit"
-                className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950"
+                className="inline-flex min-h-11 items-center rounded-md border border-zinc-700 px-3 py-2 text-zinc-300 transition hover:border-zinc-500 hover:bg-zinc-900 hover:text-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
               >
                 Exit demo
               </button>
@@ -118,6 +113,22 @@ export function AppHeaderContent({
       </div>
     </header>
   );
+}
+
+const appNavLinks = [
+  { label: "Overview", href: "/app" },
+  { label: "Refund requests", href: "/app/refund-requests" },
+  { label: "Onboarding", href: "/app/onboarding" },
+  { label: "Stripe", href: "/app/stripe" },
+  { label: "Feedback", href: "/app/feedback" },
+] as const;
+
+function isActiveAppPath(currentPath: string, href: string): boolean {
+  if (href === "/app") {
+    return currentPath === "/app";
+  }
+
+  return currentPath === href || currentPath.startsWith(`${href}/`);
 }
 
 function formatRole(role: AppAccessContext["role"]): string {

@@ -14,19 +14,22 @@ describe("AppHeaderContent", () => {
       <AppHeaderContent context={createAccessContext({ source: "demo" })} />,
     );
 
-    expect(html).toContain("Demo mode");
+    expect(html).toContain("Demo simulation");
+    expect(html).toContain("Private demo");
     expect(html).toContain("Demo Reviewer");
     expect(html).toContain("Reviewer");
-    expect(html).toContain("Controlled demo access");
+    expect(html).toContain("No live Stripe money moves in this demo.");
+    expect(html).toContain("aria-current=\"page\"");
     expect(html).toContain("href=\"/app/refund-requests\"");
     expect(html).toContain("href=\"/app/onboarding\"");
     expect(html).toContain("Onboarding");
     expect(html).toContain("href=\"/app/stripe\"");
     expect(html).toContain("Stripe");
-    expect(html).toContain("href=\"/contact\"");
-    expect(html).toContain("Send feedback");
+    expect(html).toContain("href=\"/app/feedback\"");
+    expect(html).toContain("Feedback");
     expect(html).toContain("Exit demo");
     expect(html).not.toContain("Authenticated session");
+    expect(html).not.toContain("Controlled demo access");
     expect(html).not.toContain("reviewer@example.com");
   });
 
@@ -35,12 +38,14 @@ describe("AppHeaderContent", () => {
       <AppHeaderContent context={createAccessContext({ source: "session" })} />,
     );
 
-    expect(html).toContain("Authenticated session");
+    expect(html).toContain("Demo simulation");
+    expect(html).toContain("Local Reviewer");
     expect(html).toContain("reviewer@example.com");
     expect(html).toContain("Session Org");
     expect(html).toContain("Reviewer");
     expect(html).toContain("Sign out");
     expect(html).not.toContain("Exit demo");
+    expect(html).not.toContain("Private demo");
     expect(html).not.toContain("Controlled demo access");
   });
 });

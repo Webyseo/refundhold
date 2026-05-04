@@ -10,7 +10,6 @@ import {
   formatDateTime,
   getDecisionLabel,
   getImpactSummary,
-  getNextSafeAction,
   getQueueIndicators,
   getRefundReviewDisplay,
   getRequestFilterCounts,
@@ -48,9 +47,9 @@ export async function RefundRequestsPage({
   routeBase = "/app/action-requests",
 }: RefundRequestsPageProps) {
   const query = await searchParams;
-  const selectedFilter = parseRequestFilter(query["status"]);
+  const requestedFilter = parseRequestFilter(query["status"]);
   const access = await getAppAccessContext({
-    nextPath: getRefundRequestsNextPath(selectedFilter, routeBase),
+    nextPath: getRefundRequestsNextPath(requestedFilter ?? "all", routeBase),
   });
 
   if (!access.ok) {
@@ -66,27 +65,31 @@ export async function RefundRequestsPage({
   });
   const sortedActionRequests =
     sortDashboardActionRequestsForReview(actionRequests);
+  const counts = getRequestFilterCounts(actionRequests);
+  const selectedFilter = getEffectiveRequestFilter({
+    requestedFilter,
+    counts,
+  });
   const filteredActionRequests = filterActionRequestsByDashboardStatus(
     sortedActionRequests,
     selectedFilter,
   );
-  const counts = getRequestFilterCounts(actionRequests);
 
   return (
     <section className="mx-auto max-w-7xl px-5 py-8 sm:px-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-medium uppercase tracking-[0.16em] text-emerald-700">
+          <p className="text-sm font-medium uppercase tracking-[0.16em] text-emerald-300">
             Queue
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">
             Refund requests
           </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-300">
             Review Stripe refunds proposed by AI agents before they continue.
           </p>
         </div>
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-zinc-400">
           Showing {filteredActionRequests.length} of {actionRequests.length}{" "}
           refund requests.
         </p>
@@ -105,16 +108,18 @@ export async function RefundRequestsPage({
                   ? routeBase
                   : `${routeBase}?status=${filter.value}`
               }
-              className={`rounded-md border px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 ${
+              className={`rounded-md border px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
                 active
-                  ? "border-zinc-950 bg-zinc-950 text-white"
-                  : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                  ? "border-emerald-400/70 bg-emerald-400 text-zinc-950"
+                  : "border-zinc-800 bg-zinc-900 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-800"
               }`}
             >
               {filter.label}
               <span
                 className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
-                  active ? "bg-white/15 text-white" : "bg-zinc-100 text-zinc-600"
+                  active
+                    ? "bg-zinc-950/15 text-zinc-950"
+                    : "bg-zinc-800 text-zinc-300"
                 }`}
               >
                 {counts[filter.value]}
@@ -124,13 +129,17 @@ export async function RefundRequestsPage({
         })}
       </nav>
 
-      <div className="mt-6 overflow-hidden rounded-lg border border-zinc-200 bg-white">
+      <div className="mt-6 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950">
         {filteredActionRequests.length === 0 ? (
-          <RefundRequestsEmptyState />
+          <RefundRequestsEmptyState
+            hasAnyRequests={actionRequests.length > 0}
+            routeBase={routeBase}
+            selectedFilter={selectedFilter}
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-zinc-200 text-left text-sm">
-              <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            <table className="min-w-full divide-y divide-zinc-800 text-left text-sm">
+              <thead className="bg-zinc-900 text-xs font-semibold uppercase tracking-wide text-zinc-400">
                 <tr>
                   <th className="px-4 py-3">Amount</th>
                   <th className="px-4 py-3">Customer</th>
@@ -141,7 +150,7 @@ export async function RefundRequestsPage({
                   <th className="px-4 py-3">Next action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-zinc-800">
                 {filteredActionRequests.map((request) => {
                   const isPendingReview =
                     request.decision === "APPROVAL_REQUIRED" &&
@@ -164,64 +173,64 @@ export async function RefundRequestsPage({
                     "Customer",
                   );
                   const policyResult = getPolicyResultLabel(request.decision);
-                  const nextAction = getNextSafeAction(request);
+                  const nextAction = getShortNextActionLabel(request);
 
                   return (
                     <tr
                       key={request.id}
                       className={
                         isPendingReview
-                          ? "bg-amber-50/50 hover:bg-amber-50"
-                          : "hover:bg-stone-50"
+                          ? "bg-amber-950/20 hover:bg-amber-950/30"
+                          : "hover:bg-zinc-900"
                       }
                     >
-                      <td className="px-4 py-3 font-medium text-zinc-950">
+                      <td className="px-4 py-3 font-medium text-zinc-50">
                         {amount}
                       </td>
-                      <td className="max-w-64 px-4 py-3 text-zinc-700">
-                        <span className="font-medium text-zinc-950">
+                      <td className="max-w-64 px-4 py-3 text-zinc-300">
+                        <span className="font-medium text-zinc-50">
                           {customer ?? "Customer context not recorded"}
                         </span>
-                        <span className="mt-1 block text-xs text-zinc-500">
+                        <span className="mt-1 block text-xs text-zinc-400">
                           Stripe refund
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-semibold text-zinc-700">
+                        <span className="inline-flex rounded-full border border-zinc-700 bg-zinc-900 px-2.5 py-1 text-xs font-semibold text-zinc-200">
                           {policyResult}
                         </span>
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge status={request.status} />
-                        <span className="mt-2 block text-xs text-zinc-500">
+                        <span className="mt-2 block text-xs text-zinc-400">
                           {stripeModeLabel}
                         </span>
-                        <span className="block text-xs text-zinc-500">
+                        <span className="block text-xs text-zinc-400">
                           {isStripeTest
                             ? "test mode; no live money movement"
                             : "Demo simulation; no Stripe call"}
                         </span>
                         <IndicatorBadges labels={indicators} />
                       </td>
-                      <td className="px-4 py-3 font-medium text-zinc-950">
+                      <td className="px-4 py-3 font-medium text-zinc-100">
                         {request.agent.name}
                       </td>
-                      <td className="px-4 py-3 text-zinc-500">
+                      <td className="px-4 py-3 text-zinc-400">
                         {formatDateTime(request.createdAt)}
                       </td>
                       <td className="max-w-64 px-4 py-3">
-                        <p className="text-sm leading-6 text-zinc-700">
+                        <p className="text-sm leading-6 text-zinc-200">
                           {nextAction}
                         </p>
                         <Link
                           href={`${routeBase}/${request.id}`}
-                          className={`mt-3 inline-flex rounded-md px-3 py-2 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 ${
+                          className={`mt-3 inline-flex rounded-md px-3 py-2 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
                             isPendingReview
-                              ? "bg-zinc-950 text-white hover:bg-zinc-800"
-                              : "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                              ? "bg-emerald-400 text-zinc-950 hover:bg-emerald-300"
+                              : "border border-zinc-700 bg-zinc-900 text-zinc-200 hover:bg-zinc-800"
                           }`}
                         >
-                          {isPendingReview ? "Review" : "View details"}
+                          View details
                         </Link>
                       </td>
                     </tr>
@@ -245,31 +254,102 @@ function getRefundRequestsNextPath(
 
 function parseRequestFilter(
   value: string | string[] | undefined,
-): DashboardRequestFilter {
+): DashboardRequestFilter | null {
   const rawValue = Array.isArray(value) ? value[0] : value;
 
   return refundRequestFilters.some((filter) => filter.value === rawValue)
     ? (rawValue as DashboardRequestFilter)
-    : "all";
+    : null;
 }
 
-export function RefundRequestsEmptyState() {
+export function getEffectiveRequestFilter({
+  requestedFilter,
+  counts,
+}: {
+  requestedFilter: DashboardRequestFilter | null;
+  counts: Record<DashboardRequestFilter, number>;
+}): DashboardRequestFilter {
+  if (requestedFilter) {
+    return requestedFilter;
+  }
+
+  return counts.pending > 0 ? "pending" : "all";
+}
+
+export function getShortNextActionLabel(request: {
+  decision: DashboardDecision;
+  status: DashboardStatus;
+}): string {
+  if (
+    request.decision === "APPROVAL_REQUIRED" &&
+    request.status === "APPROVAL_REQUIRED"
+  ) {
+    return "Review required";
+  }
+
+  if (request.status === "APPROVED") {
+    return "Ready to record execution";
+  }
+
+  if (request.status === "REJECTED" || request.status === "DENIED") {
+    return "Rejected - no action";
+  }
+
+  if (request.status === "EXECUTED") {
+    return "Executed - audit available";
+  }
+
+  if (request.status === "FAILED") {
+    return "Failed - review details";
+  }
+
+  return "View audit details";
+}
+
+export function RefundRequestsEmptyState({
+  hasAnyRequests = false,
+  routeBase = "/app/refund-requests",
+  selectedFilter = "all",
+}: {
+  hasAnyRequests?: boolean;
+  routeBase?: "/app/action-requests" | "/app/refund-requests";
+  selectedFilter?: DashboardRequestFilter;
+}) {
+  if (hasAnyRequests && selectedFilter !== "all") {
+    return (
+      <div className="p-8 text-sm text-zinc-300">
+        <p className="font-semibold text-zinc-50">
+          No refunds match this filter
+        </p>
+        <p className="mt-2 leading-6 text-zinc-400">
+          There are no refund requests in this status. Switch to All to see
+          every demo request.
+        </p>
+        <Link
+          className="mt-5 inline-flex min-h-11 items-center justify-center rounded-md bg-emerald-400 px-4 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+          href={routeBase}
+        >
+          Show all refund requests
+        </Link>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-8 text-sm text-zinc-600">
-      <p className="font-semibold text-zinc-950">No refund requests yet</p>
-      <p className="mt-2 leading-6">
-        Send a test refund request from your AI agent or start with the demo
-        flow.
+    <div className="p-8 text-sm text-zinc-300">
+      <p className="font-semibold text-zinc-50">No refund requests yet</p>
+      <p className="mt-2 leading-6 text-zinc-400">
+        Create a demo request or read the API quickstart.
       </p>
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <Link
-          className="inline-flex items-center justify-center rounded-md bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2"
-          href="/demo"
+          className="inline-flex min-h-11 items-center justify-center rounded-md bg-emerald-400 px-4 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+          href="/app/onboarding"
         >
-          Start demo refund
+          Create demo refund request
         </Link>
         <Link
-          className="inline-flex items-center justify-center rounded-md border border-zinc-300 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2"
+          className="inline-flex min-h-11 items-center justify-center rounded-md border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-zinc-200 hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
           href="/docs/quickstart"
         >
           View API quickstart
@@ -282,12 +362,12 @@ export function RefundRequestsEmptyState() {
 function StatusBadge({ status }: { status: DashboardStatus }) {
   const styles =
     status === "APPROVAL_REQUIRED"
-      ? "border-amber-200 bg-amber-50 text-amber-900"
+      ? "border-amber-300/50 bg-amber-300/15 text-amber-100"
       : status === "APPROVED" || status === "EXECUTED"
-        ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+        ? "border-emerald-300/50 bg-emerald-300/15 text-emerald-100"
         : status === "DENIED" || status === "REJECTED" || status === "FAILED"
-          ? "border-red-200 bg-red-50 text-red-900"
-          : "border-zinc-200 bg-zinc-50 text-zinc-700";
+          ? "border-red-300/50 bg-red-300/15 text-red-100"
+          : "border-zinc-700 bg-zinc-900 text-zinc-200";
 
   return (
     <span
@@ -319,7 +399,7 @@ function IndicatorBadges({ labels }: { labels: string[] }) {
       {labels.map((label) => (
         <span
           key={label}
-          className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[11px] font-semibold text-zinc-600"
+          className="rounded-full border border-zinc-700 bg-zinc-900 px-2 py-0.5 text-[11px] font-semibold text-zinc-300"
         >
           {label}
         </span>
