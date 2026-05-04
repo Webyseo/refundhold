@@ -402,9 +402,7 @@ export async function getPrismaClient(): Promise<AuthRailPrismaClient> {
     adapter: new PrismaPg({ connectionString: databaseUrl }),
   });
 
-  if (process.env["NODE_ENV"] !== "production") {
-    globalForPrisma.authRailPrisma = prisma;
-  }
+  globalForPrisma.authRailPrisma = prisma;
 
   return prisma;
 }
