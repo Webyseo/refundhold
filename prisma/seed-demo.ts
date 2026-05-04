@@ -19,13 +19,13 @@ const demoOrganization = {
 const demoAgent = {
   name: "RefundHold Demo AI Support Agent",
   description:
-    "Fictitious support agent used for RefundHold commercial demos.",
+    "Fictitious AI support agent used for RefundHold local demo simulations.",
 };
 
 const demoApiKeyName = "Demo Support Agent API Key";
 
 const demoConnector = {
-  name: "Stripe Demo (dry_run)",
+  name: "Stripe mode: Demo simulation",
   type: "stripe_test",
 };
 
@@ -128,9 +128,9 @@ type DemoRefundRequest = {
 const policyDefinitions = [
   {
     key: "lowRiskAllow",
-    name: "Allow low-risk dry_run refunds under 50 USD",
+    name: "Allow low-risk demo simulation refund requests under 50 USD",
     description:
-      "Demo policy: low-value fictitious Stripe refunds can be allowed automatically.",
+      "Demo policy: low-value AI-proposed Stripe refund requests can be allowed automatically in demo simulation.",
     decision: "ALLOW",
     priority: 10,
     rules: {
@@ -141,9 +141,9 @@ const policyDefinitions = [
   },
   {
     key: "standardReview",
-    name: "Review standard dry_run refunds from 50 USD to 250 USD",
+    name: "Review standard demo simulation refund requests from 50 USD to 250 USD",
     description:
-      "Demo policy: standard AI-initiated refunds require human approval.",
+      "Demo policy: standard AI-proposed Stripe refund requests need reviewer approval.",
     decision: "APPROVAL_REQUIRED",
     priority: 20,
     rules: {
@@ -155,9 +155,9 @@ const policyDefinitions = [
   },
   {
     key: "highRiskReview",
-    name: "Review elevated-risk dry_run refunds from 250 USD to 500 USD",
+    name: "Review elevated-risk demo simulation refund requests from 250 USD to 500 USD",
     description:
-      "Demo policy: higher-risk AI-initiated refunds are held for review.",
+      "Demo policy: elevated-risk AI-proposed Stripe refund requests are held for review.",
     decision: "APPROVAL_REQUIRED",
     priority: 30,
     rules: {
@@ -169,9 +169,9 @@ const policyDefinitions = [
   },
   {
     key: "policyDeny",
-    name: "Deny dry_run refunds over 500 USD",
+    name: "Block demo simulation refund requests over 500 USD",
     description:
-      "Demo policy: very high-value AI-initiated refunds are blocked.",
+      "Demo policy: high-value AI-proposed Stripe refund requests are blocked.",
     decision: "DENY",
     priority: 40,
     rules: {
@@ -219,7 +219,7 @@ export const demoRefundRequests = [
     customerMessage:
       "Customer reports a duplicate charge and asks for a refund.",
     policyReason:
-      "$50-$500 -> human approval required: possible duplicate billing requires reviewer confirmation.",
+      "$50-$500 -> needs review: possible duplicate billing requires reviewer confirmation.",
     approval: {
       status: "PENDING",
       reason: "Awaiting reviewer decision for possible duplicate billing.",
@@ -255,7 +255,7 @@ export const demoRefundRequests = [
     customerMessage:
       "AI support agent found damaged item evidence and recommended a refund.",
     policyReason:
-      "$50-$500 -> human approval required: damaged item evidence needs reviewer approval.",
+      "$50-$500 -> needs review: damaged item evidence needs reviewer approval.",
     approval: {
       status: "APPROVED",
       reason: "Approved because the damaged item evidence supports the refund.",
@@ -291,7 +291,7 @@ export const demoRefundRequests = [
     customerMessage:
       "AI support agent recommended a refund but did not provide enough evidence.",
     policyReason:
-      "$50-$500 -> human approval required: reviewer must confirm evidence before refunding.",
+      "$50-$500 -> needs review: reviewer must confirm evidence before refunding.",
     approval: {
       status: "REJECTED",
       reason: "Rejected because the AI recommendation was incomplete.",
@@ -396,7 +396,7 @@ export const demoRefundRequests = [
     customerMessage:
       "AI support agent recommended a refund, but the Stripe test webhook is pending.",
     policyReason:
-      "$50-$500 -> human approval required: test-mode reconciliation needs attention.",
+      "$50-$500 -> needs review: Stripe test-mode reconciliation needs attention.",
     approval: {
       status: "APPROVED",
       reason: "Approved for Stripe test-mode rehearsal; webhook is still pending.",
@@ -438,7 +438,7 @@ export const demoRefundRequests = [
     customerMessage:
       "AI support agent found a duplicate annual plan charge and recommended review.",
     policyReason:
-      "$50-$500 -> human approval required: duplicate annual plan charge approved by reviewer.",
+      "$50-$500 -> needs review: duplicate annual plan charge approved by reviewer.",
     approval: {
       status: "APPROVED",
       reason: "Approved; waiting for controlled Stripe test-mode execution.",
@@ -1117,8 +1117,8 @@ async function upsertDemoExecution(
       livemode: false,
       message:
         execution.status === "SUCCEEDED"
-          ? "Demo execution completed for evidence only."
-          : "Demo execution needs attention; no Stripe call was made.",
+          ? "Demo simulation execution recorded for audit trail evidence only."
+          : "Demo simulation execution needs attention; no Stripe call was made.",
       refund_amount: refundRequest.amount,
       currency: refundRequest.currency.toUpperCase(),
       customer_id: refundRequest.customer.id,
