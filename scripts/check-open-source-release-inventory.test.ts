@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
@@ -194,6 +194,99 @@ describe("checkOpenSourceReleaseInventory", () => {
 
     expect(result.ok).toBe(true);
     expect(result.scannedFiles).toEqual(["README.md"]);
+  });
+
+  it("scans package metadata files by default", async () => {
+    const root = createFixtureRoot();
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({
+        name: "refundhold",
+        private: true,
+      }),
+    );
+    await writeFixture(
+      root,
+      "pnpm-workspace.yaml",
+      ['packages:', '  - "."', '  - "packages/*"'].join("\n"),
+    );
+    await writeFixture(
+      root,
+      "packages/refundhold-core/package.json",
+      JSON.stringify({
+        name: "@refundhold/core",
+        private: true,
+      }),
+    );
+
+    const result = checkOpenSourceReleaseInventory({
+      rootDir: root,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.scannedFiles).toEqual([
+      "package.json",
+      "packages/refundhold-core/package.json",
+      "pnpm-workspace.yaml",
+    ]);
+  });
+
+  it("fails when package metadata uses the legacy internal package name", async () => {
+    const root = createFixtureRoot();
+    await writeFixture(
+      root,
+      "package.json",
+      JSON.stringify({
+        name: "authrail",
+        private: true,
+      }),
+    );
+
+    const result = checkOpenSourceReleaseInventory({
+      rootDir: root,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.findings).toEqual([
+      expect.objectContaining({
+        filePath: "package.json",
+        matched: "authrail",
+        ruleName: "legacy-public-term",
+      }),
+    ]);
+  });
+
+  it("passes real package metadata with RefundHold naming", () => {
+    const rootPackage = JSON.parse(
+      readFileSync(join(process.cwd(), "package.json"), "utf8"),
+    ) as {
+      name?: string;
+      private?: boolean;
+    };
+
+    expect(rootPackage).toEqual(
+      expect.objectContaining({
+        name: "refundhold",
+        private: true,
+      }),
+    );
+
+    const result = checkOpenSourceReleaseInventory({
+      rootDir: process.cwd(),
+      surfaceEntries: [
+        "package.json",
+        "pnpm-workspace.yaml",
+        "packages/refundhold-core/package.json",
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.scannedFiles).toEqual([
+      "package.json",
+      "packages/refundhold-core/package.json",
+      "pnpm-workspace.yaml",
+    ]);
   });
 
   it("scans packages/refundhold-core", async () => {

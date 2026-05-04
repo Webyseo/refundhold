@@ -39,6 +39,8 @@ export type InventoryCheckOptions = {
 };
 
 export const DEFAULT_PUBLIC_SURFACE_ENTRIES = [
+  "package.json",
+  "pnpm-workspace.yaml",
   "README.md",
   "SECURITY.md",
   "DISCLAIMER.md",
@@ -46,6 +48,7 @@ export const DEFAULT_PUBLIC_SURFACE_ENTRIES = [
   "CODE_OF_CONDUCT.md",
   "docs/open-source.md",
   "docs/local-demo.md",
+  "packages/refundhold-core/package.json",
   "packages/refundhold-core",
   "src/lib/public-contracts",
   "src/app/docs",
