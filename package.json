@@ -10,6 +10,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
+    "check:open-source-release": "tsx scripts/check-open-source-release-inventory.ts",
     "prisma:generate": "prisma generate",
     "db:up": "docker compose up -d postgres",
     "db:migrate": "prisma migrate dev",

@@ -1,0 +1,249 @@
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdir } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { tmpdir } from "node:os";
+
+import { afterEach, describe, expect, it } from "vitest";
+
+import {
+  checkOpenSourceReleaseInventory,
+  formatInventoryReport,
+} from "./check-open-source-release-inventory";
+
+const fixtureRoots: string[] = [];
+
+describe("checkOpenSourceReleaseInventory", () => {
+  afterEach(() => {
+    for (const root of fixtureRoots.splice(0)) {
+      rmSync(root, {
+        force: true,
+        recursive: true,
+      });
+    }
+  });
+
+  it("passes clean public docs", async () => {
+    const root = createFixtureRoot();
+    await writeFixture(
+      root,
+      "README.md",
+      [
+        "# RefundHold",
+        "Stop AI agents from refunding Stripe money without approval.",
+        "Demo simulation does not move money.",
+        "Stripe test-mode uses test objects only.",
+        "Live refunds are blocked in v1.",
+      ].join("\n"),
+    );
+
+    const result = checkOpenSourceReleaseInventory({
+      rootDir: root,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(formatInventoryReport(result)).toContain("PASS");
+  });
+
+  it("fails on forbidden legacy public terms", async () => {
+    const root = createFixtureRoot();
+    await writeFixture(root, "README.md", "AuthRail approval inbox");
+
+    const result = checkOpenSourceReleaseInventory({
+      rootDir: root,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.findings).toEqual([
+      expect.objectContaining({
+        filePath: "README.md",
+        matched: "AuthRail",
+        ruleName: "legacy-public-term",
+      }),
+    ]);
+    expect(formatInventoryReport(result)).toContain("README.md");
+  });
+
+  it("fails on public legacy API route mentions", async () => {
+    const root = createFixtureRoot();
+    await writeFixture(
+      root,
+      "docs/open-source.md",
+      "Call POST /api/v1/action-requests for refunds.",
+    );
+
+    const result = checkOpenSourceReleaseInventory({
+      rootDir: root,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.findings[0]).toEqual(
+      expect.objectContaining({
+        matched: "/api/v1/action-requests",
+        ruleName: "legacy-public-term",
+      }),
+    );
+  });
+
+  it("fails on real-looking live Stripe keys", async () => {
+    const root = createFixtureRoot();
+    await writeFixture(root, "SECURITY.md", "STRIPE_SECRET=sk_live_1234567890abcdef");
+
+    const result = checkOpenSourceReleaseInventory({
+      rootDir: root,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.findings[0]).toEqual(
+      expect.objectContaining({
+        matched: "stripe_live_secret_key",
+        ruleName: "secret-like-value",
+      }),
+    );
+  });
+
+  it("fails on private key blocks", async () => {
+    const root = createFixtureRoot();
+    await writeFixture(
+      root,
+      "DISCLAIMER.md",
+      "-----BEGIN PRIVATE KEY-----\nabc123\n-----END PRIVATE KEY-----",
+    );
+
+    const result = checkOpenSourceReleaseInventory({
+      rootDir: root,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.findings[0]).toEqual(
+      expect.objectContaining({
+        matched: "private_key_block",
+        ruleName: "secret-like-value",
+      }),
+    );
+  });
+
+  it("passes safe placeholders", async () => {
+    const root = createFixtureRoot();
+    await writeFixture(
+      root,
+      "docs/local-demo.md",
+      [
+        "Use Bearer <agent_api_key>.",
+        "Use <stripe_test_object_id>.",
+        "The local key may look like ar_demo_<prefix>_<secret>.",
+        "Send requests to localhost with customer@example.test.",
+        "Use stripe_mode demo_simulation.",
+      ].join("\n"),
+    );
+
+    const result = checkOpenSourceReleaseInventory({
+      rootDir: root,
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it("passes negative safety statements about live refunds", async () => {
+    const root = createFixtureRoot();
+    await writeFixture(
+      root,
+      "README.md",
+      [
+        "Live refunds are blocked in v1.",
+        "Demo simulation does not move money.",
+        "RefundHold is not affiliated with, endorsed by, or sponsored by Stripe.",
+      ].join("\n"),
+    );
+
+    const result = checkOpenSourceReleaseInventory({
+      rootDir: root,
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it("fails on risky live-money readiness claims", async () => {
+    const root = createFixtureRoot();
+    await writeFixture(root, "README.md", "Production live refunds ready.");
+
+    const result = checkOpenSourceReleaseInventory({
+      rootDir: root,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.findings[0]).toEqual(
+      expect.objectContaining({
+        matched: "production live refunds ready",
+        ruleName: "unsafe-live-refund-claim",
+      }),
+    );
+  });
+
+  it("does not scan docs/internal by default", async () => {
+    const root = createFixtureRoot();
+    await writeFixture(root, "README.md", "RefundHold demo simulation.");
+    await writeFixture(
+      root,
+      "docs/internal/open-source-readiness-audit.md",
+      "AuthRail sk_live_1234567890abcdef production live refunds ready",
+    );
+
+    const result = checkOpenSourceReleaseInventory({
+      rootDir: root,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.scannedFiles).toEqual(["README.md"]);
+  });
+
+  it("scans packages/refundhold-core", async () => {
+    const root = createFixtureRoot();
+    await writeFixture(
+      root,
+      "packages/refundhold-core/src/index.ts",
+      "export const unsafe = 'AuthRail';",
+    );
+
+    const result = checkOpenSourceReleaseInventory({
+      rootDir: root,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.findings[0]?.filePath).toBe(
+      "packages/refundhold-core/src/index.ts",
+    );
+  });
+
+  it("scans src/lib/public-contracts", async () => {
+    const root = createFixtureRoot();
+    await writeFixture(
+      root,
+      "src/lib/public-contracts/refund-requests.ts",
+      "const leaked = 'sk_live_1234567890abcdef';",
+    );
+
+    const result = checkOpenSourceReleaseInventory({
+      rootDir: root,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.findings[0]?.filePath).toBe(
+      "src/lib/public-contracts/refund-requests.ts",
+    );
+  });
+});
+
+function createFixtureRoot() {
+  const root = mkdtempSync(join(tmpdir(), "refundhold-release-inventory-"));
+  fixtureRoots.push(root);
+
+  return root;
+}
+
+async function writeFixture(root: string, relativePath: string, contents: string) {
+  const absolutePath = join(root, relativePath);
+  await mkdir(dirname(absolutePath), {
+    recursive: true,
+  });
+  writeFileSync(absolutePath, contents);
+}
