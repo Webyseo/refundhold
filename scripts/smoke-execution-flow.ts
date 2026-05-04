@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 
 import { z } from "zod";
 
+import { readOptionalEnvWithLegacy } from "../src/lib/env";
 import { readConfiguredDemoAgentApiKey } from "../src/lib/security/api-keys";
 
 const defaultBaseUrl = "http://localhost:3000";
@@ -95,7 +96,11 @@ export function readExecutionFlowSmokeConfig(): ExecutionFlowSmokeConfig {
       defaultBaseUrl,
     apiKey: configuredApiKey.apiKey,
     reviewerEmail:
-      process.env["AUTHRAIL_DEMO_REVIEWER_EMAIL"]?.trim() ??
+      readOptionalEnvWithLegacy(
+        process.env,
+        "REFUNDHOLD_DEMO_REVIEWER_EMAIL",
+        "AUTHRAIL_DEMO_REVIEWER_EMAIL",
+      ) ??
       defaultDemoReviewerEmail,
   };
 }

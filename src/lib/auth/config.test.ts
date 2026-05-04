@@ -15,7 +15,7 @@ describe("getAuthConfig", () => {
   it("fails closed when auth is required but not enabled", () => {
     expect(() => {
       getAuthConfig({
-        AUTHRAIL_AUTH_REQUIRED: "true",
+        REFUNDHOLD_AUTH_REQUIRED: "true",
       });
     }).toThrow("AUTHRAIL_AUTH_REQUIRED requires AUTHRAIL_AUTH_ENABLED.");
   });
@@ -23,7 +23,7 @@ describe("getAuthConfig", () => {
   it("fails closed when auth is enabled without a Better Auth secret", () => {
     expect(() => {
       getAuthConfig({
-        AUTHRAIL_AUTH_ENABLED: "true",
+        REFUNDHOLD_AUTH_ENABLED: "true",
       });
     }).toThrow(
       "BETTER_AUTH_SECRET is required when AUTHRAIL_AUTH_ENABLED is enabled.",
@@ -33,8 +33,8 @@ describe("getAuthConfig", () => {
   it("accepts an explicit disabled auth mode even when no secret is configured", () => {
     expect(
       getAuthConfig({
-        AUTHRAIL_AUTH_ENABLED: "false",
-        AUTHRAIL_AUTH_REQUIRED: "false",
+        REFUNDHOLD_AUTH_ENABLED: "false",
+        REFUNDHOLD_AUTH_REQUIRED: "false",
       }),
     ).toMatchObject({
       authEnabled: false,
@@ -45,8 +45,8 @@ describe("getAuthConfig", () => {
 
   it("returns server-side Better Auth settings when auth is enabled", () => {
     const config = getAuthConfig({
-      AUTHRAIL_AUTH_ENABLED: "true",
-      AUTHRAIL_AUTH_REQUIRED: "true",
+      REFUNDHOLD_AUTH_ENABLED: "true",
+      REFUNDHOLD_AUTH_REQUIRED: "true",
       BETTER_AUTH_SECRET: "local-development-secret",
       BETTER_AUTH_URL: "http://localhost:3000",
     });
@@ -56,6 +56,36 @@ describe("getAuthConfig", () => {
       authRequired: true,
       betterAuthSecret: "local-development-secret",
       betterAuthUrl: "http://localhost:3000",
+    });
+  });
+
+  it("falls back to legacy auth environment values", () => {
+    expect(
+      getAuthConfig({
+        AUTHRAIL_AUTH_ENABLED: "true",
+        AUTHRAIL_AUTH_REQUIRED: "true",
+        BETTER_AUTH_SECRET: "legacy-secret",
+      }),
+    ).toMatchObject({
+      authEnabled: true,
+      authRequired: true,
+      betterAuthSecret: "legacy-secret",
+    });
+  });
+
+  it("prefers RefundHold auth values over legacy values", () => {
+    expect(
+      getAuthConfig({
+        REFUNDHOLD_AUTH_ENABLED: "false",
+        REFUNDHOLD_AUTH_REQUIRED: "false",
+        AUTHRAIL_AUTH_ENABLED: "true",
+        AUTHRAIL_AUTH_REQUIRED: "true",
+        BETTER_AUTH_SECRET: "legacy-secret",
+      }),
+    ).toMatchObject({
+      authEnabled: false,
+      authRequired: false,
+      betterAuthSecret: "legacy-secret",
     });
   });
 

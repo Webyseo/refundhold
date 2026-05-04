@@ -9,6 +9,7 @@ import { createPrismaApprovalDecisionPersistence } from "@/lib/approvals/prisma-
 import { resolveHumanActionActor } from "@/lib/auth/action-actor";
 import { getPrismaClient } from "@/lib/db/prisma";
 import { DEMO_ACCESS_COOKIE_NAME } from "@/lib/demo-access";
+import { readOptionalEnvWithLegacy } from "@/lib/env";
 import { handleDryRunExecution } from "@/lib/executions/handler";
 import { createPrismaDryRunExecutionPersistence } from "@/lib/executions/prisma-persistence";
 
@@ -153,11 +154,13 @@ function getDashboardReturnPath(
 }
 
 function getDemoReviewerEmail(): string {
-  const reviewerEmail = process.env["AUTHRAIL_DEMO_REVIEWER_EMAIL"]?.trim();
+  const reviewerEmail = readOptionalEnvWithLegacy(
+    process.env,
+    "REFUNDHOLD_DEMO_REVIEWER_EMAIL",
+    "AUTHRAIL_DEMO_REVIEWER_EMAIL",
+  );
 
-  return reviewerEmail && reviewerEmail.length > 0
-    ? reviewerEmail
-    : defaultReviewerEmail;
+  return reviewerEmail ?? defaultReviewerEmail;
 }
 
 function revalidateDashboardPaths(actionRequestId: string) {

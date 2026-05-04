@@ -9,6 +9,7 @@ import {
   hashApiKey,
   readConfiguredDemoAgentApiKey,
 } from "../src/lib/security/api-keys";
+import { readOptionalEnvWithLegacy } from "../src/lib/env";
 
 const demoOrganization = {
   name: "RefundHold Demo",
@@ -493,7 +494,11 @@ async function main() {
 
   try {
     const reviewerEmail =
-      process.env["AUTHRAIL_DEMO_REVIEWER_EMAIL"]?.trim() ||
+      readOptionalEnvWithLegacy(
+        process.env,
+        "REFUNDHOLD_DEMO_REVIEWER_EMAIL",
+        "AUTHRAIL_DEMO_REVIEWER_EMAIL",
+      ) ||
       "demo.reviewer@refundhold.com";
     const baseRecords = await upsertBaseDemoRecords(prisma, reviewerEmail);
     const demoApiKey = await ensureDemoAgentApiKey(prisma, {

@@ -1,5 +1,7 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 
+import { type EnvRecord, readOptionalEnvWithLegacy } from "../env";
+
 const keyPrefixBytes = 5;
 const keySecretBytes = 16;
 const scryptKeyLength = 32;
@@ -32,23 +34,23 @@ export function generateDemoApiKey(): GeneratedDemoApiKey {
 }
 
 export function readConfiguredDemoAgentApiKey(
-  env: Partial<Record<string, string | undefined>> = process.env,
+  env: EnvRecord = process.env,
 ): ConfiguredDemoAgentApiKey | null {
-  const preferredApiKey = env[preferredDemoAgentApiKeyEnv]?.trim();
+  const apiKey = readOptionalEnvWithLegacy(
+    env,
+    preferredDemoAgentApiKeyEnv,
+    legacyDemoAgentApiKeyEnv,
+  );
 
-  if (preferredApiKey) {
+  if (apiKey) {
     return {
-      apiKey: preferredApiKey,
-      envName: preferredDemoAgentApiKeyEnv,
-    };
-  }
-
-  const legacyApiKey = env[legacyDemoAgentApiKeyEnv]?.trim();
-
-  if (legacyApiKey) {
-    return {
-      apiKey: legacyApiKey,
-      envName: legacyDemoAgentApiKeyEnv,
+      apiKey,
+      envName: Object.prototype.hasOwnProperty.call(
+        env,
+        preferredDemoAgentApiKeyEnv,
+      )
+        ? preferredDemoAgentApiKeyEnv
+        : legacyDemoAgentApiKeyEnv,
     };
   }
 

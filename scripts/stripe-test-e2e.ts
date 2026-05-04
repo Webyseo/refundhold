@@ -11,6 +11,11 @@ import {
   createDemoAccessCookieValue,
 } from "../src/lib/demo-access";
 import { getPrismaClient } from "../src/lib/db/prisma";
+import {
+  isEnabledValue,
+  readEnabledEnvWithLegacy,
+  readOptionalEnvWithLegacy,
+} from "../src/lib/env";
 import { readConfiguredDemoAgentApiKey } from "../src/lib/security/api-keys";
 
 type StripeE2EEnv = {
@@ -136,20 +141,36 @@ export function readStripeTestE2EConfig(
     );
   }
 
-  if (isEnabledValue(env["AUTHRAIL_STRIPE_LIVE_REFUNDS_ENABLED"])) {
+  if (
+    isEnabledValue(env["REFUNDHOLD_STRIPE_LIVE_REFUNDS_ENABLED"]) ||
+    isEnabledValue(env["AUTHRAIL_STRIPE_LIVE_REFUNDS_ENABLED"])
+  ) {
     throw new Error("AUTHRAIL_STRIPE_LIVE_REFUNDS_ENABLED is blocked.");
   }
 
-  if (!isEnabledValue(env["AUTHRAIL_STRIPE_TEST_MODE_ENABLED"])) {
+  if (
+    !readEnabledEnvWithLegacy(
+      env,
+      "REFUNDHOLD_STRIPE_TEST_MODE_ENABLED",
+      "AUTHRAIL_STRIPE_TEST_MODE_ENABLED",
+    )
+  ) {
     throw new Error("AUTHRAIL_STRIPE_TEST_MODE_ENABLED must be true.");
   }
 
-  if (!isEnabledValue(env["AUTHRAIL_STRIPE_TEST_REFUNDS_ENABLED"])) {
+  if (
+    !readEnabledEnvWithLegacy(
+      env,
+      "REFUNDHOLD_STRIPE_TEST_REFUNDS_ENABLED",
+      "AUTHRAIL_STRIPE_TEST_REFUNDS_ENABLED",
+    )
+  ) {
     throw new Error("AUTHRAIL_STRIPE_TEST_REFUNDS_ENABLED must be true.");
   }
 
-  const testSecretKey = readRequiredEnv(
+  const testSecretKey = readRequiredEnvWithLegacy(
     env,
+    "REFUNDHOLD_STRIPE_TEST_SECRET_KEY",
     "AUTHRAIL_STRIPE_TEST_SECRET_KEY",
   );
 
@@ -173,9 +194,16 @@ export function readStripeTestE2EConfig(
   const baseUrl = normalizeBaseUrl(readRequiredEnv(env, "BASE_URL"), env);
   readRequiredEnv(env, "DATABASE_URL");
   const expectWebhook = isEnabledValue(env["STRIPE_E2E_EXPECT_WEBHOOK"]);
-  const webhooksEnabled = isEnabledValue(env["AUTHRAIL_STRIPE_WEBHOOKS_ENABLED"]);
-  const webhookTestSecret =
-    env["AUTHRAIL_STRIPE_WEBHOOK_TEST_SECRET"]?.trim() || null;
+  const webhooksEnabled = readEnabledEnvWithLegacy(
+    env,
+    "REFUNDHOLD_STRIPE_WEBHOOKS_ENABLED",
+    "AUTHRAIL_STRIPE_WEBHOOKS_ENABLED",
+  );
+  const webhookTestSecret = readOptionalEnvWithLegacy(
+    env,
+    "REFUNDHOLD_STRIPE_WEBHOOK_TEST_SECRET",
+    "AUTHRAIL_STRIPE_WEBHOOK_TEST_SECRET",
+  );
 
   if (webhooksEnabled && !webhookTestSecret) {
     throw new Error(
@@ -189,9 +217,16 @@ export function readStripeTestE2EConfig(
     );
   }
 
-  const demoAccessEnabled = isEnabledValue(env["AUTHRAIL_DEMO_ACCESS_ENABLED"]);
-  const demoAccessPassword =
-    env["AUTHRAIL_DEMO_ACCESS_PASSWORD"]?.trim() || null;
+  const demoAccessEnabled = readEnabledEnvWithLegacy(
+    env,
+    "REFUNDHOLD_DEMO_ACCESS_ENABLED",
+    "AUTHRAIL_DEMO_ACCESS_ENABLED",
+  );
+  const demoAccessPassword = readOptionalEnvWithLegacy(
+    env,
+    "REFUNDHOLD_DEMO_ACCESS_PASSWORD",
+    "AUTHRAIL_DEMO_ACCESS_PASSWORD",
+  );
 
   if (demoAccessEnabled && !demoAccessPassword) {
     throw new Error(
@@ -203,7 +238,11 @@ export function readStripeTestE2EConfig(
     baseUrl,
     apiKey,
     reviewerEmail:
-      env["AUTHRAIL_DEMO_REVIEWER_EMAIL"]?.trim() || defaultReviewerEmail,
+      readOptionalEnvWithLegacy(
+        env,
+        "REFUNDHOLD_DEMO_REVIEWER_EMAIL",
+        "AUTHRAIL_DEMO_REVIEWER_EMAIL",
+      ) || defaultReviewerEmail,
     testSecretKey,
     webhookTestSecret,
     amountMinor: readPositiveIntegerEnv(
@@ -750,6 +789,8 @@ async function assertUiShowsSafeStripeStatus({
     config.testSecretKey,
     config.webhookTestSecret,
     config.apiKey,
+    "REFUNDHOLD_STRIPE_TEST_SECRET_KEY",
+    "REFUNDHOLD_STRIPE_WEBHOOK_TEST_SECRET",
     "AUTHRAIL_STRIPE_TEST_SECRET_KEY",
     "AUTHRAIL_STRIPE_WEBHOOK_TEST_SECRET",
     "Stripe-Signature",
@@ -839,6 +880,20 @@ function readRequiredEnv(env: StripeE2EEnv, key: string): string {
   return value;
 }
 
+function readRequiredEnvWithLegacy(
+  env: StripeE2EEnv,
+  preferredName: string,
+  legacyName: string,
+): string {
+  const value = readOptionalEnvWithLegacy(env, preferredName, legacyName);
+
+  if (!value) {
+    throw new Error(`${preferredName} is required.`);
+  }
+
+  return value;
+}
+
 function readPositiveIntegerEnv(
   value: string | undefined,
   fallback: number,
@@ -899,14 +954,6 @@ function logStep(label: string, fields: Record<string, string | null | undefined
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isEnabledValue(value: string | undefined): boolean {
-  if (!value) {
-    return false;
-  }
-
-  return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
 }
 
 function sleep(ms: number): Promise<void> {

@@ -1,3 +1,9 @@
+import {
+  readEnabledEnvWithLegacy,
+  readOptionalEnvWithLegacy,
+  type EnvRecord,
+} from "./env";
+
 export const DEMO_ACCESS_COOKIE_NAME = "authrail_demo_access";
 export const DEMO_ACCESS_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 8;
 
@@ -5,8 +11,9 @@ const COOKIE_VERSION = "v1";
 const SIGNATURE_PAYLOAD = "authrail-demo-access";
 const PASSWORD_COMPARISON_KEY = "refundhold-demo-access-password-comparison-v1";
 
-type DemoAccessEnv = {
-  [key: string]: string | undefined;
+type DemoAccessEnv = EnvRecord & {
+  REFUNDHOLD_DEMO_ACCESS_ENABLED?: string;
+  REFUNDHOLD_DEMO_ACCESS_PASSWORD?: string;
   AUTHRAIL_DEMO_ACCESS_ENABLED?: string;
   AUTHRAIL_DEMO_ACCESS_PASSWORD?: string;
 };
@@ -22,8 +29,16 @@ export type DemoAccessStatus = {
 };
 
 export function getDemoAccessConfig(env: DemoAccessEnv): DemoAccessConfig {
-  const enabled = isEnabledValue(env.AUTHRAIL_DEMO_ACCESS_ENABLED);
-  const password = env.AUTHRAIL_DEMO_ACCESS_PASSWORD?.trim() || null;
+  const enabled = readEnabledEnvWithLegacy(
+    env,
+    "REFUNDHOLD_DEMO_ACCESS_ENABLED",
+    "AUTHRAIL_DEMO_ACCESS_ENABLED",
+  );
+  const password = readOptionalEnvWithLegacy(
+    env,
+    "REFUNDHOLD_DEMO_ACCESS_PASSWORD",
+    "AUTHRAIL_DEMO_ACCESS_PASSWORD",
+  );
 
   return {
     enabled,
@@ -33,8 +48,18 @@ export function getDemoAccessConfig(env: DemoAccessEnv): DemoAccessConfig {
 
 export function getDemoAccessStatus(env: DemoAccessEnv): DemoAccessStatus {
   return {
-    enabled: isEnabledValue(env.AUTHRAIL_DEMO_ACCESS_ENABLED),
-    hasPassword: Boolean(env.AUTHRAIL_DEMO_ACCESS_PASSWORD?.trim()),
+    enabled: readEnabledEnvWithLegacy(
+      env,
+      "REFUNDHOLD_DEMO_ACCESS_ENABLED",
+      "AUTHRAIL_DEMO_ACCESS_ENABLED",
+    ),
+    hasPassword: Boolean(
+      readOptionalEnvWithLegacy(
+        env,
+        "REFUNDHOLD_DEMO_ACCESS_PASSWORD",
+        "AUTHRAIL_DEMO_ACCESS_PASSWORD",
+      ),
+    ),
   };
 }
 
@@ -124,14 +149,6 @@ export async function isDemoAccessPasswordValid(
   ]);
 
   return timingSafeStringEqual(providedDigest, expectedDigest);
-}
-
-function isEnabledValue(value: string | undefined): boolean {
-  if (!value) {
-    return false;
-  }
-
-  return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
 }
 
 async function signDemoAccessCookie(

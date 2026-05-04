@@ -20,8 +20,8 @@ describe("demo access", () => {
   it("reads enabled demo access config from environment values", () => {
     expect(
       getDemoAccessConfig({
-        AUTHRAIL_DEMO_ACCESS_ENABLED: "true",
-        AUTHRAIL_DEMO_ACCESS_PASSWORD: "demo-password",
+        REFUNDHOLD_DEMO_ACCESS_ENABLED: "true",
+        REFUNDHOLD_DEMO_ACCESS_PASSWORD: "demo-password",
       }),
     ).toEqual({
       enabled: true,
@@ -29,11 +29,37 @@ describe("demo access", () => {
     });
   });
 
+  it("falls back to legacy demo access environment values", () => {
+    expect(
+      getDemoAccessConfig({
+        AUTHRAIL_DEMO_ACCESS_ENABLED: "true",
+        AUTHRAIL_DEMO_ACCESS_PASSWORD: "legacy-password",
+      }),
+    ).toEqual({
+      enabled: true,
+      password: "legacy-password",
+    });
+  });
+
+  it("prefers RefundHold demo access values over legacy values", () => {
+    expect(
+      getDemoAccessConfig({
+        REFUNDHOLD_DEMO_ACCESS_ENABLED: "false",
+        REFUNDHOLD_DEMO_ACCESS_PASSWORD: "preferred-password",
+        AUTHRAIL_DEMO_ACCESS_ENABLED: "true",
+        AUTHRAIL_DEMO_ACCESS_PASSWORD: "legacy-password",
+      }),
+    ).toEqual({
+      enabled: false,
+      password: "preferred-password",
+    });
+  });
+
   it("exposes only safe demo access render status", () => {
     expect(
       getDemoAccessStatus({
-        AUTHRAIL_DEMO_ACCESS_ENABLED: "true",
-        AUTHRAIL_DEMO_ACCESS_PASSWORD: "demo-password",
+        REFUNDHOLD_DEMO_ACCESS_ENABLED: "true",
+        REFUNDHOLD_DEMO_ACCESS_PASSWORD: "demo-password",
       }),
     ).toEqual({
       enabled: true,
@@ -44,7 +70,7 @@ describe("demo access", () => {
   it("treats enabled access without a password as configured fail-closed", () => {
     expect(
       getDemoAccessConfig({
-        AUTHRAIL_DEMO_ACCESS_ENABLED: "true",
+        REFUNDHOLD_DEMO_ACCESS_ENABLED: "true",
       }),
     ).toEqual({
       enabled: true,

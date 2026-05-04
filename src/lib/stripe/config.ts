@@ -1,5 +1,17 @@
+import {
+  isEnabledValue,
+  readEnabledEnvWithLegacy,
+  readOptionalEnvWithLegacy,
+} from "../env";
+
 export type StripeSafetyEnv = {
   [key: string]: string | undefined;
+  REFUNDHOLD_STRIPE_TEST_MODE_ENABLED?: string;
+  REFUNDHOLD_STRIPE_TEST_REFUNDS_ENABLED?: string;
+  REFUNDHOLD_STRIPE_WEBHOOKS_ENABLED?: string;
+  REFUNDHOLD_STRIPE_TEST_SECRET_KEY?: string;
+  REFUNDHOLD_STRIPE_WEBHOOK_TEST_SECRET?: string;
+  REFUNDHOLD_STRIPE_LIVE_REFUNDS_ENABLED?: string;
   AUTHRAIL_STRIPE_TEST_MODE_ENABLED?: string;
   AUTHRAIL_STRIPE_TEST_REFUNDS_ENABLED?: string;
   AUTHRAIL_STRIPE_WEBHOOKS_ENABLED?: string;
@@ -35,23 +47,33 @@ export class StripeSafetyConfigError extends Error {
 export function getStripeSafetyConfig(
   env: StripeSafetyEnv = process.env,
 ): StripeSafetyConfig {
-  const testModeEnabled = isEnabledValue(
-    env.AUTHRAIL_STRIPE_TEST_MODE_ENABLED,
+  const testModeEnabled = readEnabledEnvWithLegacy(
+    env,
+    "REFUNDHOLD_STRIPE_TEST_MODE_ENABLED",
+    "AUTHRAIL_STRIPE_TEST_MODE_ENABLED",
   );
-  const testRefundsEnabled = isEnabledValue(
-    env.AUTHRAIL_STRIPE_TEST_REFUNDS_ENABLED,
+  const testRefundsEnabled = readEnabledEnvWithLegacy(
+    env,
+    "REFUNDHOLD_STRIPE_TEST_REFUNDS_ENABLED",
+    "AUTHRAIL_STRIPE_TEST_REFUNDS_ENABLED",
   );
-  const webhooksEnabled = isEnabledValue(
-    env.AUTHRAIL_STRIPE_WEBHOOKS_ENABLED,
+  const webhooksEnabled = readEnabledEnvWithLegacy(
+    env,
+    "REFUNDHOLD_STRIPE_WEBHOOKS_ENABLED",
+    "AUTHRAIL_STRIPE_WEBHOOKS_ENABLED",
   );
-  const liveRefundsEnabled = isEnabledValue(
-    env.AUTHRAIL_STRIPE_LIVE_REFUNDS_ENABLED,
+  const liveRefundsEnabled =
+    isEnabledValue(env.REFUNDHOLD_STRIPE_LIVE_REFUNDS_ENABLED) ||
+    isEnabledValue(env.AUTHRAIL_STRIPE_LIVE_REFUNDS_ENABLED);
+  const testSecretKey = readOptionalEnvWithLegacy(
+    env,
+    "REFUNDHOLD_STRIPE_TEST_SECRET_KEY",
+    "AUTHRAIL_STRIPE_TEST_SECRET_KEY",
   );
-  const testSecretKey = readOptionalSecret(
-    env.AUTHRAIL_STRIPE_TEST_SECRET_KEY,
-  );
-  const webhookTestSecret = readOptionalSecret(
-    env.AUTHRAIL_STRIPE_WEBHOOK_TEST_SECRET,
+  const webhookTestSecret = readOptionalEnvWithLegacy(
+    env,
+    "REFUNDHOLD_STRIPE_WEBHOOK_TEST_SECRET",
+    "AUTHRAIL_STRIPE_WEBHOOK_TEST_SECRET",
   );
 
   if (liveRefundsEnabled) {
@@ -139,18 +161,4 @@ function startsWithAny(
   return prefixes.some((prefix) => {
     return value.startsWith(prefix);
   });
-}
-
-function readOptionalSecret(value: string | undefined): string | null {
-  const trimmed = value?.trim();
-
-  return trimmed && trimmed.length > 0 ? trimmed : null;
-}
-
-function isEnabledValue(value: string | undefined): boolean {
-  if (!value) {
-    return false;
-  }
-
-  return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
 }

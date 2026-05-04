@@ -16,6 +16,7 @@ import {
   type MembershipRole,
 } from "./rbac";
 import { getPrismaClient } from "../db/prisma";
+import { readOptionalEnvWithLegacy } from "../env";
 
 const defaultDemoReviewerEmail = "demo.reviewer@refundhold.com";
 
@@ -173,7 +174,11 @@ export async function resolveAppAccessContext({
   return resolveDemoAppAccess({
     email:
       demoReviewerEmail ??
-      env["AUTHRAIL_DEMO_REVIEWER_EMAIL"] ??
+      readOptionalEnvWithLegacy(
+        env,
+        "REFUNDHOLD_DEMO_REVIEWER_EMAIL",
+        "AUTHRAIL_DEMO_REVIEWER_EMAIL",
+      ) ??
       defaultDemoReviewerEmail,
     authEnabled: authConfig.authEnabled,
     authRequired: authConfig.authRequired,

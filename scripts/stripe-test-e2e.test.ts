@@ -23,9 +23,9 @@ describe("Stripe test-mode E2E script helpers", () => {
   it("uses the preferred demo agent API key for Stripe test-mode rehearsals", () => {
     expect(
       readStripeTestE2EConfig({
-        AUTHRAIL_STRIPE_TEST_MODE_ENABLED: "true",
-        AUTHRAIL_STRIPE_TEST_REFUNDS_ENABLED: "true",
-        AUTHRAIL_STRIPE_TEST_SECRET_KEY: testKey,
+        REFUNDHOLD_STRIPE_TEST_MODE_ENABLED: "true",
+        REFUNDHOLD_STRIPE_TEST_REFUNDS_ENABLED: "true",
+        REFUNDHOLD_STRIPE_TEST_SECRET_KEY: testKey,
         REFUNDHOLD_DEMO_AGENT_API_KEY: "ar_demo_prefix_secret",
         BASE_URL: "http://localhost:3000",
         DATABASE_URL: "postgresql://user:password@localhost:5432/refundhold",
@@ -53,6 +53,38 @@ describe("Stripe test-mode E2E script helpers", () => {
     ).toBe("ar_demo_legacy_secret");
   });
 
+  it("prefers RefundHold Stripe test-mode settings over legacy settings", () => {
+    expect(
+      readStripeTestE2EConfig({
+        REFUNDHOLD_STRIPE_TEST_MODE_ENABLED: "true",
+        REFUNDHOLD_STRIPE_TEST_REFUNDS_ENABLED: "true",
+        REFUNDHOLD_STRIPE_TEST_SECRET_KEY: testKey,
+        REFUNDHOLD_STRIPE_WEBHOOKS_ENABLED: "true",
+        REFUNDHOLD_STRIPE_WEBHOOK_TEST_SECRET: webhookSecret,
+        AUTHRAIL_STRIPE_TEST_MODE_ENABLED: "false",
+        AUTHRAIL_STRIPE_TEST_REFUNDS_ENABLED: "false",
+        AUTHRAIL_STRIPE_TEST_SECRET_KEY: restrictedTestKey,
+        AUTHRAIL_STRIPE_WEBHOOKS_ENABLED: "false",
+        AUTHRAIL_STRIPE_WEBHOOK_TEST_SECRET: "whsec_legacy",
+        REFUNDHOLD_DEMO_ACCESS_ENABLED: "true",
+        REFUNDHOLD_DEMO_ACCESS_PASSWORD: "preferred-password",
+        AUTHRAIL_DEMO_ACCESS_ENABLED: "false",
+        AUTHRAIL_DEMO_ACCESS_PASSWORD: "legacy-password",
+        REFUNDHOLD_DEMO_REVIEWER_EMAIL: "preferred.reviewer@refundhold.com",
+        AUTHRAIL_DEMO_REVIEWER_EMAIL: "legacy.reviewer@refundhold.com",
+        REFUNDHOLD_DEMO_AGENT_API_KEY: "ar_demo_prefix_secret",
+        BASE_URL: "http://localhost:3000",
+        DATABASE_URL: "postgresql://user:password@localhost:5432/refundhold",
+      }),
+    ).toMatchObject({
+      testSecretKey: testKey,
+      webhookTestSecret: webhookSecret,
+      demoAccessEnabled: true,
+      demoAccessPassword: "preferred-password",
+      reviewerEmail: "preferred.reviewer@refundhold.com",
+    });
+  });
+
   it("accepts restricted test keys for controlled test mode", () => {
     expect(
       readStripeTestE2EConfig({
@@ -69,9 +101,9 @@ describe("Stripe test-mode E2E script helpers", () => {
   it("rejects live keys and live refund flags", () => {
     expect(() =>
       readStripeTestE2EConfig({
-        AUTHRAIL_STRIPE_TEST_MODE_ENABLED: "true",
-        AUTHRAIL_STRIPE_TEST_REFUNDS_ENABLED: "true",
-        AUTHRAIL_STRIPE_TEST_SECRET_KEY: liveKey,
+        REFUNDHOLD_STRIPE_TEST_MODE_ENABLED: "true",
+        REFUNDHOLD_STRIPE_TEST_REFUNDS_ENABLED: "true",
+        REFUNDHOLD_STRIPE_TEST_SECRET_KEY: liveKey,
         AUTHRAIL_DEMO_AGENT_API_KEY: "ar_demo_prefix_secret",
         BASE_URL: "http://localhost:3000",
         DATABASE_URL: "postgresql://user:password@localhost:5432/refundhold",
@@ -84,6 +116,21 @@ describe("Stripe test-mode E2E script helpers", () => {
         AUTHRAIL_STRIPE_TEST_REFUNDS_ENABLED: "true",
         AUTHRAIL_STRIPE_LIVE_REFUNDS_ENABLED: "true",
         AUTHRAIL_STRIPE_TEST_SECRET_KEY: testKey,
+        AUTHRAIL_DEMO_AGENT_API_KEY: "ar_demo_prefix_secret",
+        BASE_URL: "http://localhost:3000",
+        DATABASE_URL: "postgresql://user:password@localhost:5432/refundhold",
+      }),
+    ).toThrow("AUTHRAIL_STRIPE_LIVE_REFUNDS_ENABLED is blocked.");
+  });
+
+  it("blocks the legacy live refund flag even when the RefundHold live flag is disabled", () => {
+    expect(() =>
+      readStripeTestE2EConfig({
+        REFUNDHOLD_STRIPE_TEST_MODE_ENABLED: "true",
+        REFUNDHOLD_STRIPE_TEST_REFUNDS_ENABLED: "true",
+        REFUNDHOLD_STRIPE_LIVE_REFUNDS_ENABLED: "false",
+        REFUNDHOLD_STRIPE_TEST_SECRET_KEY: testKey,
+        AUTHRAIL_STRIPE_LIVE_REFUNDS_ENABLED: "true",
         AUTHRAIL_DEMO_AGENT_API_KEY: "ar_demo_prefix_secret",
         BASE_URL: "http://localhost:3000",
         DATABASE_URL: "postgresql://user:password@localhost:5432/refundhold",

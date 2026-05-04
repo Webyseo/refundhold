@@ -1,5 +1,11 @@
+import {
+  readEnabledEnvWithLegacy,
+} from "../env";
+
 export type AuthEnv = {
   [key: string]: string | undefined;
+  REFUNDHOLD_AUTH_ENABLED?: string;
+  REFUNDHOLD_AUTH_REQUIRED?: string;
   AUTHRAIL_AUTH_ENABLED?: string;
   AUTHRAIL_AUTH_REQUIRED?: string;
   BETTER_AUTH_SECRET?: string;
@@ -21,8 +27,16 @@ export class AuthConfigError extends Error {
 }
 
 export function getAuthConfig(env: AuthEnv = process.env): AuthConfig {
-  const authEnabled = isEnabledValue(env.AUTHRAIL_AUTH_ENABLED);
-  const authRequired = isEnabledValue(env.AUTHRAIL_AUTH_REQUIRED);
+  const authEnabled = readEnabledEnvWithLegacy(
+    env,
+    "REFUNDHOLD_AUTH_ENABLED",
+    "AUTHRAIL_AUTH_ENABLED",
+  );
+  const authRequired = readEnabledEnvWithLegacy(
+    env,
+    "REFUNDHOLD_AUTH_REQUIRED",
+    "AUTHRAIL_AUTH_REQUIRED",
+  );
   const betterAuthSecret = readOptionalSecret(env.BETTER_AUTH_SECRET);
   const betterAuthUrl = readOptionalValue(env.BETTER_AUTH_URL);
 
@@ -58,12 +72,4 @@ function readOptionalValue(value: string | null | undefined): string | null {
   const trimmed = value?.trim();
 
   return trimmed && trimmed.length > 0 ? trimmed : null;
-}
-
-function isEnabledValue(value: string | undefined): boolean {
-  if (!value) {
-    return false;
-  }
-
-  return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
 }

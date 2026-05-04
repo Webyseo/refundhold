@@ -43,8 +43,6 @@ For local demo simulation, configure a demo agent API key in `.env` before
 running the demo seed.
 
 - Use `REFUNDHOLD_DEMO_AGENT_API_KEY` as the preferred variable.
-- `AUTHRAIL_DEMO_AGENT_API_KEY` remains supported as a legacy fallback during
-  the naming transition.
 - Use a private local value in the demo format `ar_demo_<prefix>_<secret>`.
 - Run `pnpm db:seed:demo` after setting or changing the key so RefundHold stores
   the matching hash.
@@ -55,10 +53,7 @@ running the demo seed.
 
 ## Send a refund request
 
-Preferred public endpoint: `/api/v1/refund-requests`.
-
-Compatibility endpoint: `/api/v1/action-requests` remains available during the
-transition.
+Public endpoint: `POST /api/v1/refund-requests`.
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/refund-requests \
@@ -83,6 +78,19 @@ Decision endpoints:
 - Demo simulation does not move money.
 - Stripe test-mode uses test objects only.
 - Live refunds are blocked in v1.
+- The AI agent must not receive Stripe secret keys.
+- RefundHold is not affiliated with, endorsed by, or sponsored by Stripe.
+
+## Open-source status
+
+RefundHold is preparing for a future open-core release, but this repository is
+not ready to publish publicly yet.
+
+- [Open-source boundary](docs/open-source.md)
+- [Local demo guide](docs/local-demo.md)
+- [Security policy](SECURITY.md)
+- [Disclaimer](DISCLAIMER.md)
+- [Contributing guide](CONTRIBUTING.md)
 
 For the pilot-ready API reference, see `/docs/api`.
 For the exact controlled test-mode runbook, see `/docs/test-mode-runbook`.

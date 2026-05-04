@@ -52,6 +52,7 @@ export async function getProvisioningBetterAuthOrThrow(
 ): Promise<BetterAuthInstance> {
   const config = getAuthConfig({
     ...env,
+    REFUNDHOLD_AUTH_ENABLED: "true",
     AUTHRAIL_AUTH_ENABLED: "true",
   });
   const prisma = await getPrismaClient();

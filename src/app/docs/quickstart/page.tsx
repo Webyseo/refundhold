@@ -211,11 +211,7 @@ export default function QuickstartPage() {
           <QuickstartSection title="Send a refund proposal from an agent">
             <div className="space-y-3 text-sm leading-6 text-zinc-300">
               <p>
-                Preferred public endpoint: /api/v1/refund-requests.
-              </p>
-              <p>
-                Temporary compatibility endpoint still available:
-                /api/v1/action-requests.
+                Public endpoint: POST /api/v1/refund-requests.
               </p>
             </div>
             <CommandBlock value={refundProposalCurl} />

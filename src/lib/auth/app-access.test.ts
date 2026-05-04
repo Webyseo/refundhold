@@ -54,6 +54,53 @@ describe("app access context", () => {
     );
   });
 
+  it("prefers RefundHold demo reviewer email over legacy reviewer email", async () => {
+    const prisma = createPrisma();
+
+    await resolveAppAccessContext({
+      env: {
+        REFUNDHOLD_DEMO_REVIEWER_EMAIL: "preferred.reviewer@refundhold.com",
+        AUTHRAIL_DEMO_REVIEWER_EMAIL: "legacy.reviewer@refundhold.com",
+      },
+      prisma,
+    });
+
+    expect(prisma.membership.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          status: "ACTIVE",
+          user: {
+            email: "preferred.reviewer@refundhold.com",
+            status: "ACTIVE",
+          },
+        },
+      }),
+    );
+  });
+
+  it("falls back to legacy demo reviewer email", async () => {
+    const prisma = createPrisma();
+
+    await resolveAppAccessContext({
+      env: {
+        AUTHRAIL_DEMO_REVIEWER_EMAIL: "legacy.reviewer@refundhold.com",
+      },
+      prisma,
+    });
+
+    expect(prisma.membership.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          status: "ACTIVE",
+          user: {
+            email: "legacy.reviewer@refundhold.com",
+            status: "ACTIVE",
+          },
+        },
+      }),
+    );
+  });
+
   it("redirects to login with a safe internal next path when auth is required and no session exists", async () => {
     const result = await resolveAppAccessContext({
       env: enabledRequiredEnv,
