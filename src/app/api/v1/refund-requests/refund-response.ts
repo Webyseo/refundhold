@@ -1,6 +1,15 @@
 import type { JsonObject, JsonValue } from "@/lib/action-requests/handler";
+import type {
+  RefundRequestErrorResponse,
+  RefundRequestExecutionResponse,
+  RefundRequestReviewResponse,
+} from "@/lib/public-contracts";
 
 export type RefundRequestAliasAction = "approve" | "reject" | "execute";
+type RefundRequestAliasResponse =
+  | RefundRequestReviewResponse
+  | RefundRequestExecutionResponse
+  | RefundRequestErrorResponse;
 
 export async function toRefundRequestJsonResponse({
   action,
@@ -32,7 +41,7 @@ export function toRefundRequestBody(
     action: RefundRequestAliasAction;
     fallbackId: string;
   },
-): JsonObject {
+): RefundRequestAliasResponse {
   if (!isJsonObject(body)) {
     return {
       error: "invalid_response",
@@ -59,10 +68,10 @@ export function toRefundRequestBody(
       status,
       decision,
       message,
-    });
+    }) as RefundRequestErrorResponse;
   }
 
-  return withDefinedValues({
+  const publicResponse = withDefinedValues({
     refund_request_id: refundRequestId,
     status: status ?? getOutcomeForAction(action),
     decision,
@@ -72,6 +81,10 @@ export function toRefundRequestBody(
       : undefined,
     message,
   });
+
+  return action === "execute"
+    ? (publicResponse as RefundRequestExecutionResponse)
+    : (publicResponse as RefundRequestReviewResponse);
 }
 
 function getOutcomeForAction(

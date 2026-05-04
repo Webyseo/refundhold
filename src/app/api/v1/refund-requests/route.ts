@@ -1,4 +1,5 @@
 import type { JsonObject, JsonValue } from "@/lib/action-requests/handler";
+import type { RefundRequestCreateResponse } from "@/lib/public-contracts";
 
 import { createActionRequestResponse } from "../action-requests/create-action-request-response";
 
@@ -70,7 +71,9 @@ function normalizeRefundRequestBody(body: unknown): unknown {
   };
 }
 
-function toRefundRequestResponse(body: JsonObject): JsonObject {
+function toRefundRequestResponse(
+  body: JsonObject,
+): JsonObject | RefundRequestCreateResponse {
   const actionRequestId = getString(body["action_request_id"]);
   const decision = mapDecision(getString(body["decision"]));
   const reason = getPublicReason({
@@ -91,7 +94,7 @@ function toRefundRequestResponse(body: JsonObject): JsonObject {
     decision: decision ?? body["decision"] ?? "blocked",
     reason: reason ?? "Refund request received.",
     review_url: `${reviewUrlBasePath}/${actionRequestId}`,
-  };
+  } as RefundRequestCreateResponse;
 }
 
 function mapDecision(decision: string | undefined): string | undefined {
