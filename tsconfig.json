@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@refundhold/core": ["./packages/refundhold-core/src/index.ts"]
     }
   },
   "include": [

@@ -8,6 +8,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(rootDir, "src"),
+      "@refundhold/core": path.resolve(
+        rootDir,
+        "packages/refundhold-core/src/index.ts",
+      ),
     },
   },
   test: {
