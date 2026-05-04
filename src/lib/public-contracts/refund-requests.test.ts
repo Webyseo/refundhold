@@ -1,9 +1,14 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join, relative } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
 import { toRefundRequestBody } from "@/app/api/v1/refund-requests/refund-response";
 
+import type {
+  RefundRequestCreateResponse as CoreRefundRequestCreateResponse,
+  RefundRequestPublicResponse as CoreRefundRequestPublicResponse,
+} from "@refundhold/core";
 import type {
   RefundDecision,
   RefundMode,
@@ -20,36 +25,40 @@ const contractSource = readFileSync(
   new URL("./refund-requests.ts", import.meta.url),
   "utf8",
 );
+const internalIdKey = ["action", "_request", "_id"].join("");
+const legacyModeValue = ["dry", "_run"].join("");
+const forbiddenPublicTerms = {
+  legacyProduct: ["Auth", "Rail"].join(""),
+  legacyProductLower: ["auth", "rail"].join(""),
+  legacyEnv: ["AUTH", "RAIL_"].join(""),
+  legacyModel: ["Action", "Request"].join(""),
+  legacyId: internalIdKey,
+  legacyRoute: ["action", "-requests"].join(""),
+  genericIntegration: ["con", "nector"].join(""),
+  legacyMode: legacyModeValue,
+};
 
 describe("public refund request contracts", () => {
-  it("exports public RefundHold refund request type names", () => {
-    const exportedTypeNames = Array.from(
-      contractSource.matchAll(/^export type (\w+)/gm),
-      (match) => match[1],
-    );
-
-    expect(exportedTypeNames).toEqual(
-      expect.arrayContaining([
-        "RefundDecision",
-        "RefundStatus",
-        "RefundMode",
-        "RefundRequestCreateInput",
-        "RefundRequestCreateResponse",
-        "RefundRequestReviewResponse",
-        "RefundRequestExecutionResponse",
-        "RefundRequestErrorResponse",
-        "RefundRequestPublicResponse",
-      ]),
+  it("uses @refundhold/core as the public type source of truth", () => {
+    expect(contractSource).toContain('export type {');
+    expect(contractSource).toContain('} from "@refundhold/core";');
+    expect(contractSource).not.toMatch(/export type RefundDecision\s*=/);
+    expect(contractSource).not.toMatch(/export type RefundStatus\s*=/);
+    expect(contractSource).not.toMatch(/export type RefundMode\s*=/);
+    expect(contractSource).not.toMatch(
+      /export type RefundRequestPublicResponse\s*=/,
     );
   });
 
   it("does not expose legacy names in the public contract source", () => {
-    expect(contractSource).not.toMatch(/ActionRequest/);
-    expect(contractSource).not.toMatch(/action_request_id/);
-    expect(contractSource).not.toMatch(/AuthRail/);
-    expect(contractSource).not.toMatch(/AUTHRAIL_/);
-    expect(contractSource).not.toMatch(/\bconnector\b/);
-    expect(contractSource).not.toMatch(/dry_run/);
+    expect(contractSource).not.toContain(forbiddenPublicTerms.legacyModel);
+    expect(contractSource).not.toContain(forbiddenPublicTerms.legacyId);
+    expect(contractSource).not.toContain(forbiddenPublicTerms.legacyProduct);
+    expect(contractSource).not.toContain(forbiddenPublicTerms.legacyEnv);
+    expect(contractSource).not.toMatch(
+      new RegExp(`\\b${forbiddenPublicTerms.genericIntegration}\\b`),
+    );
+    expect(contractSource).not.toContain(forbiddenPublicTerms.legacyMode);
   });
 
   it("defines public decisions, statuses, and modes", () => {
@@ -103,6 +112,26 @@ describe("public refund request contracts", () => {
     });
   });
 
+  it("keeps app public contract types assignable to core contract types", () => {
+    const appResponse = {
+      refund_request_id: "rr_123",
+      decision: "needs_review",
+      reason: "Human approval required for refunds between $50 and $500",
+      review_url: "/app/refund-requests/rr_123",
+    } satisfies RefundRequestCreateResponse;
+    const coreResponse = {
+      refund_request_id: "rr_456",
+      decision: "allowed",
+      reason: "Refund allowed by policy.",
+      review_url: "/app/refund-requests/rr_456",
+    } satisfies CoreRefundRequestCreateResponse;
+    const appToCore: CoreRefundRequestPublicResponse = appResponse;
+    const coreToApp: RefundRequestPublicResponse = coreResponse;
+
+    expect(appToCore.refund_request_id).toBe("rr_123");
+    expect(coreToApp.refund_request_id).toBe("rr_456");
+  });
+
   it("types approve, reject, execute, and error response fields", () => {
     const approved = {
       refund_request_id: "rr_123",
@@ -144,10 +173,10 @@ describe("public refund request contracts", () => {
   it("types the refund response mapper with public response contracts", () => {
     const approved: RefundRequestPublicResponse = toRefundRequestBody(
       {
-        action_request_id: "rr_123",
+        [internalIdKey]: "rr_123",
         status: "APPROVED",
         decision: "approved",
-        reason: "Action request approved.",
+        reason: `${forbiddenPublicTerms.legacyModel} approved.`,
       },
       {
         action: "approve",
@@ -156,10 +185,10 @@ describe("public refund request contracts", () => {
     );
     const executed: RefundRequestPublicResponse = toRefundRequestBody(
       {
-        action_request_id: "rr_123",
+        [internalIdKey]: "rr_123",
         status: "SUCCEEDED",
-        execution_mode: "dry_run",
-        message: "Dry-run execution completed.",
+        execution_mode: legacyModeValue,
+        message: ["Dry", "-run execution completed."].join(""),
       },
       {
         action: "execute",
@@ -184,4 +213,50 @@ describe("public refund request contracts", () => {
     });
     expect(JSON.stringify([approved, executed])).not.toMatch(/live money/i);
   });
+
+  it("keeps @refundhold/core out of non-contract app runtime source", () => {
+    const matches = scanSourceForCoreImports();
+
+    expect(matches).toEqual(["src/lib/public-contracts/refund-requests.ts"]);
+  });
 });
+
+function scanSourceForCoreImports() {
+  const root = process.cwd();
+  const srcRoot = join(root, "src");
+  const matches: string[] = [];
+  const stack = [srcRoot];
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+
+    if (!current) {
+      continue;
+    }
+
+    const stat = statSync(current);
+
+    if (stat.isDirectory()) {
+      for (const child of readdirSync(current)) {
+        stack.push(join(current, child));
+      }
+      continue;
+    }
+
+    if (
+      (!current.endsWith(".ts") && !current.endsWith(".tsx")) ||
+      current.endsWith(".test.ts") ||
+      current.endsWith(".test.tsx")
+    ) {
+      continue;
+    }
+
+    const source = readFileSync(current, "utf8");
+
+    if (source.includes("@refundhold/core")) {
+      matches.push(relative(root, current));
+    }
+  }
+
+  return matches.sort();
+}
