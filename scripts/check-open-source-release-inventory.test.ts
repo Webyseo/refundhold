@@ -224,6 +224,58 @@ describe("checkOpenSourceReleaseInventory", () => {
     expect(result.scannedFiles).toEqual(["README.md"]);
   });
 
+  it("scans the public release checklist by default", async () => {
+    const root = createFixtureRoot();
+    await writeFixture(
+      root,
+      "docs/public-release-checklist.md",
+      [
+        "# Public Release Checklist",
+        "",
+        "RefundHold is not ready for public repository publication yet.",
+      ].join("\n"),
+    );
+
+    const result = checkOpenSourceReleaseInventory({
+      rootDir: root,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.scannedFiles).toEqual(["docs/public-release-checklist.md"]);
+  });
+
+  it("passes the real public release checklist", () => {
+    const result = checkOpenSourceReleaseInventory({
+      rootDir: process.cwd(),
+      surfaceEntries: ["docs/public-release-checklist.md"],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.scannedFiles).toEqual(["docs/public-release-checklist.md"]);
+  });
+
+  it("fails unsafe live-money claims in the public release checklist", async () => {
+    const root = createFixtureRoot();
+    await writeFixture(
+      root,
+      "docs/public-release-checklist.md",
+      "Production live refunds ready.",
+    );
+
+    const result = checkOpenSourceReleaseInventory({
+      rootDir: root,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.findings).toEqual([
+      expect.objectContaining({
+        filePath: "docs/public-release-checklist.md",
+        matched: "production live refunds ready",
+        ruleName: "unsafe-live-refund-claim",
+      }),
+    ]);
+  });
+
   it("scans package metadata files by default", async () => {
     const root = createFixtureRoot();
     await writeFixture(

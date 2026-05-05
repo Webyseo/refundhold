@@ -87,6 +87,7 @@ RefundHold is preparing for a future open-core release, but this repository is
 not ready to publish publicly yet.
 
 - [Open-source boundary](docs/open-source.md)
+- [Public release checklist](docs/public-release-checklist.md)
 - [Local demo guide](docs/local-demo.md)
 - [Security policy](SECURITY.md)
 - [Disclaimer](DISCLAIMER.md)

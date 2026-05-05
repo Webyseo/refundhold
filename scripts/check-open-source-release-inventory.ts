@@ -48,6 +48,7 @@ export const DEFAULT_PUBLIC_SURFACE_ENTRIES = [
   "CODE_OF_CONDUCT.md",
   "docs/open-source.md",
   "docs/local-demo.md",
+  "docs/public-release-checklist.md",
   "packages/refundhold-core/package.json",
   "packages/refundhold-core",
   "src/lib/public-contracts",

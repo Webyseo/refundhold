@@ -3,6 +3,9 @@
 RefundHold is preparing for a future open-core release, but this repository is
 not ready to publish publicly yet.
 
+Use the [public release checklist](public-release-checklist.md) for the future
+publication decision.
+
 ## What RefundHold Is
 
 RefundHold is an approval inbox for AI-generated Stripe refunds. The public
@@ -50,17 +53,28 @@ The commercial or private boundary is expected to include:
 
 ## What Is Not Ready Yet
 
-The current codebase still needs public-release hardening. Public package
-naming, environment naming, package boundaries, SDK ergonomics, idempotency,
-webhooks, audit export, and production live-money readiness are not final.
+The current codebase still needs public-release hardening around package
+boundaries, SDK ergonomics, idempotency, webhooks, audit export, Stripe
+test-mode adapter boundaries, production self-hosting claims, and live-money
+readiness.
+
+## Current Preparation Completed
+
+- Public package metadata now uses RefundHold naming.
+- `REFUNDHOLD_*` public env names are supported.
+- Release inventory check exists.
+- `@refundhold/core` skeleton exists.
+- Operational docs are under `docs/internal`.
 
 ## Release Blockers Before Public Publication
 
-- Public package naming still uses the legacy internal package name.
-- `REFUNDHOLD_*` aliases need to be fully supported and documented.
-- Package split has not happened yet.
-- SDK does not exist yet.
+- Package split is not complete.
+- SDK does not exist.
 - Public idempotency contract is not final.
 - Webhook callbacks are not a stable public contract.
 - Audit export is not productized.
-- Production live-money readiness is not complete.
+- Stripe test-mode adapter boundary is not final.
+- Production auth/RBAC posture is not ready for public self-hosting claims.
+- Live-money readiness is incomplete.
+- Private/commercial files still need a final release inventory review.
+- Deployment docs are internal and not a public self-hosting guide.
