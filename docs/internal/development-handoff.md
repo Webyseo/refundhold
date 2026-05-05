@@ -4,7 +4,7 @@ This document preserves operational notes that used to live in the main README.
 It is internal handoff material, not product-facing positioning.
 
 For the older detailed handoff, also see
-[`../DEVELOPMENT_HANDOFF.md`](../DEVELOPMENT_HANDOFF.md).
+[`development-handoff-root.md`](development-handoff-root.md).
 
 For controlled pilot evaluation, use the
 [`pilot readiness checklist`](pilot-readiness-checklist.md).

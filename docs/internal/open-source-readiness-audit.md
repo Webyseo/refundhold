@@ -184,15 +184,15 @@ and legacy naming compatibility surfaces.
 
 - Public-facing root docs: `README.md`.
 - Internal/operational docs:
-  - `docs/DEVELOPMENT_HANDOFF.md`
+  - `docs/internal/development-handoff-root.md`
   - `docs/internal/development-handoff.md`
   - `docs/internal/demo-simulation-pilot-test-kit.md`
   - `docs/internal/pilot-readiness-checklist.md`
   - `docs/internal/pilot-rehearsal-report.md`
-  - `AUTH_ACTIVATION_RUNBOOK.md`
-  - `README_DEPLOY_DOKPLOY.md`
-  - `STRIPE_TEST_MODE_E2E.md`
-  - `BACKUP_RESTORE.md`
+  - `docs/internal/auth-activation.md`
+  - `docs/internal/deployment-dokploy.md`
+  - `docs/internal/stripe-test-mode-e2e.md`
+  - `docs/internal/backup-restore.md`
 - Deployment files:
   - `Dockerfile`
   - `docker-compose.yml`
@@ -316,7 +316,7 @@ abstracted before any public release.
   - Hosted app auth/session UX; keep private until open-core self-hosting auth
     posture is explicitly supported.
 - `scripts/provision-auth-user.ts` and
-  `AUTH_ACTIVATION_RUNBOOK.md`
+  `docs/internal/auth-activation.md`
   - Manual operator provisioning and staged auth activation should remain
     private operational docs/scripts.
 - `src/lib/auth/app-access.ts`, `src/proxy.ts`
@@ -326,9 +326,9 @@ abstracted before any public release.
 
 ### Deployment, secrets, and production operations
 
-- `README_DEPLOY_DOKPLOY.md`, `docker-compose.dokploy.yml`,
-  `.env.dokploy.example`, `AUTH_ACTIVATION_RUNBOOK.md`,
-  `BACKUP_RESTORE.md`
+- `docs/internal/deployment-dokploy.md`, `docker-compose.dokploy.yml`,
+  `.env.dokploy.example`, `docs/internal/auth-activation.md`,
+  `docs/internal/backup-restore.md`
   - These are commercial/hosted deployment materials, include production domain
     assumptions, and expose internal operational decisions. Keep private or
     replace with a generic self-hosting guide.
@@ -357,7 +357,7 @@ abstracted before any public release.
   `src/app/api/webhooks/stripe/route.ts`
   - Keep private until webhook event contracts, idempotency, and audit export
     are stable.
-- `scripts/stripe-test-e2e.ts`, `STRIPE_TEST_MODE_E2E.md`
+- `scripts/stripe-test-e2e.ts`, `docs/internal/stripe-test-mode-e2e.md`
   - Keep private or mark as an advanced manual test-mode-only adapter. It
     depends on live Stripe test credentials and operational discipline.
 
@@ -400,7 +400,7 @@ Summary counts in non-test, non-generated source/docs:
 | `action-requests` | 45 | legacy API routes, legacy app routes, SEO exclude list, scripts, README/quickstart | Compatibility route must remain temporarily; public docs should stop advertising it |
 | `dry_run` | 18 | execution internals, seed policy names, scripts, internal docs, UI mapping helpers | Internal legacy execution mode; public surfaces should say `demo_simulation` or "Demo simulation" |
 | `connector` | 177 | policy evaluator, Prisma schema, persistence, Stripe adapter internals, dashboard internals | Safe internal adapter term; should be hidden from public UI/docs unless an adapter API is intentionally documented |
-| `control layer` | 3 | `AGENTS.md`, `docs/DEVELOPMENT_HANDOFF.md` | Internal positioning phrase; should not be public marketing copy |
+| `control layer` | 3 | `AGENTS.md`, `docs/internal/development-handoff-root.md` | Internal positioning phrase; should not be public marketing copy |
 
 ### Term-by-term classification
 
@@ -430,7 +430,7 @@ Summary counts in non-test, non-generated source/docs:
   - `prisma/seed.ts:14`, `prisma/seed-demo.ts:15` demo organization slug.
   - `src/lib/demo-access.ts:1-5` demo access cookie/signature internals.
 - Should be hidden from UI/docs:
-  - `docs/DEVELOPMENT_HANDOFF.md:14-18` is internal and should stay private.
+  - `docs/internal/development-handoff-root.md:14-18` is internal and should stay private.
 - Should be renamed before open-source release:
   - `package.json:2` package name should become a public name such as
     `refundhold` or workspace package names.
@@ -449,8 +449,8 @@ Summary counts in non-test, non-generated source/docs:
 - Should be hidden from UI/docs:
   - `README.md:45-47` should not expose the legacy demo key variable in public
     open-source docs.
-  - `STRIPE_TEST_MODE_E2E.md`, `AUTH_ACTIVATION_RUNBOOK.md`,
-    `README_DEPLOY_DOKPLOY.md`, and `docs/DEVELOPMENT_HANDOFF.md` should stay
+  - `docs/internal/stripe-test-mode-e2e.md`, `docs/internal/auth-activation.md`,
+    `docs/internal/deployment-dokploy.md`, and `docs/internal/development-handoff-root.md` should stay
     internal or be rewritten before publication.
 - Should be renamed before open-source release:
   - `.env.example:5-25` should prefer `REFUNDHOLD_` variables and relegate
@@ -469,7 +469,7 @@ Summary counts in non-test, non-generated source/docs:
 - Should be hidden from UI/docs:
   - Page tests already guard against visible `ActionRequest` in public pages
     and dashboard pages.
-  - `STRIPE_TEST_MODE_E2E.md:13` should be internal or renamed before
+  - `docs/internal/stripe-test-mode-e2e.md:13` should be internal or renamed before
     publication.
 - Should be renamed before open-source release:
   - Public SDK/API types should use `RefundRequest`.
@@ -488,7 +488,7 @@ Summary counts in non-test, non-generated source/docs:
   - `README.md:60` advertises the compatibility endpoint.
   - `src/app/docs/quickstart/page.tsx:214-221` advertises the compatibility
     endpoint.
-  - `STRIPE_TEST_MODE_E2E.md:114` references `/app/action-requests`.
+  - `docs/internal/stripe-test-mode-e2e.md:114` references `/app/action-requests`.
 - Should be renamed before open-source release:
   - Smoke scripts should call `/api/v1/refund-requests`.
   - Public docs should remove compatibility route mentions.
@@ -532,13 +532,13 @@ Summary counts in non-test, non-generated source/docs:
 #### `control layer`
 
 - Safe internal legacy:
-  - `AGENTS.md:16`, `AGENTS.md:76`, `docs/DEVELOPMENT_HANDOFF.md:21`.
+  - `AGENTS.md:16`, `AGENTS.md:76`, `docs/internal/development-handoff-root.md:21`.
 - Should be hidden from UI/docs:
   - Keep this as internal explanation, not public marketing copy. Public copy
     should keep saying approval inbox / approval boundary for AI-generated
     Stripe refunds.
 - Should be renamed before open-source release:
-  - Any public docs generated from `docs/DEVELOPMENT_HANDOFF.md`.
+  - Any public docs generated from `docs/internal/development-handoff-root.md`.
 - Must remain temporarily for compatibility:
   - None.
 
@@ -575,7 +575,7 @@ Summary counts in non-test, non-generated source/docs:
 - `docker-compose.yml:7-19` uses local Postgres credentials
   `authrail/authrail`. This is safe for local dev only, but should be renamed or
   explicitly labeled local-only before open-source publication.
-- `STRIPE_TEST_MODE_E2E.md` uses `...` placeholders for secrets and repeatedly
+- `docs/internal/stripe-test-mode-e2e.md` uses `...` placeholders for secrets and repeatedly
   says not to commit/paste keys.
 - `scripts/stripe-test-e2e.ts` redacts Stripe keys, webhook secrets, and bearer
   tokens and rejects production RefundHold URLs.
@@ -891,8 +891,8 @@ Each task below is intentionally small, reviewable, and testable.
    - Verify: `pnpm test`, `pnpm typecheck`, `pnpm lint`.
 
 9. **Private Docs Split**
-   - Files: `README_DEPLOY_DOKPLOY.md`, `AUTH_ACTIVATION_RUNBOOK.md`,
-     `STRIPE_TEST_MODE_E2E.md`, `BACKUP_RESTORE.md`, `docs/internal/*`.
+   - Files: `docs/internal/deployment-dokploy.md`, `docs/internal/auth-activation.md`,
+     `docs/internal/stripe-test-mode-e2e.md`, `docs/internal/backup-restore.md`, `docs/internal/*`.
    - Change: move or mark private docs so public tree contains only safe local
      demo docs.
    - Verify: public docs navigation tests and a release-file inventory check.

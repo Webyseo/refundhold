@@ -78,7 +78,7 @@ as active reviewers so the current demo reviewer can keep approving and
 executing controlled refund flows.
 
 Controlled staging or production auth activation is documented in
-`AUTH_ACTIVATION_RUNBOOK.md`. Do not enable `AUTHRAIL_AUTH_REQUIRED=true`
+`auth-activation.md`. Do not enable `AUTHRAIL_AUTH_REQUIRED=true`
 before provisioning and validating a user, and keep the demo gate available
 until the final cutover decision.
 

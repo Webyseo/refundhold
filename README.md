@@ -101,7 +101,4 @@ For bypass-prevention architecture, see `/docs/prevent-bypass`.
 
 ## Internal docs
 
-- [Development handoff](docs/internal/development-handoff.md)
-
-Operational deployment, auth activation, Stripe test-mode E2E, backup/restore,
-and legacy naming notes should live under `docs/internal/`.
+- [Internal operational docs index](docs/internal/README.md)

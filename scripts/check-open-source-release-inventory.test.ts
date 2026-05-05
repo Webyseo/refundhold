@@ -196,6 +196,34 @@ describe("checkOpenSourceReleaseInventory", () => {
     expect(result.scannedFiles).toEqual(["README.md"]);
   });
 
+  it("does not scan root-level operational docs by default", async () => {
+    const root = createFixtureRoot();
+    await writeFixture(root, "README.md", "RefundHold demo simulation.");
+
+    const operationalRootDocs = [
+      ["README_DEPLOY", "_DOKPLOY.md"].join(""),
+      ["AUTH_ACTIVATION", "_RUNBOOK.md"].join(""),
+      ["STRIPE_TEST_MODE", "_E2E.md"].join(""),
+      ["BACKUP", "_RESTORE.md"].join(""),
+      ["docs/DEVELOPMENT", "_HANDOFF.md"].join(""),
+    ];
+
+    for (const filePath of operationalRootDocs) {
+      await writeFixture(
+        root,
+        filePath,
+        "AuthRail sk_live_1234567890abcdef production live refunds ready",
+      );
+    }
+
+    const result = checkOpenSourceReleaseInventory({
+      rootDir: root,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.scannedFiles).toEqual(["README.md"]);
+  });
+
   it("scans package metadata files by default", async () => {
     const root = createFixtureRoot();
     await writeFixture(
